@@ -1,0 +1,21 @@
+/* Application styles */
+
+.full-bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+
+/* Markdown prose styles */
+.prose h1, .prose h2, .prose h3 { font-weight: 700; margin-top: 1.25em; margin-bottom: 0.5em; }
+.prose h1 { font-size: 1.25rem; color: #111827; }
+.prose h2 { font-size: 1.1rem; color: #1f2937; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.25em; }
+.prose h3 { font-size: 0.95rem; color: #374151; }
+.prose p { margin-bottom: 0.75em; line-height: 1.6; }
+.prose ul, .prose ol { padding-left: 1.5em; margin-bottom: 0.75em; }
+.prose li { margin-bottom: 0.25em; }
+.prose strong { font-weight: 600; color: #111827; }
+.prose table { width: 100%; border-collapse: collapse; margin-bottom: 1em; font-size: 0.875rem; }
+.prose th { background: #f9fafb; padding: 0.5em 0.75em; text-align: left; font-weight: 600; border: 1px solid #e5e7eb; }
+.prose td { padding: 0.5em 0.75em; border: 1px solid #e5e7eb; }
+.prose blockquote { border-left: 3px solid #d1fae5; padding-left: 1em; color: #6b7280; font-style: italic; margin: 0.75em 0; }
+.prose hr { border: none; border-top: 1px solid #e5e7eb; margin: 1.5em 0; }

@@ -1,0 +1,26 @@
+<h1 class="text-xl font-bold text-gray-800 mb-6">Ajouter un document</h1>
+
+<div class="bg-white border border-gray-200 rounded-xl p-6">
+  <%= form_with model: [@property, @document], class: "space-y-4" do |f| %>
+    <div>
+      <%= f.label :document_type, "Type de document", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :document_type, [
+        ["DPE", "dpe"],
+        ["Titre de propriété", "titre_propriete"],
+        ["PV d'assemblée générale", "pv_ag"],
+        ["Devis artisan", "devis"],
+        ["Photo", "photo"],
+        ["Autre", "autre"]
+      ], {}, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" %>
+    </div>
+    <div>
+      <%= f.label :name, "Nom du document (optionnel)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_field :name, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" %>
+    </div>
+    <div>
+      <%= f.label :file, "Fichier (PDF ou image)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.file_field :file, class: "w-full text-sm text-gray-500" %>
+    </div>
+    <%= f.submit "Télécharger", class: "bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 text-sm cursor-pointer" %>
+  <% end %>
+</div>

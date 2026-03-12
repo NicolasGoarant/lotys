@@ -1,0 +1,851 @@
+<%# Header du bien %>
+<div class="flex items-start justify-between mb-8 flex-wrap gap-4">
+  <div>
+    <div class="flex items-center gap-3 mb-1">
+      <h1 class="text-3xl font-bold text-gray-900"><%= @property.address %></h1>
+      <span class="text-xs px-3 py-1 rounded-full font-semibold
+        <%= @property.draft? ? 'bg-gray-100 text-gray-600' :
+            @property.analyzing? ? 'bg-yellow-100 text-yellow-700' :
+            @property.analyzed? ? 'bg-blue-100 text-blue-700' :
+            'bg-emerald-100 text-emerald-700' %>">
+        <%= @property.draft? ? '⏳ Brouillon' :
+            @property.analyzing? ? '🔄 Analyse en cours' :
+            @property.analyzed? ? '✅ Analysé' : '📢 Publié' %>
+      </span>
+    </div>
+    <p class="text-gray-500"><%= @property.city %> <%= @property.zipcode %></p>
+  </div>
+  <div class="flex gap-2 flex-wrap">
+    <%= link_to "Modifier", edit_property_path(@property), class: "border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm hover:bg-gray-50" %>
+    <% if @property.draft? || @property.analyzed? %>
+      <%= button_to "🔍 Lancer l'analyse IA", analyze_property_path(@property),
+          class: "bg-blue-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-blue-700 font-medium" %>
+    <% end %>
+    <% if @property.analyzed? %>
+      <%= button_to "📢 Publier aux prestataires", publish_property_path(@property),
+          class: "bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-emerald-700 font-medium" %>
+    <% end %>
+  </div>
+</div>
+
+<%# Fiche identité %>
+<% parsed_for_id = (@property.analysis&.content.present? ? (JSON.parse(@property.analysis.content) rescue nil) : nil) %>
+<% val_from_ai = parsed_for_id&.dig("valeur") %>
+<div class="bg-white border border-gray-100 rounded-2xl overflow-hidden mb-6 shadow-sm">
+  <div class="flex items-center gap-4 px-6 pt-6 pb-4 border-b border-gray-100">
+    <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&q=80&auto=format&fit=crop" alt="" class="w-24 h-24 rounded-xl object-cover shadow-sm flex-shrink-0">
+    <div>
+      <h2 class="font-black text-gray-900 text-2xl">📋 Identité du bien</h2>
+      <p class="text-gray-500 text-sm"><%= @property.address %>, <%= @property.city %></p>
+    </div>
+  </div>
+  <div class="p-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
+      <div class="bg-gray-50 rounded-xl p-4 text-center">
+        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">Type</p>
+        <p class="font-bold text-gray-900 text-base"><%= @property.property_type&.capitalize || "—" %></p>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-4 text-center">
+        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">Surface</p>
+        <p class="font-bold text-gray-900 text-base"><%= @property.surface ? "#{@property.surface} m²" : "—" %></p>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-4 text-center">
+        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">Construction</p>
+        <p class="font-bold text-gray-900 text-base"><%= @property.construction_year || "—" %></p>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-4 text-center">
+        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">Pièces</p>
+        <p class="font-bold text-gray-900 text-base"><%= @property.nb_rooms || "—" %></p>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-4 text-center">
+        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">Copropriété</p>
+        <p class="font-bold text-gray-900 text-base"><%= @property.is_copropriete ? "Oui (#{@property.nb_lots} lots)" : "Non" %></p>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-4 text-center">
+        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">DPE</p>
+        <% dpe_val = @property.dpe_class || parsed_for_id&.dig("energie","dpe_estime") %>
+        <% dpe_hex = {"A"=>"#16a34a","B"=>"#22c55e","C"=>"#84cc16","D"=>"#eab308","E"=>"#f97316","F"=>"#ea580c","G"=>"#dc2626"} %>
+        <% if dpe_val %>
+          <span style="background:<%= dpe_hex[dpe_val.upcase] || '#6b7280' %>;" class="inline-block px-3 py-1 rounded-lg text-white font-black text-lg"><%= dpe_val.upcase %></span>
+        <% else %>
+          <p class="font-bold text-gray-900 text-base">—</p>
+        <% end %>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-4 text-center">
+        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">Prix d'achat</p>
+        <p class="font-bold text-gray-900 text-base"><%= val_from_ai&.dig("prix_acquisition") ? number_to_currency(val_from_ai["prix_acquisition"], unit: "€", format: "%n %u", precision: 0, delimiter: " ") : "—" %></p>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-4 text-center">
+        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">Statut</p>
+        <p class="font-bold text-gray-900 text-base"><%= @property.vacant? ? "Vacant" : "Occupé" %></p>
+      </div>
+    </div>
+    <% if @property.description.present? %>
+      <div class="bg-gray-50 rounded-xl p-4 mb-3">
+        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">Contexte</p>
+        <p class="text-gray-800 text-base leading-relaxed"><%= @property.description %></p>
+      </div>
+    <% end %>
+    <% dpe_display = @property.dpe_class || parsed_for_id&.dig("energie","dpe_estime") %>
+    <% if dpe_display %>
+      <% dpe_colors2 = { "A" => "#16a34a", "B" => "#22c55e", "C" => "#84cc16", "D" => "#eab308", "E" => "#f97316", "F" => "#ea580c", "G" => "#dc2626" } %>
+      <% dpe_labels2 = { "A" => "Très performant", "B" => "Performant", "C" => "Assez performant", "D" => "Peu performant", "E" => "Énergivore", "F" => "Très énergivore", "G" => "Passoire thermique" } %>
+      <div class="border-t border-gray-100 pt-4 mt-1">
+        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-3">⚡ Performance énergétique</p>
+        <div class="flex items-center gap-4 flex-wrap">
+          <div class="flex items-center justify-center rounded-xl text-white font-black text-4xl shadow-md"
+               style="background:<%= dpe_colors2[dpe_display.upcase] || '#6b7280' %>; width:72px; height:72px;">
+            <%= dpe_display.upcase %>
+          </div>
+          <div>
+            <p class="text-lg font-bold text-gray-900"><%= dpe_labels2[dpe_display.upcase] %></p>
+            <% if %w[F G].include?(dpe_display.upcase) %>
+              <p class="text-sm text-red-600 mt-0.5 font-semibold">⚠️ Ce logement ne peut plus être mis en location.</p>
+            <% elsif dpe_display.upcase == "E" %>
+              <p class="text-sm text-orange-600 mt-0.5 font-semibold">⚠️ Interdiction de louer prévue en 2028.</p>
+            <% end %>
+          </div>
+          <div class="flex gap-1 ml-auto">
+            <% %w[A B C D E F G].each do |letter| %>
+              <div style="background:<%= dpe_colors2[letter] %>; opacity:<%= letter == dpe_display.upcase ? '1' : '0.3' %>; width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:0.75rem; color:#fff;">
+                <%= letter %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<%# Analyse IA %>
+<% if @property.analysis&.content.present? %>
+  <% parsed = (JSON.parse(@property.analysis.content) rescue nil) %>
+  <% if parsed %>
+
+    <% v = parsed["valeur"] %>
+    <% if v %>
+    <div class="rounded-2xl overflow-hidden mb-6 shadow-sm border border-gray-100 bg-white">
+      <div class="flex items-center gap-4 px-6 pt-6 pb-4 border-b border-gray-100">
+        <img src="https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=200&q=80&auto=format&fit=crop" alt="" class="w-24 h-24 rounded-xl object-cover shadow-sm flex-shrink-0">
+        <h2 class="font-black text-gray-900 text-2xl">🏷️ <%= v["titre"] %></h2>
+      </div>
+      <div class="bg-white p-6">
+        <div class="grid grid-cols-3 gap-4 mb-6">
+          <div class="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-5 text-center">
+            <p class="text-emerald-700 text-xs font-bold uppercase tracking-wider mb-2">Estimation basse</p>
+            <p class="text-3xl font-black text-emerald-800"><%= number_to_currency(v["estimation_basse"], unit: "€", format: "%n %u", precision: 0, delimiter: " ") %></p>
+          </div>
+          <div class="bg-blue-50 border-2 border-blue-300 rounded-2xl p-5 text-center">
+            <p class="text-blue-700 text-xs font-bold uppercase tracking-wider mb-2">Estimation haute</p>
+            <p class="text-3xl font-black text-blue-800"><%= number_to_currency(v["estimation_haute"], unit: "€", format: "%n %u", precision: 0, delimiter: " ") %></p>
+          </div>
+          <div class="bg-gray-100 border-2 border-gray-300 rounded-2xl p-5 text-center">
+            <p class="text-gray-600 text-xs font-bold uppercase tracking-wider mb-2">Prix d'achat</p>
+            <p class="text-3xl font-black text-gray-800"><%= number_to_currency(v["prix_acquisition"], unit: "€", format: "%n %u", precision: 0, delimiter: " ") %></p>
+          </div>
+        </div>
+        <p class="text-gray-800 text-lg leading-relaxed mb-4" style="font-size:1rem;line-height:1.75"><%= v["analyse"] %></p>
+        <% if v["points_cles"].present? %>
+          <ul class="space-y-2">
+            <% v["points_cles"].each do |pt| %>
+              <li class="flex items-start gap-2 text-gray-800 text-sm"><span class="text-emerald-600 font-bold mt-0.5">✓</span><span><%= pt %></span></li>
+            <% end %>
+          </ul>
+        <% end %>
+      </div>
+    </div>
+    <% end %>
+
+    <% e = parsed["energie"] %>
+    <% if e %>
+    <% dpe_hex2 = {"A"=>"#16a34a","B"=>"#22c55e","C"=>"#84cc16","D"=>"#eab308","E"=>"#f97316","F"=>"#ea580c","G"=>"#dc2626"} %>
+    <div class="rounded-2xl overflow-hidden mb-6 shadow-sm border border-gray-100 bg-white">
+      <div class="flex items-center gap-4 px-6 pt-6 pb-4 border-b border-gray-100">
+        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&q=80&auto=format&fit=crop" alt="" class="w-24 h-24 rounded-xl object-cover shadow-sm flex-shrink-0">
+        <div class="flex-1 flex items-center justify-between">
+          <h2 class="font-black text-gray-900 text-2xl">⚡ <%= e["titre"] %></h2>
+          <% if e["urgence"] == "haute" %>
+            <span style="background:#ef4444;color:#fff;" class="text-sm px-3 py-1.5 rounded-full font-bold">⚠️ Urgence réglementaire</span>
+          <% end %>
+        </div>
+      </div>
+      <div class="bg-white p-6">
+        <div class="flex items-center gap-4 mb-5 flex-wrap">
+          <span class="text-gray-700 text-sm font-semibold">DPE estimé :</span>
+          <span style="background:<%= dpe_hex2[e['dpe_estime']] || '#9ca3af' %>;" class="px-4 py-1.5 rounded-lg text-white font-black text-xl"><%= e["dpe_estime"] %></span>
+          <span class="text-gray-400 text-2xl">→</span>
+          <span class="text-gray-700 text-sm font-semibold">Objectif :</span>
+          <span style="background:<%= dpe_hex2[e['dpe_cible']] || '#9ca3af' %>;" class="px-4 py-1.5 rounded-lg text-white font-black text-xl"><%= e["dpe_cible"] %></span>
+        </div>
+        <p class="text-gray-800 text-lg leading-relaxed mb-5" style="font-size:1rem;line-height:1.75"><%= e["analyse"] %></p>
+        <% if e["travaux"].present? %>
+          <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Travaux prioritaires — cochez ceux que vous envisagez</p>
+          <div class="space-y-2 mb-5" id="travaux-list">
+            <% e["travaux"].sort_by{|t| t["priorite"].to_i}.each_with_index do |t, idx| %>
+              <label class="flex items-center justify-between bg-gray-50 rounded-xl px-5 py-4 cursor-pointer hover:bg-emerald-50 transition-colors">
+                <div class="flex items-center gap-4">
+                  <input type="checkbox" class="travaux-cb w-5 h-5 accent-emerald-600 rounded flex-shrink-0"
+                         data-min="<%= t['cout_min'] %>"
+                         data-max="<%= t['cout_max'] %>"
+                         data-gain="<%= t['gain_dpe'] %>"
+                         checked
+                         onchange="calcTravaux()">
+                  <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 text-sm font-black flex items-center justify-center"><%= t["priorite"] %></span>
+                  <div>
+                    <p class="text-base font-bold text-gray-900"><%= t["poste"] %></p>
+                    <p class="text-sm text-emerald-700 font-semibold"><%= t["gain_dpe"] %></p>
+                  </div>
+                </div>
+                <p class="text-base font-bold text-gray-900 ml-4 shrink-0"><%= number_to_currency(t["cout_min"], unit: "€", format: "%n %u", precision: 0, delimiter: " ") %> – <%= number_to_currency(t["cout_max"], unit: "€", format: "%n %u", precision: 0, delimiter: " ") %></p>
+              </label>
+            <% end %>
+          </div>
+          <div id="travaux-total" class="flex items-center justify-between rounded-xl px-5 py-4 text-white mb-6" style="background:#047857;">
+            <div>
+              <p class="text-base font-bold">Budget sélectionné</p>
+              <p class="text-sm text-emerald-200" id="travaux-dpe-impact">—</p>
+            </div>
+            <p class="text-xl font-black" id="travaux-montant">—</p>
+          </div>
+          <script>
+          function calcTravaux() {
+            var cbs = document.querySelectorAll('.travaux-cb');
+            var min = 0, max = 0;
+            var gains = [];
+            cbs.forEach(function(cb) {
+              if (cb.checked) {
+                min += parseInt(cb.dataset.min) || 0;
+                max += parseInt(cb.dataset.max) || 0;
+                if (cb.dataset.gain) gains.push(cb.dataset.gain);
+              }
+            });
+            var fmt = function(x){ return x.toLocaleString('fr-FR') + ' €'; };
+            document.getElementById('travaux-montant').textContent = fmt(min) + ' – ' + fmt(max);
+            document.getElementById('travaux-dpe-impact').textContent = gains.length > 0
+              ? 'Impact : ' + gains.join(', ')
+              : 'Aucun travaux sélectionné';
+            var total = document.getElementById('travaux-total');
+            total.style.background = gains.length > 0 ? '#047857' : '#6b7280';
+            var simSlider = document.getElementById('sim-montant');
+            if (simSlider && max > 0) { simSlider.value = max; if (typeof calcPret === 'function') calcPret(); }
+            if (typeof calcAides === 'function') calcAides();
+          }
+          document.addEventListener('DOMContentLoaded', calcTravaux);
+          </script>
+        <% end %>
+<div class="border-t border-gray-100 pt-6 mb-6">
+  <h3 class="font-bold text-gray-900 text-lg mb-4">💰 Aides mobilisables sur vos travaux</h3>
+  <div class="mb-4">
+    <p class="text-sm font-semibold text-gray-600 mb-2">Vos revenus annuels (foyer fiscal) :</p>
+    <div class="flex gap-2 flex-wrap">
+      <button onclick="setProfil(0)" class="profil-btn px-3 py-2 rounded-lg text-sm font-bold border-2 border-gray-200 text-gray-600 transition-colors text-left">Très modestes<br><span class="font-normal text-xs">&lt; 21 000€/an</span></button>
+      <button onclick="setProfil(1)" class="profil-btn px-3 py-2 rounded-lg text-sm font-bold border-2 border-gray-200 text-gray-600 transition-colors text-left">Modestes<br><span class="font-normal text-xs">21 000 – 30 000€</span></button>
+      <button onclick="setProfil(2)" class="profil-btn px-3 py-2 rounded-lg text-sm font-bold border-2 border-gray-200 text-gray-600 transition-colors text-left">Intermédiaires<br><span class="font-normal text-xs">30 000 – 45 000€</span></button>
+      <button onclick="setProfil(3)" class="profil-btn px-3 py-2 rounded-lg text-sm font-bold border-2 border-gray-200 text-gray-600 transition-colors text-left">Supérieurs<br><span class="font-normal text-xs">&gt; 45 000€</span></button>
+    </div>
+  </div>
+  <div class="space-y-2 mb-4">
+    <div class="flex items-center justify-between bg-blue-50 rounded-xl px-4 py-3">
+      <div><p class="font-bold text-blue-900 text-sm">Éco-PTZ</p><p class="text-xs text-blue-700">Prêt à 0% · Sans condition de ressources</p></div>
+      <p class="font-black text-blue-900 text-base">jusqu'à 50 000 €</p>
+    </div>
+    <div class="flex items-center justify-between bg-purple-50 rounded-xl px-4 py-3">
+      <div><p class="font-bold text-purple-900 text-sm">MaPrimeRénov'</p><p class="text-xs text-purple-700" id="aide-mpr-label">Sélectionnez votre profil de revenus</p></div>
+      <p class="font-black text-purple-900 text-base" id="aide-mpr">—</p>
+    </div>
+    <div class="flex items-center justify-between bg-amber-50 rounded-xl px-4 py-3">
+      <div><p class="font-bold text-amber-900 text-sm">CEE (Certificats Économies Énergie)</p><p class="text-xs text-amber-700">Via artisan RGE · Variable selon les travaux</p></div>
+      <p class="font-black text-amber-900 text-base" id="aide-cee">—</p>
+    </div>
+  </div>
+  <div class="flex items-center justify-between rounded-xl px-5 py-4 text-white mb-2" style="background:#1d4ed8;">
+    <div><p class="font-bold text-base">Reste à financer</p><p class="text-blue-200 text-sm">Budget sélectionné – aides estimées</p></div>
+    <p class="font-black text-xl" id="reste-financer">—</p>
+  </div>
+  <p class="text-xs text-gray-400 mb-6">⚠️ Estimations indicatives 2025. MaPrimeRénov' peut nécessiter un audit énergétique pour les rénovations globales.</p>
+</div>
+<div class="border-t border-gray-100 pt-6">
+  <h3 class="font-bold text-gray-900 text-base mb-4">🏦 Simulateur de financement travaux</h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+            <div>
+              <label class="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">Montant emprunté</label>
+              <input type="range" id="sim-montant" min="5000" max="100000" step="1000" value="<%= e['budget_total_min'] || 30000 %>" class="w-full accent-emerald-600" oninput="calcPret()">
+              <p class="text-right text-sm font-bold text-gray-900 mt-1" id="sim-montant-label">—</p>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">Durée</label>
+              <input type="range" id="sim-duree" min="5" max="25" step="1" value="15" class="w-full accent-emerald-600" oninput="calcPret()">
+              <p class="text-right text-sm font-bold text-gray-900 mt-1" id="sim-duree-label">—</p>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">Taux annuel</label>
+              <input type="range" id="sim-taux" min="0" max="6" step="0.1" value="3.5" class="w-full accent-emerald-600" oninput="calcPret()">
+              <p class="text-right text-sm font-bold text-gray-900 mt-1" id="sim-taux-label">—</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+              <p class="text-xs text-emerald-700 font-bold uppercase tracking-wide mb-1">Mensualité</p>
+              <p class="text-2xl font-black text-emerald-800" id="sim-mensualite">—</p>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
+              <p class="text-xs text-gray-600 font-bold uppercase tracking-wide mb-1">Coût total</p>
+              <p class="text-2xl font-black text-gray-900" id="sim-cout-total">—</p>
+            </div>
+            <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 text-center">
+              <p class="text-xs text-orange-700 font-bold uppercase tracking-wide mb-1">Coût des intérêts</p>
+              <p class="text-2xl font-black text-orange-800" id="sim-interets">—</p>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400 mt-3">💡 Simulation indicative hors assurance. Pour l'Éco-PTZ (taux 0%), réglez le curseur sur 0%.</p>
+        </div>
+      </div>
+    </div>
+    <script>
+    function calcPret() {
+      var M = parseInt(document.getElementById('sim-montant').value);
+      var D = parseInt(document.getElementById('sim-duree').value);
+      var T = parseFloat(document.getElementById('sim-taux').value);
+      document.getElementById('sim-montant-label').textContent = M.toLocaleString('fr-FR') + ' €';
+      document.getElementById('sim-duree-label').textContent = D + ' ans';
+      document.getElementById('sim-taux-label').textContent = T.toFixed(1) + ' %';
+      var n = D * 12;
+      var fmt = function(x){ return Math.round(x).toLocaleString('fr-FR') + ' €'; };
+      if (T === 0) {
+        var mens = M / n;
+        document.getElementById('sim-mensualite').textContent = fmt(mens) + '/mois';
+        document.getElementById('sim-cout-total').textContent = fmt(M);
+        document.getElementById('sim-interets').textContent = '0 €';
+      } else {
+        var r = (T / 100) / 12;
+        var mens = M * r * Math.pow(1+r,n) / (Math.pow(1+r,n)-1);
+        var total = mens * n;
+        document.getElementById('sim-mensualite').textContent = fmt(mens) + '/mois';
+        document.getElementById('sim-cout-total').textContent = fmt(total);
+        document.getElementById('sim-interets').textContent = fmt(total - M);
+      }
+    }
+document.addEventListener('DOMContentLoaded', calcPret);
+
+var currentProfil = -1;
+document.addEventListener('DOMContentLoaded', calcPret);
+var currentProfil = -1;
+var mprTaux = [0.70, 0.50, 0.35, 0.15];
+var mprLabels = ['Bleu - 70% max', 'Jaune - 50% max', 'Violet - 35% max', 'Rose - 15% max'];
+function setProfil(p) {
+  currentProfil = p;
+  document.querySelectorAll('.profil-btn').forEach(function(b, i) {
+    b.style.borderColor = i === p ? '#059669' : '';
+    b.style.color = i === p ? '#047857' : '';
+    b.style.background = i === p ? '#ecfdf5' : '';
+  });
+  calcAides();
+}
+function calcAides() {
+  var cbs = document.querySelectorAll('.travaux-cb');
+  var maxBudget = 0;
+  cbs.forEach(function(cb) { if (cb.checked) maxBudget += parseInt(cb.dataset.max) || 0; });
+  var cee = maxBudget > 0 ? Math.min(Math.round(maxBudget * 0.08), 4000) : 0;
+  document.getElementById('aide-cee').textContent = cee > 0 ? cee.toLocaleString('fr-FR') + ' €' : '—';
+  var mpr = 0;
+  if (currentProfil >= 0 && maxBudget > 0) {
+    mpr = Math.min(Math.round(maxBudget * mprTaux[currentProfil]), 20000);
+    document.getElementById('aide-mpr').textContent = mpr.toLocaleString('fr-FR') + ' €';
+    document.getElementById('aide-mpr-label').textContent = mprLabels[currentProfil];
+  } else {
+    document.getElementById('aide-mpr').textContent = '—';
+    document.getElementById('aide-mpr-label').textContent = 'Sélectionnez votre profil';
+  }
+  var totalAides = (currentProfil >= 0 ? mpr : 0) + cee;
+  var reste = Math.max(0, maxBudget - totalAides);
+  document.getElementById('reste-financer').textContent = reste > 0 ? reste.toLocaleString('fr-FR') + ' €' : maxBudget > 0 ? '0 €' : '—';
+  var slider = document.getElementById('sim-montant');
+  if (slider && reste > 0) { slider.value = reste; calcPret(); }
+}
+document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPret(); calcAides(); });
+    </script>
+    <% end %>
+
+    <% i = parsed["idees"] %>
+    <% if i && i["scenarios"].present? %>
+    <div class="rounded-2xl overflow-hidden mb-6 shadow-sm border border-gray-100 bg-white">
+      <div class="flex items-center gap-4 px-6 pt-6 pb-4 border-b border-gray-100">
+        <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=200&q=80&auto=format&fit=crop" alt="" class="w-24 h-24 rounded-xl object-cover shadow-sm flex-shrink-0">
+        <div>
+          <h2 class="font-black text-gray-900 text-2xl">💡 <%= i["titre"] %></h2>
+          <p class="text-gray-500 text-sm mt-0.5">Des pistes moins évidentes, propres à votre bien.</p>
+        </div>
+      </div>
+      <div class="bg-white p-6">
+        <div class="space-y-3">
+          <% i["scenarios"].each do |s| %>
+            <div class="flex items-start gap-4 bg-gray-50 rounded-xl p-5">
+              <span class="text-3xl leading-none mt-1"><%= s["emoji"] %></span>
+              <div class="flex-1">
+                <p class="font-bold text-gray-900 text-lg mb-1"><%= s["titre"] %></p>
+                <p class="text-gray-700 text-base leading-relaxed mb-3"><%= s["description"] %></p>
+                <div class="flex items-center gap-3 flex-wrap">
+                  <span class="text-sm bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-bold"><%= s["gain_estime"] %></span>
+                  <% if s["faisabilite"] == "haute" %>
+                    <span style="background:#dcfce7;color:#166534;" class="text-sm px-3 py-1 rounded-full font-bold">Faisabilité : haute</span>
+                  <% elsif s["faisabilite"] == "moyenne" %>
+                    <span style="background:#fef9c3;color:#713f12;" class="text-sm px-3 py-1 rounded-full font-bold">Faisabilité : moyenne</span>
+                  <% else %>
+                    <span style="background:#fee2e2;color:#991b1b;" class="text-sm px-3 py-1 rounded-full font-bold">Faisabilité : basse</span>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+    <% end %>
+
+    <% r = parsed["recommandation"] %>
+    <% if r %>
+    <div class="rounded-2xl overflow-hidden mb-6 shadow-sm border-2 border-emerald-200">
+      <div style="background:#047857; padding:1.5rem;">
+        <h2 style="font-weight:900; color:#ffffff; font-size:1.25rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">✅ <%= r["titre"] %></h2>
+        <p style="color:#ffffff; font-size:1.125rem; line-height:1.75; font-weight:700;"><%= r["action_prioritaire"] %></p>
+      </div>
+      <div class="bg-white p-6">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-emerald-50 rounded-xl p-5">
+            <p class="text-xs font-black text-emerald-700 uppercase tracking-wider mb-2">⏱ Court terme (3 mois)</p>
+            <p class="text-gray-800 text-base leading-relaxed"><%= r["horizon_court"] %></p>
+          </div>
+          <div class="bg-blue-50 rounded-xl p-5">
+            <p class="text-xs font-black text-blue-700 uppercase tracking-wider mb-2">📅 Moyen terme (1-2 ans)</p>
+            <p class="text-gray-800 text-base leading-relaxed"><%= r["horizon_moyen"] %></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% end %>
+
+  <% else %>
+    <div class="bg-white border border-gray-100 rounded-2xl p-8 mb-6 shadow-sm">
+      <h2 class="font-bold text-gray-800 text-base uppercase tracking-wide mb-5">🤖 Analyse IA</h2>
+      <div class="prose prose-sm max-w-none text-gray-800">
+        <%= render_markdown(@property.analysis.content) %>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+<%# Documents %>
+<div class="bg-white border border-gray-100 rounded-2xl p-6 mb-6 shadow-sm">
+  <div class="flex items-center justify-between mb-5">
+    <h2 class="font-bold text-gray-700 text-sm uppercase tracking-wide">📎 Documents</h2>
+    <%= link_to "+ Ajouter un document", new_property_document_path(@property),
+        class: "text-sm text-emerald-600 hover:underline" %>
+  </div>
+  <% if @property.documents.empty? %>
+    <p class="text-sm text-gray-400">Aucun document téléchargé.</p>
+  <% else %>
+    <div class="space-y-3">
+      <% @property.documents.each do |doc| %>
+        <div class="flex items-start justify-between bg-gray-50 rounded-xl p-4">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-medium text-gray-800 text-sm"><%= doc.name.presence || doc.document_type.humanize %></span>
+              <span class="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full"><%= doc.document_type.humanize %></span>
+              <% if doc.processed? %>
+                <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">✓ Analysé</span>
+              <% end %>
+            </div>
+            <% if doc.ai_summary.present? %>
+              <p class="text-xs text-gray-500 leading-relaxed"><%= doc.ai_summary.truncate(200) %></p>
+            <% end %>
+          </div>
+          <%= button_to "×", property_document_path(@property, doc), method: :delete,
+              class: "text-gray-300 hover:text-red-400 ml-3 shrink-0 text-lg leading-none" %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
+<%# Offres reçues %>
+<% if @property.published? %>
+  <div class="bg-white border border-gray-100 rounded-2xl p-6 mb-6 shadow-sm">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="font-bold text-gray-700 text-sm uppercase tracking-wide">
+        🤝 Offres reçues
+        <% if @property.offers.any? %>
+          <span class="ml-1 bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full normal-case font-semibold"><%= @property.offers.count %></span>
+        <% end %>
+      </h2>
+    </div>
+    <% if @property.offers.empty? %>
+      <p class="text-sm text-gray-400">Aucune offre reçue pour l'instant. Les prestataires peuvent vous contacter depuis la page des enchères.</p>
+    <% else %>
+      <div class="space-y-4">
+        <% @property.offers.order(created_at: :desc).each do |offer| %>
+          <div class="border border-gray-100 rounded-2xl p-5">
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold px-3 py-1 rounded-full
+                  <%= offer.offer_type == 'renovation' ? 'bg-blue-100 text-blue-700' :
+                      offer.offer_type == 'financement' ? 'bg-purple-100 text-purple-700' :
+                      'bg-orange-100 text-orange-700' %>">
+                  <%= offer.offer_type == 'renovation' ? '🔨 Rénovation' :
+                      offer.offer_type == 'financement' ? '🏦 Financement' : '🏗️ Achat promoteur' %>
+                </span>
+                <span class="text-xs px-2 py-0.5 rounded-full
+                  <%= offer.status == 'accepted' ? 'bg-emerald-100 text-emerald-700' :
+                      offer.status == 'rejected' ? 'bg-red-100 text-red-700' :
+                      'bg-gray-100 text-gray-600' %>">
+                  <%= offer.status == 'accepted' ? '✓ Acceptée' :
+                      offer.status == 'rejected' ? '✗ Déclinée' : '⏳ En attente' %>
+                </span>
+              </div>
+              <% if offer.amount %>
+                <p class="text-xl font-bold text-emerald-600"><%= number_to_currency(offer.amount, unit: "€", format: "%n %u", precision: 0) %></p>
+              <% end %>
+            </div>
+            <p class="text-sm text-gray-600 leading-relaxed mb-3"><%= offer.description %></p>
+            <% if offer.pending? %>
+              <div class="flex gap-2 justify-end">
+                <%= button_to "✓ Accepter", offer_path(offer, status: "accepted"), method: :patch,
+                    class: "text-xs bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700" %>
+                <%= button_to "✗ Décliner", offer_path(offer, status: "rejected"), method: :patch,
+                    class: "text-xs border border-gray-200 text-gray-500 px-4 py-2 rounded-xl hover:bg-gray-50" %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
+<%# ============================================================ %>
+<%# PHASE 2 — Financement %>
+<%# ============================================================ %>
+<% if @property.device_simulation && @property.valuation %>
+  <% sim = @property.device_simulation %>
+  <% v   = @property.valuation %>
+  <% cout_travaux = (sim.total_aid_estimate * 1.8).round(-2) %>
+  <% reste_a_charge = [cout_travaux - sim.total_aid_estimate, 0].max %>
+
+  <%# --- Bloc de transition --- %>
+  <div style="background:linear-gradient(135deg,#1e3a5f,#1e40af);border-radius:1.5rem;padding:2rem;margin-bottom:1.5rem;color:white;">
+    <p style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;color:#93c5fd;margin:0 0 8px;">PHASE 2 — FINANCEMENT</p>
+    <h2 style="font-size:1.5rem;font-weight:900;margin:0 0 8px;">Pouvez-vous financer votre projet ?</h2>
+    <p style="font-size:0.875rem;color:#bfdbfe;margin:0 0 1.5rem;line-height:1.6;">
+      Lotys a calculé vos aides et votre reste à charge. L'étape suivante : comprendre comment le financer.
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;">
+      <div style="background:rgba(255,255,255,0.1);border-radius:1rem;padding:1rem;text-align:center;">
+        <p style="font-size:0.7rem;color:#93c5fd;margin:0 0 4px;">Coût travaux estimé</p>
+        <p style="font-size:1.25rem;font-weight:900;margin:0;"><%= number_to_currency(cout_travaux, unit: "€", format: "%n %u", precision: 0) %></p>
+      </div>
+      <div style="background:rgba(16,185,129,0.2);border:1px solid rgba(16,185,129,0.4);border-radius:1rem;padding:1rem;text-align:center;">
+        <p style="font-size:0.7rem;color:#6ee7b7;margin:0 0 4px;">Aides mobilisables</p>
+        <p style="font-size:1.25rem;font-weight:900;margin:0;color:#6ee7b7;">− <%= number_to_currency(sim.total_aid_estimate, unit: "€", format: "%n %u", precision: 0) %></p>
+      </div>
+      <div style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);border-radius:1rem;padding:1rem;text-align:center;">
+        <p style="font-size:0.7rem;color:#fde68a;margin:0 0 4px;">Reste à financer</p>
+        <p style="font-size:1.25rem;font-weight:900;margin:0;color:#fde68a;"><%= number_to_currency(reste_a_charge, unit: "€", format: "%n %u", precision: 0) %></p>
+      </div>
+    </div>
+    <p style="font-size:0.8rem;color:#93c5fd;margin:0;">Choisissez comment avancer :</p>
+  </div>
+
+  <%# --- Deux panneaux --- %>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+
+    <%# Panneau 1 : Email banquier %>
+    <% sujet = "Demande de simulation #{@property.is_copropriete ? 'éco-PTZ copropriété' : 'prêt travaux'} — #{@property.address}, #{@property.city}" %>
+    <% corps = ERB::Util.url_encode(
+      "Madame, Monsieur,\n\n" \
+      "Je suis propriétaire d'un bien situé au #{@property.address}, #{@property.city} " \
+      "(#{@property.surface} m², #{@property.property_type}#{@property.is_copropriete ? ", copropriété de #{@property.nb_lots} lots" : ""}, DPE #{@property.dpe_class&.upcase}).\n\n" \
+      "Dans le cadre d'un projet de rénovation énergétique, j'ai réalisé une estimation complète de mon dossier. " \
+      "Voici les éléments chiffrés :\n\n" \
+      "• Valeur du bien : #{number_to_currency(v.estimated_value, unit: '€', format: '%n %u', precision: 0)}\n" \
+      "• Coût estimé des travaux : #{number_to_currency(cout_travaux, unit: '€', format: '%n %u', precision: 0)}\n" \
+      "• Aides mobilisables :\n" \
+      "   - Éco-PTZ : #{number_to_currency(sim.eco_ptz_max_amount, unit: '€', format: '%n %u', precision: 0)} (taux 0%, sans condition de ressources)\n" \
+      "   - MaPrimeRénov' : #{number_to_currency(sim.maprimrenov_amount, unit: '€', format: '%n %u', precision: 0)}\n" \
+      "   - CEE : #{number_to_currency(sim.cee_estimated_amount, unit: '€', format: '%n %u', precision: 0)}\n" \
+      "• Reste à financer : #{number_to_currency(reste_a_charge, unit: '€', format: '%n %u', precision: 0)}\n\n" \
+      "Pour ce reste à charge, je souhaiterais connaître :\n" \
+      "- Les conditions d'un éco-PTZ#{@property.is_copropriete ? ' copropriété' : ''} complémentaire\n" \
+      "- Un taux indicatif pour un prêt travaux sur 10 à 15 ans\n" \
+      "- Ma capacité d'emprunt résiduelle\n\n" \
+      "Je reste disponible pour un rendez-vous à votre convenance.\n\n" \
+      "Cordialement,\n[Votre nom]\n[Votre téléphone]"
+    ) %>
+
+    <div style="background:white;border:1px solid #e5e7eb;border-radius:1.5rem;padding:1.5rem;display:flex;flex-direction:column;">
+      <div style="font-size:2rem;margin-bottom:12px;">✉️</div>
+      <h3 style="font-size:1rem;font-weight:800;color:#111827;margin:0 0 8px;">Contacter mon banquier</h3>
+      <p style="font-size:0.8rem;color:#6b7280;line-height:1.6;margin:0 0 16px;flex:1;">
+        Lotys génère un email pré-rempli avec tous vos chiffres. Votre conseiller reçoit un dossier complet — le rendez-vous est productif dès le départ.
+      </p>
+      <div style="background:#f9fafb;border-radius:0.75rem;padding:12px;font-size:0.72rem;color:#6b7280;margin-bottom:16px;line-height:1.8;">
+        <span style="color:#374151;font-weight:600;">Bien :</span> <%= @property.address %> · DPE <%= @property.dpe_class&.upcase %><br>
+        <span style="color:#374151;font-weight:600;">Travaux :</span> <%= number_to_currency(cout_travaux, unit: "€", format: "%n %u", precision: 0) %> ·
+        <span style="color:#059669;font-weight:600;">Aides : <%= number_to_currency(sim.total_aid_estimate, unit: "€", format: "%n %u", precision: 0) %></span><br>
+        <span style="color:#374151;font-weight:600;">Reste à financer :</span> <span style="color:#d97706;font-weight:700;"><%= number_to_currency(reste_a_charge, unit: "€", format: "%n %u", precision: 0) %></span>
+      </div>
+      <%= link_to "✉️ Ouvrir dans ma messagerie", "mailto:?subject=#{sujet}&body=#{corps}",
+          style: "display:block;background:#1e40af;color:white;text-align:center;padding:12px;border-radius:12px;text-decoration:none;font-weight:700;font-size:0.875rem;" %>
+      <p style="font-size:0.7rem;color:#9ca3af;text-align:center;margin:8px 0 0;">Aucune donnée transmise à Lotys</p>
+    </div>
+
+    <%# Panneau 2 : Simulation directe %>
+    <div style="background:white;border:1px solid #e5e7eb;border-radius:1.5rem;padding:1.5rem;display:flex;flex-direction:column;">
+      <div style="font-size:2rem;margin-bottom:12px;">🧮</div>
+      <h3 style="font-size:1rem;font-weight:800;color:#111827;margin:0 0 8px;">Simuler mon financement</h3>
+      <p style="font-size:0.8rem;color:#6b7280;line-height:1.6;margin:0 0 16px;">
+        Renseignez quelques éléments — Lotys calcule vos mensualités, votre taux d'endettement et le coût total de votre crédit.
+      </p>
+      <button onclick="toggleSimulation()"
+              style="display:block;width:100%;background:#059669;color:white;padding:12px;border-radius:12px;border:none;font-weight:700;font-size:0.875rem;cursor:pointer;margin-top:auto;">
+        🧮 Lancer la simulation
+      </button>
+    </div>
+  </div>
+
+  <%# --- Formulaire de simulation (masqué par défaut) --- %>
+  <div id="simulation-bancaire" style="display:none;background:white;border:2px solid #059669;border-radius:1.5rem;padding:2rem;margin-bottom:1.5rem;">
+    <h3 style="font-size:1.1rem;font-weight:800;color:#111827;margin:0 0 4px;">🧮 Simulation de financement personnalisée</h3>
+    <p style="font-size:0.8rem;color:#6b7280;margin:0 0 1.5rem;">Ces informations restent sur votre appareil et ne sont pas transmises à Lotys.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div>
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:4px;">Ce que vous touchez chaque mois (nets)</label>
+        <div style="display:flex;align-items:center;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:white;">
+          <input type="number" id="sim-revenus" placeholder="ex : 2 800" min="0"
+                 style="flex:1;padding:10px 12px;border:none;outline:none;font-size:0.875rem;"
+                 oninput="calculerSimulation()">
+          <span style="padding:10px 12px;background:#f9fafb;color:#9ca3af;font-size:0.8rem;">€/mois</span>
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:4px;">Crédits en cours (mensualités)</label>
+        <div style="display:flex;align-items:center;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:white;">
+          <input type="number" id="sim-charges" placeholder="ex : 400" min="0" value="0"
+                 style="flex:1;padding:10px 12px;border:none;outline:none;font-size:0.875rem;"
+                 oninput="calculerSimulation()">
+          <span style="padding:10px 12px;background:#f9fafb;color:#9ca3af;font-size:0.8rem;">€/mois</span>
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:4px;">Apport disponible</label>
+        <div style="display:flex;align-items:center;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:white;">
+          <input type="number" id="sim-apport" placeholder="ex : 5 000" min="0" value="0"
+                 style="flex:1;padding:10px 12px;border:none;outline:none;font-size:0.875rem;"
+                 oninput="calculerSimulation()">
+          <span style="padding:10px 12px;background:#f9fafb;color:#9ca3af;font-size:0.8rem;">€</span>
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:4px;">Votre âge</label>
+        <div style="display:flex;align-items:center;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:white;">
+          <input type="number" id="sim-age" placeholder="ex : 45" min="18" max="80"
+                 style="flex:1;padding:10px 12px;border:none;outline:none;font-size:0.875rem;"
+                 oninput="calculerSimulation()">
+          <span style="padding:10px 12px;background:#f9fafb;color:#9ca3af;font-size:0.8rem;">ans</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1rem;">
+      <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:4px;">Situation professionnelle</label>
+      <select id="sim-situation" onchange="calculerSimulation()"
+              style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;font-size:0.875rem;background:white;">
+        <option value="cdi">CDI / Fonctionnaire</option>
+        <option value="independant">Indépendant / Professions libérales</option>
+        <option value="retraite">Retraité</option>
+      </select>
+    </div>
+
+    <%# Résultats %>
+    <div id="sim-resultats" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:1rem;padding:1.5rem;margin-top:1rem;">
+      <h4 style="font-size:0.875rem;font-weight:700;color:#166534;margin:0 0 1rem;">📊 Résultats de votre simulation</h4>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;">
+        <div style="background:white;border-radius:0.75rem;padding:1rem;text-align:center;">
+          <p style="font-size:0.7rem;color:#6b7280;margin:0 0 4px;">Mensualité estimée</p>
+          <p id="res-mensualite" style="font-size:1.5rem;font-weight:900;color:#059669;margin:0;">—</p>
+          <p style="font-size:0.65rem;color:#9ca3af;margin:4px 0 0;">dont éco-PTZ à 0%</p>
+        </div>
+        <div style="background:white;border-radius:0.75rem;padding:1rem;text-align:center;">
+          <p style="font-size:0.7rem;color:#6b7280;margin:0 0 4px;">Taux d'endettement</p>
+          <p id="res-endettement" style="font-size:1.5rem;font-weight:900;margin:0;">—</p>
+          <p id="res-endettement-label" style="font-size:0.65rem;margin:4px 0 0;">—</p>
+        </div>
+        <div style="background:white;border-radius:0.75rem;padding:1rem;text-align:center;">
+          <p style="font-size:0.7rem;color:#6b7280;margin:0 0 4px;">Durée recommandée</p>
+          <p id="res-duree" style="font-size:1.5rem;font-weight:900;color:#1e40af;margin:0;">—</p>
+        </div>
+        <div style="background:white;border-radius:0.75rem;padding:1rem;text-align:center;">
+          <p style="font-size:0.7rem;color:#6b7280;margin:0 0 4px;">Coût total du crédit</p>
+          <p id="res-cout" style="font-size:1.5rem;font-weight:900;color:#374151;margin:0;">—</p>
+        </div>
+      </div>
+      <div id="res-alerte" style="display:none;margin-top:1rem;padding:12px;border-radius:0.75rem;font-size:0.8rem;"></div>
+    </div>
+  </div>
+
+  <script>
+    const RESTE = <%= reste_a_charge %>;
+    const ECO_PTZ = <%= sim.eco_ptz_max_amount %>;
+
+    function toggleSimulation() {
+      const el = document.getElementById('simulation-bancaire');
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+      if (el.style.display === 'block') el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function formatEur(n) {
+      return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+    }
+
+    function mensualite(capital, tauxAnnuel, mois) {
+      if (tauxAnnuel === 0) return capital / mois;
+      const t = tauxAnnuel / 12;
+      return capital * t / (1 - Math.pow(1 + t, -mois));
+    }
+
+    function calculerSimulation() {
+      const revenus    = parseFloat(document.getElementById('sim-revenus').value) || 0;
+      const charges    = parseFloat(document.getElementById('sim-charges').value) || 0;
+      const apport     = parseFloat(document.getElementById('sim-apport').value) || 0;
+      const age        = parseInt(document.getElementById('sim-age').value) || 0;
+      const situation  = document.getElementById('sim-situation').value;
+
+      if (revenus < 500 || age < 18) return;
+
+      // Durée max selon âge (limite assurance 75 ans généralement)
+      const dureeMax  = Math.min(Math.max(75 - age, 5), 20);
+      const dureeReco = Math.min(dureeMax, 15);
+
+      // Taux indicatif selon profil (approximation marché 2025)
+      const taux = situation === 'cdi' ? 0.033 :
+                   situation === 'independant' ? 0.037 : 0.038;
+
+      // Capital à emprunter = reste à charge - apport - éco-PTZ
+      const ecopty_eligible = Math.min(ECO_PTZ, RESTE);
+      const capitalPret = Math.max(RESTE - apport - ecopty_eligible, 0);
+
+      // Mensualités
+      const mensEcoPtz  = mensualite(ecopty_eligible, 0, dureeReco * 12);
+      const mensPret    = capitalPret > 0 ? mensualite(capitalPret, taux, dureeReco * 12) : 0;
+      const mensTotal   = mensEcoPtz + mensPret;
+
+      // Taux d'endettement
+      const tauxEndet = ((charges + mensTotal) / revenus) * 100;
+
+      // Coût total
+      const coutTotal = mensPret * dureeReco * 12 - capitalPret;
+
+      // Affichage
+      document.getElementById('sim-resultats').style.display = 'block';
+      document.getElementById('res-mensualite').textContent = formatEur(mensTotal) + '/mois';
+      document.getElementById('res-duree').textContent = dureeReco + ' ans';
+      document.getElementById('res-cout').textContent = coutTotal > 0 ? formatEur(coutTotal) : '0 €';
+
+      const endetEl = document.getElementById('res-endettement');
+      const endetLabel = document.getElementById('res-endettement-label');
+      endetEl.textContent = tauxEndet.toFixed(1) + '%';
+
+      if (tauxEndet <= 33) {
+        endetEl.style.color = '#059669';
+        endetLabel.textContent = '✓ Dans les normes bancaires';
+        endetLabel.style.color = '#059669';
+      } else if (tauxEndet <= 40) {
+        endetEl.style.color = '#d97706';
+        endetLabel.textContent = '⚠ Limite acceptable';
+        endetLabel.style.color = '#d97706';
+      } else {
+        endetEl.style.color = '#dc2626';
+        endetLabel.textContent = '✗ Au-dessus des normes';
+        endetLabel.style.color = '#dc2626';
+      }
+
+      const alerte = document.getElementById('res-alerte');
+      if (tauxEndet > 40) {
+        alerte.style.display = 'block';
+        alerte.style.background = '#fef2f2';
+        alerte.style.border = '1px solid #fecaca';
+        alerte.style.color = '#991b1b';
+        alerte.innerHTML = '⚠️ Votre taux d\'endettement dépasse 40%. Un courtier peut parfois trouver des solutions adaptées (modulation de durée, différé de remboursement). Pensez aussi à vérifier si votre éco-PTZ couvre une part plus grande des travaux.';
+      } else if (capitalPret === 0) {
+        alerte.style.display = 'block';
+        alerte.style.background = '#f0fdf4';
+        alerte.style.border = '1px solid #bbf7d0';
+        alerte.style.color = '#166534';
+        alerte.innerHTML = '🎉 Bonne nouvelle : l\'éco-PTZ à 0% et votre apport couvrent l\'intégralité du reste à charge. Aucun emprunt complémentaire nécessaire.';
+      } else {
+        alerte.style.display = 'none';
+      }
+    }
+  </script>
+
+
+    <% i = parsed["idees"] %>
+    <% if i && i["scenarios"].present? %>
+    <div class="rounded-2xl overflow-hidden mb-6 shadow-sm border border-gray-100 bg-white">
+      <div class="flex items-center gap-4 px-6 pt-6 pb-4 border-b border-gray-100">
+        <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=200&q=80&auto=format&fit=crop" alt="" class="w-24 h-24 rounded-xl object-cover shadow-sm flex-shrink-0">
+        <div>
+          <h2 class="font-black text-gray-900 text-2xl">💡 <%= i["titre"] %></h2>
+          <p class="text-gray-500 text-sm mt-0.5">Des pistes moins évidentes, propres à votre bien.</p>
+        </div>
+      </div>
+      <div class="bg-white p-6">
+        <div class="space-y-3">
+          <% i["scenarios"].each do |s| %>
+            <div class="flex items-start gap-4 bg-gray-50 rounded-xl p-5">
+              <span class="text-3xl leading-none mt-1"><%= s["emoji"] %></span>
+              <div class="flex-1">
+                <p class="font-bold text-gray-900 text-lg mb-1"><%= s["titre"] %></p>
+                <p class="text-gray-700 text-base leading-relaxed mb-3"><%= s["description"] %></p>
+                <div class="flex items-center gap-3 flex-wrap">
+                  <span class="text-sm bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-bold"><%= s["gain_estime"] %></span>
+                  <% if s["faisabilite"] == "haute" %>
+                    <span style="background:#dcfce7;color:#166534;" class="text-sm px-3 py-1 rounded-full font-bold">Faisabilité : haute</span>
+                  <% elsif s["faisabilite"] == "moyenne" %>
+                    <span style="background:#fef9c3;color:#713f12;" class="text-sm px-3 py-1 rounded-full font-bold">Faisabilité : moyenne</span>
+                  <% else %>
+                    <span style="background:#fee2e2;color:#991b1b;" class="text-sm px-3 py-1 rounded-full font-bold">Faisabilité : basse</span>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+    <% end %>
+
+    <% r = parsed["recommandation"] %>
+    <% if r %>
+    <div class="rounded-2xl overflow-hidden mb-6 shadow-sm border-2 border-emerald-200">
+      <div style="background:#047857; padding:1.5rem;">
+        <h2 style="font-weight:900; color:#ffffff; font-size:1.25rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">✅ <%= r["titre"] %></h2>
+        <p style="color:#ffffff; font-size:1.125rem; line-height:1.75; font-weight:700;"><%= r["action_prioritaire"] %></p>
+      </div>
+      <div class="bg-white p-6">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-emerald-50 rounded-xl p-5">
+            <p class="text-xs font-black text-emerald-700 uppercase tracking-wider mb-2">⏱ Court terme (3 mois)</p>
+            <p class="text-gray-800 text-base leading-relaxed"><%= r["horizon_court"] %></p>
+          </div>
+          <div class="bg-blue-50 rounded-xl p-5">
+            <p class="text-xs font-black text-blue-700 uppercase tracking-wider mb-2">📅 Moyen terme (1-2 ans)</p>
+            <p class="text-gray-800 text-base leading-relaxed"><%= r["horizon_moyen"] %></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% end %>
+
+  <% else %>
+  <% end %>

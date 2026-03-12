@@ -1,0 +1,32 @@
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-800">Mes biens</h1>
+  <%= link_to "Ajouter un bien", new_property_path, class: "bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 text-sm" %>
+</div>
+
+<% if @properties.empty? %>
+  <div class="text-center py-16 text-gray-400">
+    <p class="text-lg">Aucun bien pour l'instant.</p>
+    <%= link_to "Ajouter votre premier bien →", new_property_path, class: "text-emerald-600 hover:underline mt-2 inline-block" %>
+  </div>
+<% else %>
+  <div class="space-y-4">
+    <% @properties.each do |property| %>
+      <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-center justify-between">
+        <div>
+          <p class="font-semibold text-gray-800"><%= property.address %>, <%= property.city %></p>
+          <p class="text-sm text-gray-500 mt-1">
+            <%= property.surface %> m² ·
+            DPE <%= property.dpe_class&.upcase || "?" %> ·
+            <%= property.is_copropriete ? "Copropriété" : "Individuel" %>
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-xs px-2 py-1 rounded-full <%= status_badge_class(property.status) %>">
+            <%= property.status.humanize %>
+          </span>
+          <%= link_to "Voir", property, class: "text-sm text-emerald-600 hover:underline" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% end %>

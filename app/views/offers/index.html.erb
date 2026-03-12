@@ -1,0 +1,305 @@
+<div class="mb-8">
+  <h1 class="text-3xl font-bold text-gray-900 mb-2">Enchères inversées</h1>
+  <p class="text-gray-500">
+    <% if user_signed_in? && current_user.proprietaire? %>
+      Les prestataires viennent à vous — comparez et choisissez.
+    <% else %>
+      Les dossiers publiés par les propriétaires — faites vos propositions.
+    <% end %>
+  </p>
+</div>
+
+<%# Onglets %>
+<div class="flex gap-2 mb-8 border-b border-gray-200">
+  <% if user_signed_in? && current_user.proprietaire? %>
+    <button onclick="showTab('offres-recues')" id="btn-offres-recues"
+            class="tab-btn px-5 py-3 text-sm font-semibold border-b-2 border-emerald-600 text-emerald-600 -mb-px">
+      📬 Offres reçues
+      <% count = Offer.joins(:property).where(properties: { user_id: current_user.id }).count %>
+      <% if count > 0 %>
+        <span class="ml-1 bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full"><%= count %></span>
+      <% end %>
+    </button>
+    <button onclick="showTab('mes-biens-publies')" id="btn-mes-biens-publies"
+            class="tab-btn px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-600 -mb-px">
+      🏠 Mes biens publiés
+    </button>
+  <% else %>
+    <button onclick="showTab('dossiers-disponibles')" id="btn-dossiers-disponibles"
+            class="tab-btn px-5 py-3 text-sm font-semibold border-b-2 border-emerald-600 text-emerald-600 -mb-px">
+      📂 Dossiers disponibles
+      <span class="ml-1 bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full"><%= @properties.count %></span>
+    </button>
+    <% if user_signed_in? %>
+      <button onclick="showTab('mes-offres')" id="btn-mes-offres"
+              class="tab-btn px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-600 -mb-px">
+        📤 Mes offres envoyées
+      </button>
+    <% end %>
+  <% end %>
+</div>
+
+<%# ===== VUE PROPRIÉTAIRE ===== %>
+<% if user_signed_in? && current_user.proprietaire? %>
+
+  <div id="pane-offres-recues" class="tab-pane">
+    <% offres = @offers || [] %>
+    <% if offres.empty? %>
+      <div class="text-center py-20 text-gray-400">
+        <div class="text-6xl mb-4">📭</div>
+        <p class="text-lg font-medium mb-2">Aucune offre pour l'instant</p>
+        <p class="text-sm">Publiez un dossier pour commencer à recevoir des propositions.</p>
+        <%= link_to "Voir mes biens →", properties_path, class: "mt-4 inline-block text-emerald-600 hover:underline text-sm" %>
+      </div>
+    <% else %>
+      <div class="space-y-4">
+        <% offres.each do |offer| %>
+          <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full mb-2
+                  <%= offer.offer_type == 'renovation' ? 'bg-blue-100 text-blue-700' :
+                      offer.offer_type == 'financement' ? 'bg-purple-100 text-purple-700' :
+                      'bg-orange-100 text-orange-700' %>">
+                  <%= offer.offer_type == 'renovation' ? '🔨 Rénovation' :
+                      offer.offer_type == 'financement' ? '🏦 Financement' : '🏗️ Achat promoteur' %>
+                </span>
+                <p class="text-sm text-gray-500">
+                  Pour : <span class="font-medium text-gray-700"><%= offer.property.address %>, <%= offer.property.city %></span>
+                </p>
+              </div>
+              <div class="text-right">
+                <% if offer.amount %>
+                  <p class="text-2xl font-bold text-emerald-600"><%= number_to_currency(offer.amount, unit: "€", format: "%n %u", precision: 0) %></p>
+                <% end %>
+                <p class="text-xs text-gray-400 mt-1"><%= time_ago_in_words(offer.created_at) %></p>
+              </div>
+            </div>
+            <p class="text-sm text-gray-600 leading-relaxed mb-4"><%= offer.description %></p>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-gray-400">Expire dans <%= offer.expires_at ? distance_of_time_in_words_to_now(offer.expires_at) : "—" %></span>
+              <div class="flex gap-2">
+                <%= button_to "✓ Accepter", offer_path(offer, status: "accepted"), method: :patch,
+                    class: "text-xs bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700" %>
+                <%= button_to "✗ Décliner", offer_path(offer, status: "rejected"), method: :patch,
+                    class: "text-xs border border-gray-200 text-gray-500 px-4 py-2 rounded-xl hover:bg-gray-50" %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <div id="pane-mes-biens-publies" class="tab-pane hidden">
+    <% biens_publies = current_user.properties.published.includes(:offers) %>
+    <% if biens_publies.empty? %>
+      <div class="text-center py-20 text-gray-400">
+        <div class="text-6xl mb-4">🏠</div>
+        <p class="text-lg font-medium mb-2">Aucun bien publié</p>
+        <%= link_to "Analyser mon bien →", new_property_path, class: "bg-emerald-600 text-white px-5 py-2 rounded-xl text-sm hover:bg-emerald-700" %>
+      </div>
+    <% else %>
+      <div class="space-y-4">
+        <% biens_publies.each do |property| %>
+          <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="font-semibold text-gray-800"><%= property.address %>, <%= property.city %></p>
+              <p class="text-sm text-gray-500 mt-1"><%= property.surface %> m² · DPE <%= property.dpe_class&.upcase || "?" %></p>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-medium text-emerald-600"><%= property.offers.count %> offre<%= property.offers.count > 1 ? "s" : "" %></span>
+              <%= link_to "Voir →", property, class: "text-sm text-gray-500 hover:text-emerald-600" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+<%# ===== VUE PRESTATAIRE / VISITEUR ===== %>
+<% else %>
+
+  <%# Carte Leaflet %>
+  <div id="map" class="w-full rounded-2xl mb-6 border border-gray-100 shadow-sm" style="height: 340px;"></div>
+
+  <div id="pane-dossiers-disponibles" class="tab-pane">
+    <% if @properties.empty? %>
+      <div class="text-center py-20 text-gray-400">
+        <div class="text-6xl mb-4">📂</div>
+        <p class="text-lg font-medium">Aucun dossier disponible pour l'instant.</p>
+      </div>
+    <% else %>
+      <div class="space-y-4">
+        <% @properties.each do |property| %>
+          <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <div class="flex items-start justify-between mb-4">
+              <div>
+                <p class="font-bold text-gray-800 text-lg"><%= property.address %>, <%= property.city %></p>
+                <div class="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
+                  <% if property.surface %><span>📐 <%= property.surface %> m²</span><% end %>
+                  <% if property.dpe_class %><span>⚡ DPE <%= property.dpe_class.upcase %></span><% end %>
+                  <span><%= property.is_copropriete ? "🏘️ Copropriété (#{property.nb_lots} lots)" : "🏠 Individuel" %></span>
+                </div>
+              </div>
+              <span class="text-xs text-gray-400 shrink-0"><%= time_ago_in_words(property.created_at) %></span>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+              <% if property.valuation %>
+                <div class="bg-gray-50 rounded-xl p-3 text-center">
+                  <p class="text-xs text-gray-500 mb-1">Valeur estimée</p>
+                  <p class="font-bold text-gray-800"><%= number_to_currency(property.valuation.estimated_value, unit: "€", format: "%n %u", precision: 0) %></p>
+                </div>
+                <% if property.valuation.bulk_sale_estimate %>
+                  <div class="bg-orange-50 rounded-xl p-3 text-center">
+                    <p class="text-xs text-orange-600 mb-1">Potentiel vente en bloc</p>
+                    <p class="font-bold text-orange-700"><%= number_to_currency(property.valuation.bulk_sale_estimate, unit: "€", format: "%n %u", precision: 0) %></p>
+                  </div>
+                <% end %>
+              <% end %>
+              <% if property.device_simulation %>
+                <div class="bg-emerald-50 rounded-xl p-3 text-center">
+                  <p class="text-xs text-emerald-600 mb-1">Aides disponibles</p>
+                  <p class="font-bold text-emerald-700"><%= number_to_currency(property.device_simulation.total_aid_estimate, unit: "€", format: "%n %u", precision: 0) %></p>
+                </div>
+              <% end %>
+            </div>
+
+            <% if property.description.present? %>
+              <p class="text-sm text-gray-500 italic mb-4">"<%= property.description.truncate(150) %>"</p>
+            <% end %>
+
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-gray-400"><%= property.offers.count %> offre<%= property.offers.count > 1 ? "s" : "" %> reçue<%= property.offers.count > 1 ? "s" : "" %></span>
+              <% if user_signed_in? %>
+                <%= link_to "Faire une offre →", new_property_offer_path(property),
+                    class: "bg-emerald-600 text-white px-5 py-2 rounded-xl text-sm hover:bg-emerald-700 font-medium" %>
+              <% else %>
+                <%= link_to "Faire une offre →", new_user_session_path,
+                    class: "bg-emerald-600 text-white px-5 py-2 rounded-xl text-sm hover:bg-emerald-700 font-medium" %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if user_signed_in? %>
+    <div id="pane-mes-offres" class="tab-pane hidden">
+      <% mes_offres = user_signed_in? ? current_user.offers.includes(:property).order(created_at: :desc) : [] %>
+      <% if mes_offres.empty? %>
+        <div class="text-center py-20 text-gray-400">
+          <div class="text-6xl mb-4">📤</div>
+          <p class="text-lg font-medium">Vous n'avez pas encore envoyé d'offre.</p>
+        </div>
+      <% else %>
+        <div class="space-y-4">
+          <% mes_offres.each do |offer| %>
+            <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex items-start justify-between">
+              <div>
+                <p class="font-semibold text-gray-800"><%= offer.property.address %>, <%= offer.property.city %></p>
+                <p class="text-sm text-gray-500 mt-1"><%= offer.description&.truncate(100) %></p>
+              </div>
+              <div class="text-right shrink-0 ml-4">
+                <% if offer.amount %>
+                  <p class="font-bold text-emerald-600"><%= number_to_currency(offer.amount, unit: "€", format: "%n %u", precision: 0) %></p>
+                <% end %>
+                <span class="text-xs px-2 py-1 rounded-full
+                  <%= offer.status == 'accepted' ? 'bg-emerald-100 text-emerald-700' :
+                      offer.status == 'rejected' ? 'bg-red-100 text-red-700' :
+                      'bg-gray-100 text-gray-600' %>">
+                  <%= offer.status == 'accepted' ? '✓ Acceptée' :
+                      offer.status == 'rejected' ? '✗ Déclinée' : '⏳ En attente' %>
+                </span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+<% end %>
+
+<%# Leaflet %>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// Onglets — IDs boutons préfixés "btn-", IDs panneaux préfixés "pane-"
+function showTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('border-emerald-600', 'text-emerald-600');
+    btn.classList.add('border-transparent', 'text-gray-400');
+  });
+  const pane = document.getElementById('pane-' + name);
+  const btn  = document.getElementById('btn-' + name);
+  if (pane) pane.classList.remove('hidden');
+  if (btn) {
+    btn.classList.add('border-emerald-600', 'text-emerald-600');
+    btn.classList.remove('border-transparent', 'text-gray-400');
+  }
+}
+
+// Carte Leaflet
+const mapEl = document.getElementById('map');
+if (mapEl) {
+  const map = L.map('map').setView([48.6921, 6.1844], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  const properties = <%= raw @properties.map { |p|
+    {
+      address: p.address,
+      city: p.city,
+      dpe: p.dpe_class&.upcase,
+      surface: p.surface,
+      value: p.valuation&.estimated_value,
+      offers: p.offers.count
+    }
+  }.to_json %>;
+
+  // Coordonnées approximatives par adresse connue (fallback sur centre Nancy)
+  const coords = {
+    "14 rue Saint-Georges": [48.6934, 6.1801],
+    "3 rue des Lilas":       [48.6650, 6.1750],
+    "7 avenue du Général Leclerc": [48.6880, 6.1650],
+    "22 rue de la Commanderie": [48.6910, 6.1820],
+    "8 rue de la Craffe":    [48.6980, 6.1760],
+    "31 rue du Faubourg des Trois-Maisons": [48.6750, 6.2010],
+    "5 rue Isabey":          [48.6860, 6.1890],
+    "19 boulevard d'Austrasie": [48.7010, 6.1770],
+  };
+
+  const dpeColor = { A:'#22c55e', B:'#84cc16', C:'#a3e635', D:'#facc15', E:'#fb923c', F:'#f97316', G:'#ef4444' };
+
+  properties.forEach(p => {
+    const latlng = coords[p.address] || [48.6921 + (Math.random()-0.5)*0.02, 6.1844 + (Math.random()-0.5)*0.03];
+    const color = dpeColor[p.dpe] || '#6b7280';
+    const marker = L.circleMarker(latlng, {
+      radius: 14,
+      fillColor: color,
+      color: '#fff',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.9
+    }).addTo(map);
+    marker.bindPopup(`
+      <div style="min-width:180px">
+        <p style="font-weight:700;margin-bottom:4px">${p.address}</p>
+        <p style="color:#6b7280;font-size:12px">${p.city}</p>
+        <div style="display:flex;gap:8px;margin-top:8px;font-size:12px">
+          ${p.dpe ? `<span style="background:${color};color:white;padding:2px 8px;border-radius:20px;font-weight:700">DPE ${p.dpe}</span>` : ''}
+          ${p.surface ? `<span>${p.surface} m²</span>` : ''}
+        </div>
+        ${p.value ? `<p style="margin-top:8px;font-weight:700;color:#059669">${new Intl.NumberFormat('fr-FR').format(p.value)} €</p>` : ''}
+        <p style="font-size:11px;color:#9ca3af;margin-top:4px">${p.offers} offre${p.offers > 1 ? 's' : ''} reçue${p.offers > 1 ? 's' : ''}</p>
+      </div>
+    `);
+  });
+}
+</script>

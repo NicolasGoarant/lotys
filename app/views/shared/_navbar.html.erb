@@ -1,0 +1,72 @@
+<nav class="bg-white border-b border-gray-100 px-6 py-4 sticky top-0 z-50">
+  <div class="max-w-5xl mx-auto flex items-center justify-between">
+
+    <%# Logo %>
+    <a href="/" class="flex items-center gap-3">
+      <span class="text-2xl font-bold text-emerald-600">Lotys</span>
+      <span class="hidden md:block text-xs text-gray-400 border-l border-gray-200 pl-3">L'immobilier, enfin lisible.</span>
+    </a>
+
+    <%# Desktop %>
+    <div class="hidden md:flex items-center gap-6 text-sm">
+      <%= link_to "Enchères", offers_path, class: "text-gray-500 hover:text-emerald-600 transition" %>
+      <%= link_to "Comment ça marche", about_path, class: "text-gray-500 hover:text-emerald-600 transition" %>
+      <% if user_signed_in? %>
+        <%= link_to "Mes biens", properties_path, class: "text-gray-500 hover:text-emerald-600 transition" %>
+        <div class="flex items-center gap-2 border-l border-gray-200 pl-4">
+          <span class="text-xs text-gray-400"><%= current_user.email.split("@").first %></span>
+          <%= link_to "Déconnexion", destroy_user_session_path, data: { turbo_method: :delete },
+              class: "text-xs text-gray-400 hover:text-red-500 transition" %>
+        </div>
+      <% else %>
+        <%= link_to "Connexion", new_user_session_path, class: "text-gray-600 hover:text-emerald-600 transition" %>
+        <%= link_to "Analyser mon bien", new_property_path,
+            class: "bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition font-medium" %>
+      <% end %>
+    </div>
+
+    <%# Mobile : burger %>
+    <button id="burger-btn" class="md:hidden flex flex-col gap-1.5 p-2" onclick="toggleMenu()">
+      <span class="block w-5 h-0.5 bg-gray-600 transition-all" id="b1"></span>
+      <span class="block w-5 h-0.5 bg-gray-600 transition-all" id="b2"></span>
+      <span class="block w-5 h-0.5 bg-gray-600 transition-all" id="b3"></span>
+    </button>
+  </div>
+
+  <%# Menu mobile déroulant %>
+  <div id="mobile-menu" class="md:hidden hidden border-t border-gray-100 mt-4 pt-4 pb-2 space-y-1">
+    <%= link_to "Enchères", offers_path,
+        class: "block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl" %>
+    <%= link_to "Comment ça marche", about_path,
+        class: "block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl" %>
+    <% if user_signed_in? %>
+      <%= link_to "Mes biens", properties_path,
+          class: "block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl" %>
+      <div class="border-t border-gray-100 mt-2 pt-2">
+        <span class="block px-4 py-2 text-xs text-gray-400"><%= current_user.email %></span>
+        <%= link_to "Déconnexion", destroy_user_session_path, data: { turbo_method: :delete },
+            class: "block px-4 py-3 text-sm text-red-500 hover:bg-red-50 rounded-xl" %>
+      </div>
+    <% else %>
+      <div class="border-t border-gray-100 mt-2 pt-2 space-y-1">
+        <%= link_to "Connexion", new_user_session_path,
+            class: "block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl" %>
+        <%= link_to "Analyser mon bien gratuitement →", new_property_path,
+            class: "block mx-4 mt-2 py-3 text-sm text-center bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700" %>
+      </div>
+    <% end %>
+  </div>
+</nav>
+
+<script>
+function toggleMenu() {
+  const menu = document.getElementById('mobile-menu');
+  const b1 = document.getElementById('b1');
+  const b2 = document.getElementById('b2');
+  const b3 = document.getElementById('b3');
+  const open = menu.classList.toggle('hidden') === false;
+  b1.style.transform = open ? 'translateY(8px) rotate(45deg)' : '';
+  b2.style.opacity   = open ? '0' : '1';
+  b3.style.transform = open ? 'translateY(-8px) rotate(-45deg)' : '';
+}
+</script>

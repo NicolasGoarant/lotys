@@ -1,0 +1,58 @@
+<%= form_with model: property, class: "space-y-5" do |f| %>
+  <% if property.errors.any? %>
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
+      <% property.errors.full_messages.each do |msg| %>
+        <p><%= msg %></p>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="grid grid-cols-2 gap-4">
+    <div class="col-span-2">
+      <%= f.label :address, "Adresse", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_field :address, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" %>
+    </div>
+    <div>
+      <%= f.label :city, "Ville", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_field :city, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" %>
+    </div>
+    <div>
+      <%= f.label :zipcode, "Code postal", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_field :zipcode, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" %>
+    </div>
+    <div>
+      <%= f.label :surface, "Surface (m²)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.number_field :surface, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" %>
+    </div>
+    <div>
+      <%= f.label :construction_year, "Année de construction", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.number_field :construction_year, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" %>
+    </div>
+    <div>
+      <%= f.label :property_type, "Type de bien", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :property_type, [["Appartement", "appartement"], ["Maison", "maison"]], {}, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" %>
+    </div>
+    <div>
+      <%= f.label :dpe_class, "Classe DPE", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :dpe_class, %w[A B C D E F G], { include_blank: "Inconnue" }, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" %>
+    </div>
+    <div>
+      <%= f.label :nb_rooms, "Nombre de pièces", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.number_field :nb_rooms, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" %>
+    </div>
+    <div class="flex items-center gap-3 mt-2">
+      <%= f.check_box :is_copropriete, class: "w-4 h-4 text-emerald-600" %>
+      <%= f.label :is_copropriete, "Bien en copropriété", class: "text-sm font-medium text-gray-700" %>
+    </div>
+    <div>
+      <%= f.label :nb_lots, "Nombre de lots (copropriété)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.number_field :nb_lots, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" %>
+    </div>
+    <div class="col-span-2">
+      <%= f.label :description, "Description", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_area :description, rows: 3, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" %>
+    </div>
+  </div>
+
+  <%= f.submit "Enregistrer", class: "bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 text-sm cursor-pointer" %>
+<% end %>

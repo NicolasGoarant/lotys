@@ -1,0 +1,52 @@
+<%= form_with(model: offer, class: "contents") do |form| %>
+  <% if offer.errors.any? %>
+    <div id="error_explanation" class="bg-red-50 text-red-500 px-3 py-2 font-medium rounded-md mt-3">
+      <h2><%= pluralize(offer.errors.count, "error") %> prohibited this offer from being saved:</h2>
+
+      <ul class="list-disc ml-6">
+        <% offer.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="my-5">
+    <%= form.label :property_id %>
+    <%= form.text_field :property_id, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": offer.errors[:property_id].none?, "border-red-400 focus:outline-red-600": offer.errors[:property_id].any?}] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :user_id %>
+    <%= form.text_field :user_id, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": offer.errors[:user_id].none?, "border-red-400 focus:outline-red-600": offer.errors[:user_id].any?}] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :offer_type %>
+    <%= form.number_field :offer_type, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": offer.errors[:offer_type].none?, "border-red-400 focus:outline-red-600": offer.errors[:offer_type].any?}] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :amount %>
+    <%= form.number_field :amount, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": offer.errors[:amount].none?, "border-red-400 focus:outline-red-600": offer.errors[:amount].any?}] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :description %>
+    <%= form.text_area :description, rows: 4, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": offer.errors[:description].none?, "border-red-400 focus:outline-red-600": offer.errors[:description].any?}] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :status %>
+    <%= form.number_field :status, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": offer.errors[:status].none?, "border-red-400 focus:outline-red-600": offer.errors[:status].any?}] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :expires_at %>
+    <%= form.datetime_field :expires_at, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": offer.errors[:expires_at].none?, "border-red-400 focus:outline-red-600": offer.errors[:expires_at].any?}] %>
+  </div>
+
+  <div class="inline">
+    <%= form.submit class: "w-full sm:w-auto rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium cursor-pointer" %>
+  </div>
+<% end %>

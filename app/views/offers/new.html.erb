@@ -1,0 +1,23 @@
+<h1 class="text-xl font-bold text-gray-800 mb-6">Faire une offre</h1>
+
+<div class="bg-white border border-gray-200 rounded-xl p-6">
+  <%= form_with model: [@property, @offer], class: "space-y-4" do |f| %>
+    <div>
+      <%= f.label :offer_type, "Type d'offre", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :offer_type, [
+        ["Rénovation / Travaux", "renovation"],
+        ["Financement", "financement"],
+        ["Achat promoteur", "achat_promoteur"]
+      ], {}, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" %>
+    </div>
+    <div>
+      <%= f.label :amount, "Montant proposé (€)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.number_field :amount, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" %>
+    </div>
+    <div>
+      <%= f.label :description, "Description de votre offre", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_area :description, rows: 4, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" %>
+    </div>
+    <%= f.submit "Envoyer l'offre", class: "bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 text-sm cursor-pointer" %>
+  <% end %>
+</div>
