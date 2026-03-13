@@ -27,5 +27,7 @@
       <%= yield %>
     </main>
 
-  </body>
+  <style>@media(min-width:640px){.sim-results-grid{grid-template-columns:repeat(3,1fr)!important;}}</style>
+<script>document.addEventListener("turbo:load", function() { var h = window.location.hash; if (h) { var el = document.querySelector(h); if (el) { setTimeout(function(){ el.scrollIntoView({behavior:"smooth", block:"start"}); }, 100); } } });</script>
+</body>
 </html>

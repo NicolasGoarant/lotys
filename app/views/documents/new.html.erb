@@ -1,26 +1,49 @@
-<h1 class="text-xl font-bold text-gray-800 mb-6">Ajouter un document</h1>
+<h1 class="text-xl font-bold text-gray-800 mb-6">Ajouter des documents</h1>
+<% if flash[:alert] %><div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4"><p class="text-sm text-red-700"><%= flash[:alert] %></p></div><% end %>
+<% if flash.now[:alert] %><div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4"><p class="text-sm text-red-700"><%= flash.now[:alert] %></p></div><% end %>
 
 <div class="bg-white border border-gray-200 rounded-xl p-6">
-  <%= form_with model: [@property, @document], class: "space-y-4" do |f| %>
+  <%= form_with model: [@property, @document], multipart: true, id: "doc-form" do |f| %>
     <div>
       <%= f.label :document_type, "Type de document", class: "block text-sm font-medium text-gray-700 mb-1" %>
       <%= f.select :document_type, [
-        ["DPE", "dpe"],
-        ["Titre de propriété", "titre_propriete"],
-        ["PV d'assemblée générale", "pv_ag"],
-        ["Devis artisan", "devis"],
-        ["Photo", "photo"],
-        ["Autre", "autre"]
-      ], {}, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" %>
+        ["DPE", "dpe"], ["Titre de propriété", "titre_propriete"],
+        ["PV d'assemblée générale", "pv_ag"], ["Devis artisan", "devis"],
+        ["Photo", "photo"], ["Autre", "autre"]
+      ], {}, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4" %>
     </div>
-    <div>
-      <%= f.label :name, "Nom du document (optionnel)", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.text_field :name, class: "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" %>
+
+    <%= f.file_field :files, multiple: true, name: "document[files][]", accept: ".pdf,.jpg,.jpeg,.png",
+        id: "file-input", class: "hidden" %>
+
+    <div id="drop-zone"
+         onclick="document.getElementById('file-input').click()"
+         class="border-2 border-dashed border-emerald-300 rounded-xl p-10 text-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-colors">
+      <p class="text-4xl mb-3">📄</p>
+      <p class="font-bold text-gray-800 text-lg">Cliquez pour choisir vos fichiers</p>
+      <p class="text-sm text-gray-500 mt-1">PDF, JPG, PNG · Plusieurs fichiers possibles</p>
+      <p id="file-names" class="text-sm text-emerald-700 font-semibold mt-3 hidden"></p>
     </div>
-    <div>
-      <%= f.label :file, "Fichier (PDF ou image)", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.file_field :file, class: "w-full text-sm text-gray-500" %>
+
+    <div id="upload-progress" class="hidden mt-4">
+      <div class="flex items-center gap-3 bg-emerald-50 rounded-xl p-4">
+        <div class="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-sm font-semibold text-emerald-800">Envoi en cours et relance de l'analyse IA...</p>
+      </div>
     </div>
-    <%= f.submit "Télécharger", class: "bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 text-sm cursor-pointer" %>
   <% end %>
 </div>
+
+<script>
+document.getElementById('file-input').addEventListener('change', function() {
+  var files = this.files;
+  if (files.length === 0) return;
+  var names = Array.from(files).map(function(f) { return f.name; }).join(', ');
+  var label = document.getElementById('file-names');
+  label.textContent = files.length + ' fichier(s) sélectionné(s) : ' + names;
+  label.classList.remove('hidden');
+  document.getElementById('upload-progress').classList.remove('hidden');
+  document.getElementById('drop-zone').style.pointerEvents = 'none';
+  document.getElementById('doc-form').submit();
+});
+</script>

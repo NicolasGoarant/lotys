@@ -1,5 +1,5 @@
 <%# Header du bien %>
-<div class="flex items-start justify-between mb-8 flex-wrap gap-4">
+<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-8 gap-3">
   <div>
     <div class="flex items-center gap-3 mb-1">
       <h1 class="text-3xl font-bold text-gray-900"><%= @property.address %></h1>
@@ -15,15 +15,15 @@
     </div>
     <p class="text-gray-500"><%= @property.city %> <%= @property.zipcode %></p>
   </div>
-  <div class="flex gap-2 flex-wrap">
-    <%= link_to "Modifier", edit_property_path(@property), class: "border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm hover:bg-gray-50" %>
+  <div class="flex flex-col sm:flex-row gap-2 sm:mt-0">
+    <%= link_to "Modifier", edit_property_path(@property), class: "text-center border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm hover:bg-gray-50 w-full sm:w-auto" %>
     <% if @property.draft? || @property.analyzed? %>
       <%= button_to "🔍 Lancer l'analyse IA", analyze_property_path(@property),
-          class: "bg-blue-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-blue-700 font-medium" %>
+          class: "bg-blue-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-blue-700 font-medium w-full sm:w-auto" %>
     <% end %>
     <% if @property.analyzed? %>
       <%= button_to "📢 Publier aux prestataires", publish_property_path(@property),
-          class: "bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-emerald-700 font-medium" %>
+          class: "bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-emerald-700 font-medium w-full sm:w-auto" %>
     <% end %>
   </div>
 </div>
@@ -31,16 +31,16 @@
 <%# Fiche identité %>
 <% parsed_for_id = (@property.analysis&.content.present? ? (JSON.parse(@property.analysis.content) rescue nil) : nil) %>
 <% val_from_ai = parsed_for_id&.dig("valeur") %>
-<div class="bg-white border border-gray-100 rounded-2xl overflow-hidden mb-6 shadow-sm">
-  <div class="flex items-center gap-4 px-6 pt-6 pb-4 border-b border-gray-100">
-    <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&q=80&auto=format&fit=crop" alt="" class="w-24 h-24 rounded-xl object-cover shadow-sm flex-shrink-0">
+<div class="bg-white rounded-2xl overflow-hidden mb-8 shadow-md" style="border:2px solid #e2e8f0; border-top:4px solid #475569;">
+  <div class="flex items-center gap-4 px-6 pt-6 pb-5 border-b-2 border-gray-100 bg-gray-50">
+    <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&q=80&auto=format&fit=crop" alt="" class="w-28 h-28 rounded-xl object-cover shadow-sm flex-shrink-0">
     <div>
       <h2 class="font-black text-gray-900 text-2xl">📋 Identité du bien</h2>
       <p class="text-gray-500 text-sm"><%= @property.address %>, <%= @property.city %></p>
     </div>
   </div>
   <div class="p-6">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-3">
       <div class="bg-gray-50 rounded-xl p-4 text-center">
         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">Type</p>
         <p class="font-bold text-gray-900 text-base"><%= @property.property_type&.capitalize || "—" %></p>
@@ -125,13 +125,13 @@
 
     <% v = parsed["valeur"] %>
     <% if v %>
-    <div class="rounded-2xl overflow-hidden mb-6 shadow-sm border border-gray-100 bg-white">
-      <div class="flex items-center gap-4 px-6 pt-6 pb-4 border-b border-gray-100">
-        <img src="https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=200&q=80&auto=format&fit=crop" alt="" class="w-24 h-24 rounded-xl object-cover shadow-sm flex-shrink-0">
+    <div class="rounded-2xl overflow-hidden mb-8 bg-white" style="border:2px solid #e2e8f0; border-top:4px solid #16a34a; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+      <div class="flex items-center gap-4 px-6 pt-6 pb-5 border-b-2 border-gray-100 bg-gray-50">
+        <img src="https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=200&q=80&auto=format&fit=crop" alt="" class="w-28 h-28 rounded-xl object-cover shadow-sm flex-shrink-0">
         <h2 class="font-black text-gray-900 text-2xl">🏷️ <%= v["titre"] %></h2>
       </div>
       <div class="bg-white p-6">
-        <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div class="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-5 text-center">
             <p class="text-emerald-700 text-xs font-bold uppercase tracking-wider mb-2">Estimation basse</p>
             <p class="text-3xl font-black text-emerald-800"><%= number_to_currency(v["estimation_basse"], unit: "€", format: "%n %u", precision: 0, delimiter: " ") %></p>
@@ -145,7 +145,7 @@
             <p class="text-3xl font-black text-gray-800"><%= number_to_currency(v["prix_acquisition"], unit: "€", format: "%n %u", precision: 0, delimiter: " ") %></p>
           </div>
         </div>
-        <p class="text-gray-800 text-lg leading-relaxed mb-4" style="font-size:1rem;line-height:1.75"><%= v["analyse"] %></p>
+        <p class="text-gray-800 text-lg leading-relaxed mb-4" style="font-size:1rem;line-height:1.75"><%= sentences_to_lines(v["analyse"]) %></p>
         <% if v["points_cles"].present? %>
           <ul class="space-y-2">
             <% v["points_cles"].each do |pt| %>
@@ -160,9 +160,9 @@
     <% e = parsed["energie"] %>
     <% if e %>
     <% dpe_hex2 = {"A"=>"#16a34a","B"=>"#22c55e","C"=>"#84cc16","D"=>"#eab308","E"=>"#f97316","F"=>"#ea580c","G"=>"#dc2626"} %>
-    <div class="rounded-2xl overflow-hidden mb-6 shadow-sm border border-gray-100 bg-white">
-      <div class="flex items-center gap-4 px-6 pt-6 pb-4 border-b border-gray-100">
-        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&q=80&auto=format&fit=crop" alt="" class="w-24 h-24 rounded-xl object-cover shadow-sm flex-shrink-0">
+    <div class="rounded-2xl overflow-hidden mb-8 bg-white" style="border:2px solid #e2e8f0; border-top:4px solid #ea580c; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+      <div class="flex items-center gap-4 px-6 pt-6 pb-5 border-b-2 border-gray-100 bg-gray-50">
+        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&q=80&auto=format&fit=crop" alt="" class="w-28 h-28 rounded-xl object-cover shadow-sm flex-shrink-0">
         <div class="flex-1 flex items-center justify-between">
           <h2 class="font-black text-gray-900 text-2xl">⚡ <%= e["titre"] %></h2>
           <% if e["urgence"] == "haute" %>
@@ -178,7 +178,7 @@
           <span class="text-gray-700 text-sm font-semibold">Objectif :</span>
           <span style="background:<%= dpe_hex2[e['dpe_cible']] || '#9ca3af' %>;" class="px-4 py-1.5 rounded-lg text-white font-black text-xl"><%= e["dpe_cible"] %></span>
         </div>
-        <p class="text-gray-800 text-lg leading-relaxed mb-5" style="font-size:1rem;line-height:1.75"><%= e["analyse"] %></p>
+        <p class="text-gray-800 text-lg leading-relaxed mb-5" style="font-size:1rem;line-height:1.75"><%= sentences_to_lines(e["analyse"]) %></p>
         <% if e["travaux"].present? %>
           <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Travaux prioritaires — cochez ceux que vous envisagez</p>
           <div class="space-y-2 mb-5" id="travaux-list">
@@ -285,7 +285,7 @@
               <p class="text-right text-sm font-bold text-gray-900 mt-1" id="sim-taux-label">—</p>
             </div>
           </div>
-          <div class="grid grid-cols-3 gap-3">
+          <div style="display:grid; grid-template-columns:1fr; gap:0.75rem;" class="sim-results-grid">
             <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
               <p class="text-xs text-emerald-700 font-bold uppercase tracking-wide mb-1">Mensualité</p>
               <p class="text-2xl font-black text-emerald-800" id="sim-mensualite">—</p>
@@ -370,9 +370,9 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
 
     <% i = parsed["idees"] %>
     <% if i && i["scenarios"].present? %>
-    <div class="rounded-2xl overflow-hidden mb-6 shadow-sm border border-gray-100 bg-white">
-      <div class="flex items-center gap-4 px-6 pt-6 pb-4 border-b border-gray-100">
-        <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=200&q=80&auto=format&fit=crop" alt="" class="w-24 h-24 rounded-xl object-cover shadow-sm flex-shrink-0">
+    <div class="rounded-2xl overflow-hidden mb-8 bg-white" style="border:2px solid #e2e8f0; border-top:4px solid #7c3aed; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+      <div class="flex items-center gap-4 px-6 pt-6 pb-5 border-b-2 border-gray-100 bg-gray-50">
+        <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=200&q=80&auto=format&fit=crop" alt="" class="w-28 h-28 rounded-xl object-cover shadow-sm flex-shrink-0">
         <div>
           <h2 class="font-black text-gray-900 text-2xl">💡 <%= i["titre"] %></h2>
           <p class="text-gray-500 text-sm mt-0.5">Des pistes moins évidentes, propres à votre bien.</p>
@@ -406,20 +406,20 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
 
     <% r = parsed["recommandation"] %>
     <% if r %>
-    <div class="rounded-2xl overflow-hidden mb-6 shadow-sm border-2 border-emerald-200">
+    <div class="rounded-2xl overflow-hidden mb-8 shadow-md border-2 border-emerald-400">
       <div style="background:#047857; padding:1.5rem;">
         <h2 style="font-weight:900; color:#ffffff; font-size:1.25rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">✅ <%= r["titre"] %></h2>
         <p style="color:#ffffff; font-size:1.125rem; line-height:1.75; font-weight:700;"><%= r["action_prioritaire"] %></p>
       </div>
       <div class="bg-white p-6">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="bg-emerald-50 rounded-xl p-5">
             <p class="text-xs font-black text-emerald-700 uppercase tracking-wider mb-2">⏱ Court terme (3 mois)</p>
-            <p class="text-gray-800 text-base leading-relaxed"><%= r["horizon_court"] %></p>
+            <p style="white-space:pre-line;" class="text-gray-800 text-base leading-relaxed">
           </div>
           <div class="bg-blue-50 rounded-xl p-5">
             <p class="text-xs font-black text-blue-700 uppercase tracking-wider mb-2">📅 Moyen terme (1-2 ans)</p>
-            <p class="text-gray-800 text-base leading-relaxed"><%= r["horizon_moyen"] %></p>
+            <p style="white-space:pre-line;" class="text-gray-800 text-base leading-relaxed">
           </div>
         </div>
       </div>
@@ -435,8 +435,9 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
     </div>
   <% end %>
 <% end %>
+<a name="documents" id="documents"></a>
 <%# Documents %>
-<div class="bg-white border border-gray-100 rounded-2xl p-6 mb-6 shadow-sm">
+<div id="documents" class="bg-white rounded-2xl p-6 mb-8" style="border:2px solid #e2e8f0; border-top:4px solid #0ea5e9; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
   <div class="flex items-center justify-between mb-5">
     <h2 class="font-bold text-gray-700 text-sm uppercase tracking-wide">📎 Documents</h2>
     <%= link_to "+ Ajouter un document", new_property_document_path(@property),
@@ -447,21 +448,24 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
   <% else %>
     <div class="space-y-3">
       <% @property.documents.each do |doc| %>
-        <div class="flex items-start justify-between bg-gray-50 rounded-xl p-4">
-          <div class="flex-1">
-            <div class="flex items-center gap-2 mb-1">
-              <span class="font-medium text-gray-800 text-sm"><%= doc.name.presence || doc.document_type.humanize %></span>
-              <span class="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full"><%= doc.document_type.humanize %></span>
+        <div class="flex items-start gap-3 bg-gray-50 rounded-xl p-4 group">
+          <div class="pt-0.5">
+            <%= button_to "🗑", property_document_path(@property, doc), method: :delete,
+                class: "text-gray-300 group-hover:text-red-400 transition-colors text-base leading-none bg-transparent border-0 cursor-pointer p-0",
+                data: { confirm: "Supprimer ce document ?", turbo: false } %>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
+              <span class="font-medium text-gray-800 text-sm truncate"><%= doc.name.presence || doc.document_type.humanize %></span>
+              <span class="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full shrink-0"><%= doc.document_type.humanize %></span>
               <% if doc.processed? %>
-                <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">✓ Analysé</span>
+                <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full shrink-0">✓ Analysé</span>
               <% end %>
             </div>
             <% if doc.ai_summary.present? %>
               <p class="text-xs text-gray-500 leading-relaxed"><%= doc.ai_summary.truncate(200) %></p>
             <% end %>
           </div>
-          <%= button_to "×", property_document_path(@property, doc), method: :delete,
-              class: "text-gray-300 hover:text-red-400 ml-3 shrink-0 text-lg leading-none" %>
         </div>
       <% end %>
     </div>
@@ -470,7 +474,7 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
 
 <%# Offres reçues %>
 <% if @property.published? %>
-  <div class="bg-white border border-gray-100 rounded-2xl p-6 mb-6 shadow-sm">
+  <div id="documents" class="bg-white rounded-2xl p-6 mb-8" style="border:2px solid #e2e8f0; border-top:4px solid #0ea5e9; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
     <div class="flex items-center justify-between mb-5">
       <h2 class="font-bold text-gray-700 text-sm uppercase tracking-wide">
         🤝 Offres reçues
@@ -791,9 +795,9 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
 
     <% i = parsed["idees"] %>
     <% if i && i["scenarios"].present? %>
-    <div class="rounded-2xl overflow-hidden mb-6 shadow-sm border border-gray-100 bg-white">
-      <div class="flex items-center gap-4 px-6 pt-6 pb-4 border-b border-gray-100">
-        <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=200&q=80&auto=format&fit=crop" alt="" class="w-24 h-24 rounded-xl object-cover shadow-sm flex-shrink-0">
+    <div class="rounded-2xl overflow-hidden mb-8 bg-white" style="border:2px solid #e2e8f0; border-top:4px solid #7c3aed; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+      <div class="flex items-center gap-4 px-6 pt-6 pb-5 border-b-2 border-gray-100 bg-gray-50">
+        <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=200&q=80&auto=format&fit=crop" alt="" class="w-28 h-28 rounded-xl object-cover shadow-sm flex-shrink-0">
         <div>
           <h2 class="font-black text-gray-900 text-2xl">💡 <%= i["titre"] %></h2>
           <p class="text-gray-500 text-sm mt-0.5">Des pistes moins évidentes, propres à votre bien.</p>
@@ -827,20 +831,20 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
 
     <% r = parsed["recommandation"] %>
     <% if r %>
-    <div class="rounded-2xl overflow-hidden mb-6 shadow-sm border-2 border-emerald-200">
+    <div class="rounded-2xl overflow-hidden mb-8 shadow-md border-2 border-emerald-400">
       <div style="background:#047857; padding:1.5rem;">
         <h2 style="font-weight:900; color:#ffffff; font-size:1.25rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">✅ <%= r["titre"] %></h2>
         <p style="color:#ffffff; font-size:1.125rem; line-height:1.75; font-weight:700;"><%= r["action_prioritaire"] %></p>
       </div>
       <div class="bg-white p-6">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="bg-emerald-50 rounded-xl p-5">
             <p class="text-xs font-black text-emerald-700 uppercase tracking-wider mb-2">⏱ Court terme (3 mois)</p>
-            <p class="text-gray-800 text-base leading-relaxed"><%= r["horizon_court"] %></p>
+            <p style="white-space:pre-line;" class="text-gray-800 text-base leading-relaxed">
           </div>
           <div class="bg-blue-50 rounded-xl p-5">
             <p class="text-xs font-black text-blue-700 uppercase tracking-wider mb-2">📅 Moyen terme (1-2 ans)</p>
-            <p class="text-gray-800 text-base leading-relaxed"><%= r["horizon_moyen"] %></p>
+            <p style="white-space:pre-line;" class="text-gray-800 text-base leading-relaxed">
           </div>
         </div>
       </div>

@@ -7,18 +7,40 @@ class DocumentsController < ApplicationController
   end
 
   def create
-    @document = @property.documents.build(document_params)
-    if @document.save
-      redirect_to @property, notice: "Document ajouté."
-    else
-      render :new, status: :unprocessable_entity
+    saved = 0
+    Array(params.dig(:document, :files)).each do |file|
+      next unless file.respond_to?(:original_filename)
+      doc = @property.documents.build(
+        document_type: params.dig(:document, :document_type),
+        name: file.original_filename
+      )
+      doc.file.attach(file)
+      doc.save!
+      saved += 1
     end
+
+    if saved == 0
+      @document = @property.documents.build
+      flash.now[:alert] = "Veuillez sélectionner au moins un fichier."
+      render :new, status: :unprocessable_entity and return
+    end
+
+    Analysis.where(property: @property).delete_all
+    @property.update!(status: :analyzing)
+    PropertyAnalysisService.new(@property).call
+    @property.update!(status: :analyzed)
+
+    redirect_to @property, notice: "#{saved} document(s) ajouté(s) · Analyse IA relancée."
+  rescue => e
+    @document = @property.documents.build
+    flash.now[:alert] = "Erreur : #{e.message}"
+    render :new, status: :unprocessable_entity
   end
 
   def destroy
     @document = @property.documents.find(params[:id])
     @document.destroy
-    redirect_to @property, notice: "Document supprimé."
+    redirect_to property_path(@property, anchor: "documents"), notice: "Document supprimé."
   end
 
   private
@@ -26,29 +48,4 @@ class DocumentsController < ApplicationController
   def set_property
     @property = current_user.properties.find(params[:property_id])
   end
-
-  def document_params
-    params.require(:document).permit(:document_type, :name, :file)
-  end
-end
-  # DELETE /documents/1 or /documents/1.json
-  def destroy
-    @document.destroy!
-
-    respond_to do |format|
-      format.html { redirect_to documents_path, notice: "Document was successfully destroyed.", status: :see_other }
-      format.json { head :no_content }
-    end
-  end
-
-  private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_document
-      @document = Document.find(params[:id])
-    end
-
-    # Only allow a list of trusted parameters through.
-    def document_params
-      params.require(:document).permit(:property_id, :document_type, :name, :ai_summary, :processed)
-    end
 end
