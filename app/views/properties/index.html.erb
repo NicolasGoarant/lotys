@@ -25,6 +25,9 @@
             <%= property.status.humanize %>
           </span>
           <%= link_to "Voir", property, class: "text-sm text-emerald-600 hover:underline" %>
+          <%= button_to "Supprimer", property_path(property), method: :delete,
+                form: { data: { turbo_confirm: "Supprimer ce bien et toutes ses données ? Cette action est irréversible." } },
+                class: "text-sm text-red-400 hover:text-red-600 bg-transparent border-0 cursor-pointer p-0" %>
         </div>
       </div>
     <% end %>

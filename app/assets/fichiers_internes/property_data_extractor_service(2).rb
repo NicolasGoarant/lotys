@@ -26,6 +26,16 @@ class PropertyDataExtractorService
     @property.documents.reload.each do |doc|
       next unless doc.file.attached?
 
+      # Si pas encore de résumé IA, tenter de l'analyser maintenant
+      if doc.ai_summary.blank?
+        begin
+          DocumentAnalysisService.new(doc).call
+          doc.reload
+        rescue => e
+          Rails.logger.error("PropertyDataExtractor: DocumentAnalysisService failed for doc #{doc.id}: #{e.message}")
+        end
+      end
+
       if doc.ai_summary.present?
         texts << "=== #{doc.document_type.humanize} ===\n#{doc.ai_summary}"
       else
@@ -62,7 +72,8 @@ class PropertyDataExtractorService
       Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans commentaires) contenant ces champs :
       {
         "surface": <nombre entier en m², null si inconnu>,
-        "construction_year": <année entière, null si inconnue>,
+        "construction_year": <année entière pour les calculs. Si "avant XXXX" → XXXX. Si "années 1970" → 1970. null si inconnu>,
+        "construction_period": <texte exact tel qu'indiqué dans le document, ex: "Avant 1948", "1975", "Entre 1948 et 1974". null si inconnu>,
         "dpe_class": <"A","B","C","D","E","F" ou "G", null si inconnu>,
         "dpe_value": <valeur kWhEP/m².an en entier, null si inconnue>,
         "property_type": <"appartement" ou "maison", null si inconnu>,
@@ -80,7 +91,8 @@ class PropertyDataExtractorService
     PROMPT
 
     response = call_claude(prompt)
-    JSON.parse(response.to_s.strip)
+    clean = response.to_s.strip.gsub(/\A```(?:json)?\s*/i, "").gsub(/\s*```\z/, "").strip
+    JSON.parse(clean)
   rescue JSON::ParserError => e
     Rails.logger.error("PropertyDataExtractor JSON parse error: #{e.message}\nRaw: #{response}")
     {}
@@ -91,11 +103,12 @@ class PropertyDataExtractorService
 
     updates = {}
 
-    updates[:surface]           = data["surface"]           if @property.surface.blank?           && data["surface"].present?
-    updates[:construction_year] = data["construction_year"] if @property.construction_year.blank? && data["construction_year"].present?
-    updates[:dpe_class]         = data["dpe_class"]         if @property.dpe_class.blank?         && data["dpe_class"].present?
-    updates[:nb_rooms]          = data["nb_rooms"]          if @property.nb_rooms.blank?          && data["nb_rooms"].present?
-    updates[:nb_lots]           = data["nb_lots"]           if @property.nb_lots.blank?           && data["nb_lots"].present?
+    updates[:surface]             = data["surface"]             if @property.surface.blank?             && data["surface"].present?
+    updates[:construction_year]   = data["construction_year"]   if @property.construction_year.blank?   && data["construction_year"].present?
+    updates[:construction_period] = data["construction_period"] if @property.construction_period.blank? && data["construction_period"].present?
+    updates[:dpe_class]           = data["dpe_class"]           if @property.dpe_class.blank?           && data["dpe_class"].present?
+    updates[:nb_rooms]            = data["nb_rooms"]            if @property.nb_rooms.blank?            && data["nb_rooms"].present?
+    updates[:nb_lots]             = data["nb_lots"]             if @property.nb_lots.blank?             && data["nb_lots"].present?
 
     if @property.property_type.blank? && data["property_type"].present?
       type = data["property_type"].downcase
@@ -106,8 +119,8 @@ class PropertyDataExtractorService
 
     if @property.description.blank?
       extras = []
-      extras << "Chauffage : #{data['heating_system']}"       if data["heating_system"].present?
-      extras << "Isolation murs : #{data['wall_insulation']}" if data["wall_insulation"].present?
+      extras << "Chauffage : #{data['heating_system']}"          if data["heating_system"].present?
+      extras << "Isolation murs : #{data['wall_insulation']}"    if data["wall_insulation"].present?
       extras << "Isolation toiture : #{data['roof_insulation']}" if data["roof_insulation"].present?
       extras << "Prix d'acquisition : #{data['purchase_price']} €" if data["purchase_price"].present?
       updates[:description] = extras.join(" | ") if extras.any?
@@ -138,9 +151,9 @@ class PropertyDataExtractorService
         "anthropic-version" => "2023-06-01"
       },
       body: {
-        model:     "claude-sonnet-4-6",
+        model:      "claude-sonnet-4-6",
         max_tokens: 512,
-        messages:  [{ role: "user", content: prompt }]
+        messages:   [{ role: "user", content: prompt }]
       }.to_json
     )
     JSON.parse(response.body).dig("content", 0, "text")

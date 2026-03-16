@@ -61,6 +61,11 @@ class PropertiesController < ApplicationController
     redirect_to @property, notice: "Votre dossier est maintenant visible par les prestataires."
   end
 
+  def update_dpe_target
+    @property.update(dpe_target: params[:dpe_target])
+    redirect_to @property, notice: "Objectif DPE mis à jour."
+  end
+
   private
 
   def run_analysis(property)
@@ -72,6 +77,7 @@ class PropertiesController < ApplicationController
     DvfEstimationService.new(property).call
     DeviceSimulationService.new(property).call
     PropertyAnalysisService.new(property).call
+    LocalAidCalculator.new(property).call
     property.update(status: :analyzed)
   end
 
@@ -113,7 +119,7 @@ end
       :address, :city, :zipcode, :surface, :property_type,
       :construction_year, :dpe_class, :nb_rooms, :nb_lots,
       :is_copropriete, :description, :vacant, :source,
-      :vacancy_duration, :vacancy_reason
+      :vacancy_duration, :vacancy_reason, :dpe_target, :income_bracket
     )
   end
 end

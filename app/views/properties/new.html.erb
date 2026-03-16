@@ -31,7 +31,28 @@
       </div>
     <% end %>
 
-    <%# Bloc 0 — Statut d'occupation (NOUVEAU) %>
+    <%# Bloc 1 — Adresse %>
+    <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
+      <div class="flex items-center gap-3 mb-6">
+        <span class="text-3xl">📍</span>
+        <div>
+          <h2 class="text-xl font-bold text-gray-800">Adresse du bien</h2>
+          <p class="text-sm text-gray-400">C'est la seule information que nous vous demandons.</p>
+        </div>
+      </div>
+      <div class="space-y-4">
+        <%= f.text_field :address, placeholder: "12 rue de la Paix",
+            class: "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50" %>
+        <div class="grid grid-cols-2 gap-4">
+          <%= f.text_field :zipcode, placeholder: "54000",
+              class: "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50" %>
+          <%= f.text_field :city, placeholder: "Nancy",
+              class: "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50" %>
+        </div>
+      </div>
+    </div>
+
+    <%# Bloc 2b — Statut d'occupation %>
     <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
       <div class="flex items-center gap-3 mb-6">
         <span class="text-3xl">🏠</span>
@@ -101,27 +122,6 @@
       </div>
     </div>
 
-    <%# Bloc 1 — Adresse %>
-    <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-      <div class="flex items-center gap-3 mb-6">
-        <span class="text-3xl">📍</span>
-        <div>
-          <h2 class="text-xl font-bold text-gray-800">Adresse du bien</h2>
-          <p class="text-sm text-gray-400">C'est la seule information que nous vous demandons.</p>
-        </div>
-      </div>
-      <div class="space-y-4">
-        <%= f.text_field :address, placeholder: "12 rue de la Paix",
-            class: "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50" %>
-        <div class="grid grid-cols-2 gap-4">
-          <%= f.text_field :city, placeholder: "Nancy",
-              class: "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50" %>
-          <%= f.text_field :zipcode, placeholder: "54000",
-              class: "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50" %>
-        </div>
-      </div>
-    </div>
-
     <%# Bloc 2 — Documents %>
     <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
       <div class="flex items-center gap-3 mb-2">
@@ -167,6 +167,33 @@
       </div>
       <p class="text-xs text-gray-400 text-center mt-3">PDF, JPG, PNG · Pas de limite · Max 10 Mo par fichier</p>
       <div id="file-list" class="mt-4 space-y-2 hidden"></div>
+    </div>
+
+    <%# Bloc revenus — optionnel %>
+    <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="text-3xl">💰</span>
+        <div>
+          <h2 class="text-xl font-bold text-gray-800">Vos revenus <span class="text-gray-400 font-normal text-base">(optionnel)</span></h2>
+          <p class="text-sm text-gray-400">Permet d'affiner les aides locales et nationales dans votre diagnostic.</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <% [
+             ["tres_modeste",  "Très modestes",   "< 21 000 €/an"],
+             ["modeste",       "Modestes",        "21 000 – 30 000 €"],
+             ["intermediaire", "Intermédiaires",  "30 000 – 45 000 €"],
+             ["superieur",     "Supérieurs",      "> 45 000 €"]
+           ].each do |val, label, range| %>
+          <label style="cursor:pointer;border:2px solid #e5e7eb;border-radius:1rem;padding:1rem;transition:all 0.15s;"
+                 onclick="setIncomeBracket('<%= val %>', this)">
+            <%= f.radio_button :income_bracket, val, class: "hidden" %>
+            <p class="font-bold text-sm text-gray-800 mb-0.5"><%= label %></p>
+            <p class="text-xs text-gray-400"><%= range %></p>
+          </label>
+        <% end %>
+      </div>
+      <p class="text-xs text-gray-400 mt-3">Ces données ne sont utilisées que pour calculer vos aides — elles ne sont pas partagées avec des tiers.</p>
     </div>
 
     <%# Bloc 3 — Contexte libre %>
@@ -241,6 +268,15 @@ function showFileList(input) {
       <span class="text-gray-400 text-xs">${size}</span>
     </div>`;
   });
+}
+
+function setIncomeBracket(val, el) {
+  document.querySelectorAll('[onclick^="setIncomeBracket"]').forEach(function(l) {
+    l.style.borderColor = '#e5e7eb';
+    l.style.background  = 'white';
+  });
+  el.style.borderColor = '#059669';
+  el.style.background  = '#f0fdf4';
 }
 </script>
 <script>

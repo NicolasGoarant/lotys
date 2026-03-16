@@ -137,3 +137,4 @@ puts "📧 Comptes :"
 puts "  Propriétaires : nicolas@lotys.fr · marie.dupont@gmail.com · pierre.martin@gmail.com · helene.roussel@gmail.com"
 puts "  Prestataires  : ruddy@isolexpert.fr · sophie.courtier@pretto.fr · dev@angelotti-immo.fr"
 puts "  Mot de passe  : password123"
+load Rails.root.join("db/seeds_local_aids.rb")

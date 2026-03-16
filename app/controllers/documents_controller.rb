@@ -28,6 +28,7 @@ class DocumentsController < ApplicationController
     Analysis.where(property: @property).delete_all
     @property.update!(status: :analyzing)
     PropertyAnalysisService.new(@property).call
+    LocalAidCalculator.new(@property).call
     @property.update!(status: :analyzed)
 
     redirect_to @property, notice: "#{saved} document(s) ajouté(s) · Analyse IA relancée."

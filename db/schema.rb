@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_03_11_081036) do
+ActiveRecord::Schema[7.2].define(version: 2026_03_13_165044) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -81,6 +81,52 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_11_081036) do
     t.index ["property_id"], name: "index_documents_on_property_id"
   end
 
+  create_table "local_aid_results", force: :cascade do |t|
+    t.bigint "property_id", null: false
+    t.bigint "local_aid_scheme_id", null: false
+    t.boolean "eligible", default: false, null: false
+    t.string "ineligibility_reason"
+    t.jsonb "amounts", default: {}
+    t.datetime "computed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["eligible"], name: "index_local_aid_results_on_eligible"
+    t.index ["local_aid_scheme_id"], name: "index_local_aid_results_on_local_aid_scheme_id"
+    t.index ["property_id", "local_aid_scheme_id"], name: "index_local_aid_results_on_property_id_and_local_aid_scheme_id", unique: true
+    t.index ["property_id"], name: "index_local_aid_results_on_property_id"
+  end
+
+  create_table "local_aid_schemes", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "territory", null: false
+    t.string "aid_type", null: false
+    t.jsonb "zipcodes", default: []
+    t.jsonb "property_types"
+    t.decimal "rate_tres_modeste", precision: 5, scale: 2
+    t.decimal "rate_modeste", precision: 5, scale: 2
+    t.decimal "rate_intermediaire", precision: 5, scale: 2
+    t.decimal "rate_superieur", precision: 5, scale: 2
+    t.integer "max_tres_modeste"
+    t.integer "max_modeste"
+    t.integer "max_intermediaire"
+    t.integer "max_superieur"
+    t.jsonb "forfait_data"
+    t.text "conditions_text"
+    t.text "warning_text"
+    t.string "contact_name"
+    t.string "contact_url"
+    t.string "source_url"
+    t.string "source_label"
+    t.date "valid_from"
+    t.date "valid_until"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_local_aid_schemes_on_active"
+    t.index ["territory"], name: "index_local_aid_schemes_on_territory"
+    t.index ["zipcodes"], name: "index_local_aid_schemes_on_zipcodes", using: :gin
+  end
+
   create_table "offers", force: :cascade do |t|
     t.bigint "property_id", null: false
     t.bigint "user_id", null: false
@@ -115,6 +161,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_11_081036) do
     t.string "source"
     t.string "vacancy_duration"
     t.string "vacancy_reason"
+    t.string "income_bracket"
+    t.string "dpe_target"
+    t.string "construction_period"
     t.index ["user_id"], name: "index_properties_on_user_id"
   end
 
@@ -150,6 +199,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_11_081036) do
   add_foreign_key "analyses", "properties"
   add_foreign_key "device_simulations", "properties"
   add_foreign_key "documents", "properties"
+  add_foreign_key "local_aid_results", "local_aid_schemes"
+  add_foreign_key "local_aid_results", "properties"
   add_foreign_key "offers", "properties"
   add_foreign_key "offers", "users"
   add_foreign_key "properties", "users"

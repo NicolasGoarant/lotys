@@ -1,33 +1,7 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Lotys — L'immobilier, enfin lisible.</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <%= csrf_meta_tags %>
-    <%= csp_meta_tag %>
-    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
-    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
-    <%= javascript_importmap_tags %>
-  </head>
-  <body class="bg-gray-50 min-h-screen">
-
-    <%= render "shared/navbar" %>
-
-    <main class="max-w-5xl mx-auto px-4 md:px-6 py-8">
-      <% if notice %>
-        <div class="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-sm">
-          <%= notice %>
-        </div>
-      <% end %>
-      <% if alert %>
-        <div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl text-sm">
-          <%= alert %>
-        </div>
-      <% end %>
-      <%= yield %>
-    </main>
-
-  <style>@media(min-width:640px){.sim-results-grid{grid-template-columns:repeat(3,1fr)!important;}}</style>
-<script>document.addEventListener("turbo:load", function() { var h = window.location.hash; if (h) { var el = document.querySelector(h); if (el) { setTimeout(function(){ el.scrollIntoView({behavior:"smooth", block:"start"}); }, 100); } } });</script>
-</body>
-</html>
+<%= csrf_meta_tags %> <%= csp_meta_tag %> <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %> <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %> <%= javascript_importmap_tags %> <%= render "shared/navbar" %>
+<% if notice %>
+<%= notice %>
+<% end %> <% if alert %>
+<%= alert %>
+<% end %> <%= yield %>
+<%# ============================================================ %> <%# FOOTER — la Home fournit le sien via content_for :footer %> <%# ============================================================ %> <% if content_for?(:footer) %> <%= yield :footer %> <% else %> <%= render "shared/footer" %> <% end %>

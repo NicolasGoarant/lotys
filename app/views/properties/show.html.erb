@@ -264,6 +264,9 @@
     <p class="font-black text-xl" id="reste-financer">—</p>
   </div>
   <p class="text-xs text-gray-400 mb-6">⚠️ Estimations indicatives 2025. MaPrimeRénov' peut nécessiter un audit énergétique pour les rénovations globales.</p>
+
+<%= render "local_aids", property: @property %>
+
 </div>
 <div class="border-t border-gray-100 pt-6">
   <h3 class="font-bold text-gray-900 text-base mb-4">🏦 Simulateur de financement travaux</h3>
@@ -415,11 +418,11 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="bg-emerald-50 rounded-xl p-5">
             <p class="text-xs font-black text-emerald-700 uppercase tracking-wider mb-2">⏱ Court terme (3 mois)</p>
-            <p style="white-space:pre-line;" class="text-gray-800 text-base leading-relaxed">
+            <p style="white-space:pre-line;" class="text-gray-800 text-base leading-relaxed"><%= r["horizon_court"] %></p>
           </div>
           <div class="bg-blue-50 rounded-xl p-5">
             <p class="text-xs font-black text-blue-700 uppercase tracking-wider mb-2">📅 Moyen terme (1-2 ans)</p>
-            <p style="white-space:pre-line;" class="text-gray-800 text-base leading-relaxed">
+            <p style="white-space:pre-line;" class="text-gray-800 text-base leading-relaxed"><%= r["horizon_moyen"] %></p>
           </div>
         </div>
       </div>
@@ -840,11 +843,11 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="bg-emerald-50 rounded-xl p-5">
             <p class="text-xs font-black text-emerald-700 uppercase tracking-wider mb-2">⏱ Court terme (3 mois)</p>
-            <p style="white-space:pre-line;" class="text-gray-800 text-base leading-relaxed">
+            <p style="white-space:pre-line;" class="text-gray-800 text-base leading-relaxed"><%= r["horizon_court"] %></p>
           </div>
           <div class="bg-blue-50 rounded-xl p-5">
             <p class="text-xs font-black text-blue-700 uppercase tracking-wider mb-2">📅 Moyen terme (1-2 ans)</p>
-            <p style="white-space:pre-line;" class="text-gray-800 text-base leading-relaxed">
+            <p style="white-space:pre-line;" class="text-gray-800 text-base leading-relaxed"><%= r["horizon_moyen"] %></p>
           </div>
         </div>
       </div>

@@ -1,0 +1,90 @@
+<% on_home = controller_name == 'pages' && action_name == 'home' %>
+
+<footer style="background: #0f1f16; font-family: 'Inter', system-ui, sans-serif; position: relative; overflow: hidden;">
+  <% if on_home %>
+    <div style="position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1549144511-f099e773c147?w=1600&q=80'); background-size: cover; background-position: center bottom; opacity: 0.12; z-index: 0;"></div>
+  <% end %>
+  <div style="max-width: 1100px; margin: 0 auto; padding: 3rem 1.5rem 2rem; position: relative; z-index: 1;">
+
+    <div class="footer-grid">
+
+      <%# Logo & baseline %>
+      <div class="footer-brand">
+        <p style="font-size: 1.4rem; font-weight: 900; color: #34d399; margin: 0 0 10px;">Lotys</p>
+        <p style="font-size: 0.85rem; color: rgba(255,255,255,0.45); line-height: 1.7; margin: 0 0 1.25rem;">
+          L'immobilier enfin lisible. Analyse IA de vos documents, estimation de valeur et mise en relation avec des professionnels de confiance.
+        </p>
+        <%= link_to "Analyser mon bien gratuitement →", new_property_path,
+            style: "display: inline-block; background: #34d399; color: #0f1f16; font-weight: 700; font-size: 0.8rem; padding: 10px 18px; border-radius: 10px; text-decoration: none;" %>
+      </div>
+
+      <%# Colonne Propriétaires %>
+      <div class="footer-col">
+        <p style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; color: rgba(255,255,255,0.3); text-transform: uppercase; margin: 0 0 14px;">Propriétaires</p>
+        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 11px;">
+          <li><%= link_to "Analyser mon bien", new_property_path, style: "color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem;" %></li>
+          <li><%= link_to "Comment ça marche", about_path, style: "color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem;" %></li>
+          <li><%= link_to "Enchères", offers_path, style: "color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem;" %></li>
+        </ul>
+      </div>
+
+      <%# Colonne Compte %>
+      <div class="footer-col">
+        <p style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; color: rgba(255,255,255,0.3); text-transform: uppercase; margin: 0 0 14px;">Compte</p>
+        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 11px;">
+          <% if user_signed_in? %>
+            <li><%= link_to "Mes biens", properties_path, style: "color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem;" %></li>
+            <li><%= link_to "Se déconnecter", destroy_user_session_path, data: { turbo_method: :delete }, style: "color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem;" %></li>
+          <% else %>
+            <li><%= link_to "Se connecter", new_user_session_path, style: "color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem;" %></li>
+            <li><%= link_to "Créer un compte", new_user_registration_path, style: "color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem;" %></li>
+          <% end %>
+        </ul>
+      </div>
+
+    </div>
+
+    <%# Bas de footer %>
+    <div class="footer-bottom">
+      <p style="font-size: 0.75rem; color: rgba(255,255,255,0.22); margin: 0;">
+        © <%= Date.today.year %> Lotys
+      </p>
+      <p style="font-size: 0.72rem; color: rgba(255,255,255,0.18); margin: 0;">
+        Les estimations fournies ont une valeur indicative et ne constituent pas un conseil juridique ou financier.
+      </p>
+    </div>
+
+  </div>
+</footer>
+
+<style>
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+  }
+  @media (min-width: 640px) {
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+    .footer-brand { grid-column: span 2; }
+  }
+  @media (min-width: 900px) {
+    .footer-grid { grid-template-columns: 2fr 1fr 1fr; }
+    .footer-brand { grid-column: span 1; }
+  }
+  .footer-bottom {
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  @media (min-width: 640px) {
+    .footer-bottom {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+  }
+  footer a:hover { color: #34d399 !important; transition: color 0.15s; }
+</style>
