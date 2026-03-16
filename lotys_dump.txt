@@ -1318,39 +1318,14 @@ end
 </body>
 </html>
 === app/views/layouts/application.html.erb ===
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Lotys — L'immobilier, enfin lisible.</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <%= csrf_meta_tags %>
-    <%= csp_meta_tag %>
-    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
-    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
-    <%= javascript_importmap_tags %>
-  </head>
-  <body class="bg-gray-50 min-h-screen">
-
-    <%= render "shared/navbar" %>
-
-    <main class="max-w-5xl mx-auto px-4 md:px-6 py-8">
-      <% if notice %>
-        <div class="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-sm">
-          <%= notice %>
-        </div>
-      <% end %>
-      <% if alert %>
-        <div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl text-sm">
-          <%= alert %>
-        </div>
-      <% end %>
-      <%= yield %>
-    </main>
-
-  <style>@media(min-width:640px){.sim-results-grid{grid-template-columns:repeat(3,1fr)!important;}}</style>
-<script>document.addEventListener("turbo:load", function() { var h = window.location.hash; if (h) { var el = document.querySelector(h); if (el) { setTimeout(function(){ el.scrollIntoView({behavior:"smooth", block:"start"}); }, 100); } } });</script>
-</body>
-</html>
+<%= csrf_meta_tags %> <%= csp_meta_tag %> <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %> <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %> <%= javascript_importmap_tags %> <%= render "shared/navbar" %>
+<% if notice %>
+<%= notice %>
+<% end %> <% if alert %>
+<%= alert %>
+<% end %> <%= yield %>
+    
+    
 === app/views/layouts/mailer.text.erb ===
 <%= yield %>
 === app/views/layouts/mailer.html.erb ===
@@ -1884,56 +1859,73 @@ document.getElementById('file-input').addEventListener('change', function() {
   <%= link_to "Back to documents", documents_path, class: "w-full sm:w-auto text-center mt-2 sm:mt-0 sm:ml-2 rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
 </div>
 === app/views/pages/home.html.erb ===
+<% content_for :body_class, "page-home" %>
 <%# Hero plein écran %>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
-<div class="full-bleed relative -mt-8" style="height: 85vh; min-height: 580px;">
+<div class="full-bleed relative -mt-8 hero-wrapper">
   <img src="https://images.unsplash.com/photo-1549144511-f099e773c147?w=1600&q=80"
        alt="Rue résidentielle française" class="absolute inset-0 w-full h-full object-cover object-center">
   <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(10,20,15,0.6) 0%, rgba(10,20,15,0.65) 50%, rgba(10,20,15,0.92) 100%);"></div>
 
-  <div class="relative h-full flex flex-col items-center justify-center text-center px-6">
+  <div class="relative h-full flex flex-col items-center justify-center text-center px-4 sm:px-6 py-16 sm:py-0">
 
     <%# Titre %>
-    <h1 class="text-white mb-10 leading-tight"
-        style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; font-size: clamp(2.8rem, 6vw, 5rem); text-shadow: 0 2px 30px rgba(0,0,0,0.8);">
+    <h1 class="text-white mb-6 sm:mb-10 leading-tight"
+        style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; font-size: clamp(2rem, 6vw, 5rem); text-shadow: 0 2px 30px rgba(0,0,0,0.8);">
       L'immobilier,<br>
       <span style="color: #34d399;">lisible en quelques clics.</span>
     </h1>
 
     <%# Cards hero %>
-    <div class="flex flex-col sm:flex-row gap-4 mb-8 w-full max-w-3xl">
+    <div class="hero-cards w-full max-w-3xl mb-6 sm:mb-8">
 
-      <div class="flex-1 text-left rounded-2xl px-6 py-6" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(52,211,153,0.4); backdrop-filter: blur(12px);">
-        <div style="font-size: 2rem; text-align: center; margin-bottom: 0.75rem;">🗂️</div>
-        <p class="text-white mb-2" style="font-family: 'Inter', sans-serif; font-weight: 700; font-size: 1.05rem;">Propriétaire = beaucoup de papiers</p>
-        <p style="font-family: 'Inter', sans-serif; font-size: 0.95rem; line-height: 1.6; color: rgba(255,255,255,0.82);">Titre de propriété, DPE, PV d'AG, diagnostics, devis… et des dizaines de dispositifs d'aides que personne ne vous a expliqués.</p>
+      <div class="hero-card text-left rounded-2xl px-4 py-4 sm:px-6 sm:py-6" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(52,211,153,0.4); backdrop-filter: blur(12px);">
+        <div class="hero-card-emoji">🗂️</div>
+        <p class="text-white mb-1 sm:mb-2" style="font-family: 'Inter', sans-serif; font-weight: 700; font-size: 1rem;">Propriétaire = beaucoup de papiers</p>
+        <p class="hero-card-text" style="font-family: 'Inter', sans-serif; font-size: 0.875rem; line-height: 1.6; color: rgba(255,255,255,0.82);">Titre de propriété, DPE, PV d'AG, diagnostics, devis… et des dizaines de dispositifs d'aides que personne ne vous a expliqués.</p>
       </div>
 
-      <div class="flex-1 text-left rounded-2xl px-6 py-6" style="background: rgba(52,211,153,0.15); border: 1px solid rgba(52,211,153,0.5); backdrop-filter: blur(12px);">
-        <div style="font-size: 2rem; text-align: center; margin-bottom: 0.75rem;">🤖</div>
-        <p class="text-white mb-2" style="font-family: 'Inter', sans-serif; font-weight: 700; font-size: 1.05rem;">Lotys lit tout et propose des scénarios</p>
-        <p style="font-family: 'Inter', sans-serif; font-size: 0.95rem; line-height: 1.6; color: rgba(255,255,255,0.82);">Déposez vos documents et photos. Lotys les analyse et vous présente des scénarios concrets : rénover, vendre, louer, optimiser, etc.</p>
+      <%# Flèche 1 %>
+      <div class="hero-arrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path class="arrow-h" d="M5 12h14M13 6l6 6-6 6"/>
+          <path class="arrow-v" d="M12 5v14M6 13l6 6 6-6"/>
+        </svg>
       </div>
 
-      <div class="flex-1 text-left rounded-2xl px-6 py-6" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(52,211,153,0.4); backdrop-filter: blur(12px);">
-        <div style="font-size: 2rem; text-align: center; margin-bottom: 0.75rem;">🤝</div>
-        <p class="text-white mb-2" style="font-family: 'Inter', sans-serif; font-weight: 700; font-size: 1.05rem;">Des pros qui viennent à vous</p>
-        <p style="font-family: 'Inter', sans-serif; font-size: 0.95rem; line-height: 1.6; color: rgba(255,255,255,0.82);">Publiez anonymement votre besoin, puis artisans, banquiers et promoteurs font leurs offres, et vous choisissez.</p>
+      <div class="hero-card text-left rounded-2xl px-4 py-4 sm:px-6 sm:py-6" style="background: rgba(52,211,153,0.15); border: 1px solid rgba(52,211,153,0.5); backdrop-filter: blur(12px);">
+        <div class="hero-card-emoji">🧠</div>
+        <p class="text-white mb-1 sm:mb-2" style="font-family: 'Inter', sans-serif; font-weight: 700; font-size: 1rem;">Lotys lit tout et propose des scénarios</p>
+        <p class="hero-card-text" style="font-family: 'Inter', sans-serif; font-size: 0.875rem; line-height: 1.6; color: rgba(255,255,255,0.82);">Déposez vos documents et photos. Lotys les analyse et vous présente des scénarios concrets : rénover, vendre, louer, optimiser, etc.</p>
+      </div>
+
+      <%# Flèche 2 %>
+      <div class="hero-arrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path class="arrow-h" d="M5 12h14M13 6l6 6-6 6"/>
+          <path class="arrow-v" d="M12 5v14M6 13l6 6 6-6"/>
+        </svg>
+      </div>
+
+      <div class="hero-card text-left rounded-2xl px-4 py-4 sm:px-6 sm:py-6" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(52,211,153,0.4); backdrop-filter: blur(12px);">
+        <div class="hero-card-emoji">🤝</div>
+        <p class="text-white mb-1 sm:mb-2" style="font-family: 'Inter', sans-serif; font-weight: 700; font-size: 1rem;">Des pros qui viennent à vous</p>
+        <p class="hero-card-text" style="font-family: 'Inter', sans-serif; font-size: 0.875rem; line-height: 1.6; color: rgba(255,255,255,0.82);">Publiez anonymement votre besoin, puis artisans, banquiers et promoteurs font leurs offres, et vous choisissez.</p>
       </div>
 
     </div>
 
-    <div class="flex flex-col sm:flex-row justify-center gap-4">
+    <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 w-full max-w-lg sm:max-w-none">
       <%= link_to "Analyser mon bien gratuitement", new_property_path,
-          class: "bg-emerald-500 text-white px-10 py-4 rounded-2xl hover:bg-emerald-400 font-bold text-lg shadow-xl transition",
+          class: "bg-emerald-500 text-white px-8 py-3 sm:py-4 rounded-2xl hover:bg-emerald-400 font-bold text-base sm:text-lg shadow-xl transition text-center",
           style: "font-family: 'Inter', sans-serif;" %>
       <%= link_to "Comment ça marche →", about_path,
-          class: "backdrop-blur text-white px-10 py-4 rounded-2xl font-semibold text-lg transition",
+          class: "backdrop-blur text-white px-8 py-3 sm:py-4 rounded-2xl font-semibold text-base sm:text-lg transition text-center",
           style: "font-family: 'Inter', sans-serif; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.35);" %>
     </div>
 
-    <div class="absolute bottom-8 flex flex-col items-center text-white/40 text-xs gap-1">
+    <div class="hidden sm:flex absolute bottom-8 flex-col items-center text-white/40 text-xs gap-1">
       <span style="font-family: 'Inter', sans-serif;">Découvrir</span>
       <svg class="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -1942,31 +1934,84 @@ document.getElementById('file-input').addEventListener('change', function() {
   </div>
 </div>
 
-<%# 3 fonctionnalités %>
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16 mb-16">
-  <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-    <div class="text-4xl mb-3">🏠</div>
-    <h3 class="font-bold text-gray-800 text-lg mb-2">Estimation de valeur</h3>
-    <p class="text-gray-500 text-sm leading-relaxed">Basée sur les ventes réelles de votre secteur (DVF), avec bonus vente en bloc pour les copropriétés.</p>
-  </div>
-  <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-    <div class="text-4xl mb-3">⚡</div>
-    <h3 class="font-bold text-gray-800 text-lg mb-2">Aides à la rénovation</h3>
-    <p class="text-gray-500 text-sm leading-relaxed">Éco-PTZ, MaPrimeRénov', CEE — calculés automatiquement depuis vos documents.</p>
-  </div>
-  <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-    <div class="text-4xl mb-3">🤝</div>
-    <h3 class="font-bold text-gray-800 text-lg mb-2">Enchère inversée</h3>
-    <p class="text-gray-500 text-sm leading-relaxed">Publiez votre besoin, recevez des propositions d'artisans, banquiers et promoteurs.</p>
-  </div>
-</div>
+<style>
+  .hero-wrapper {
+    min-height: 100vh;
+  }
+  @media (min-width: 640px) {
+    .hero-wrapper {
+      height: 85vh;
+      min-height: 580px;
+    }
+  }
+  .hero-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+  @media (min-width: 640px) {
+    .hero-cards {
+      flex-direction: row;
+      gap: 1rem;
+    }
+  }
+  .hero-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .hero-arrow svg {
+    width: 32px;
+    height: 32px;
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(52,211,153,0.7));
+  }
+  /* Mobile : flèche vers le bas */
+  .arrow-h { display: none; }
+  .arrow-v { display: block; }
+  @media (min-width: 640px) {
+    /* Desktop : flèche vers la droite */
+    .arrow-h { display: block; }
+    .arrow-v { display: none; }
+    .hero-arrow svg { width: 38px; height: 38px; }
+  }
+  .hero-card-emoji {
+    font-size: 1.5rem;
+    text-align: center;
+    margin-bottom: 0.5rem;
+  }
+  @media (min-width: 640px) {
+    .hero-card-emoji {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+    }
+  }
 
-<%# Bandeau CTA %>
-<div class="bg-emerald-600 rounded-2xl p-8 md:p-10 text-center text-white mb-8">
-  <p class="text-xl md:text-2xl font-bold mb-2">Quelle est la valeur réelle de votre bien ?</p>
-  <p class="text-emerald-100 mb-6 text-sm md:text-base">Téléchargez vos documents en 2 minutes et obtenez une analyse complète.</p>
-  <%= link_to "Analyser mon bien →", new_property_path,
-      class: "inline-block bg-white text-emerald-700 font-semibold px-6 py-3 rounded-xl hover:bg-emerald-50 transition" %>
+</style>
+
+
+      <div>
+        <p style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; color: rgba(255,255,255,0.3); text-transform: uppercase; margin: 0 0 14px;">Propriétaires</p>
+        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px;">
+          <li><a href="/properties/new" style="color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem;">Analyser mon bien</a></li>
+          <li><a href="/a-propos" style="color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem;">Comment ça marche</a></li>
+          <li><a href="/offers" style="color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem;">Enchères</a></li>
+        </ul>
+      </div>
+      <div>
+        <p style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; color: rgba(255,255,255,0.3); text-transform: uppercase; margin: 0 0 14px;">Compte</p>
+        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px;">
+          <li><a href="/users/sign_in" style="color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem;">Se connecter</a></li>
+          <li><a href="/users/sign_up" style="color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem;">Créer un compte</a></li>
+        </ul>
+      </div>
+    </div>
+    <div style="border-top: 1px solid rgba(255,255,255,0.07); padding-top: 1.25rem; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem;">
+      <p style="color: rgba(255,255,255,0.22); font-size: 0.75rem; margin: 0;">© <%= Date.today.year %> Lotys</p>
+      <p style="color: rgba(255,255,255,0.18); font-size: 0.72rem; margin: 0;">Les estimations ont une valeur indicative et ne constituent pas un conseil juridique ou financier.</p>
+    </div>
+  </div>
 </div>
 === app/views/pages/about.html.erb ===
 <%# Hero avec photo %>

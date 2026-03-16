@@ -1,7 +1,36 @@
-<%= csrf_meta_tags %> <%= csp_meta_tag %> <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %> <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %> <%= javascript_importmap_tags %> <%= render "shared/navbar" %>
-<% if notice %>
-<%= notice %>
-<% end %> <% if alert %>
-<%= alert %>
-<% end %> <%= yield %>
-<%# ============================================================ %> <%# FOOTER — la Home fournit le sien via content_for :footer %> <%# ============================================================ %> <% if content_for?(:footer) %> <%= yield :footer %> <% else %> <%= render "shared/footer" %> <% end %>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lotys — L'immobilier, enfin lisible</title>
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+  <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+  <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+  <%= javascript_importmap_tags %>
+</head>
+<body class="min-h-screen bg-white text-gray-900 flex flex-col">
+  <%= render "shared/navbar" %>
+
+  <% if notice.present? %>
+    <div class="mx-auto mt-4 w-full max-w-5xl rounded-xl bg-green-50 px-4 py-3 text-green-700">
+      <%= notice %>
+    </div>
+  <% end %>
+
+  <% if alert.present? %>
+    <div class="mx-auto mt-4 w-full max-w-5xl rounded-xl bg-red-50 px-4 py-3 text-red-700">
+      <%= alert %>
+    </div>
+  <% end %>
+
+  <main class="flex-1">
+    <%= yield %>
+  </main>
+
+  <% unless controller_name == "pages" && action_name == "home" %>
+    <%= render "shared/footer", variant: :default %>
+  <% end %>
+</body>
+</html>

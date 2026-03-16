@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_03_13_165044) do
+ActiveRecord::Schema[7.2].define(version: 2026_03_16_111625) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -51,6 +51,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_13_165044) do
     t.integer "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "score_energie"
+    t.integer "score_patrimonial"
+    t.jsonb "travaux_timeline"
+    t.integer "estimated_value_after_works"
+    t.integer "estimated_gain_after_works"
     t.index ["property_id"], name: "index_analyses_on_property_id"
   end
 
