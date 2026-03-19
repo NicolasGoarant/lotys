@@ -2,14 +2,15 @@
   <div class="max-w-5xl mx-auto flex items-center justify-between">
 
     <%# Logo %>
-    <a href="/" class="flex items-center gap-3">
-      <span class="text-2xl font-bold text-emerald-600">Lotys</span>
-      <span class="hidden md:block text-xs text-gray-400 border-l border-gray-200 pl-3">L'immobilier, enfin lisible.</span>
+    <a href="/" class="flex items-center gap-2">
+      <%= image_tag "lotys_logo.png", height: 32, alt: "Lotys", class: "h-8 w-auto" %>
+      <span class="text-xl font-bold text-emerald-600">Lotys</span>
+      <span class="text-sm text-gray-500 border-l border-gray-200 pl-3">L'immobilier, enfin lisible.</span>
     </a>
 
     <%# Desktop %>
     <div class="hidden md:flex items-center gap-6 text-sm">
-      <%= link_to "Enchères", offers_path, class: "text-gray-500 hover:text-emerald-600 transition" %>
+      <%= link_to "Enchères", offers_path, class: "text-gray-500 hover:text-emerald-600 transition", data: { turbo: false } %>
       <%= link_to "Comment ça marche", about_path, class: "text-gray-500 hover:text-emerald-600 transition" %>
       <% if user_signed_in? %>
         <%= link_to "Mes biens", properties_path, class: "text-gray-500 hover:text-emerald-600 transition" %>
@@ -26,22 +27,22 @@
     </div>
 
     <%# Mobile : burger %>
-    <button id="burger-btn" class="md:hidden flex flex-col gap-1.5 p-2" onclick="toggleMenu()">
-      <span class="block w-5 h-0.5 bg-gray-600 transition-all" id="b1"></span>
-      <span class="block w-5 h-0.5 bg-gray-600 transition-all" id="b2"></span>
-      <span class="block w-5 h-0.5 bg-gray-600 transition-all" id="b3"></span>
+    <button id="burger-btn" class="md:hidden flex flex-col gap-1.5 p-2 rounded-xl hover:bg-gray-50 transition" onclick="toggleMenu()">
+      <span class="block w-6 h-0.5 bg-emerald-600 transition-all rounded-full" id="b1"></span>
+      <span class="block w-6 h-0.5 bg-emerald-600 transition-all rounded-full" id="b2"></span>
+      <span class="block w-6 h-0.5 bg-emerald-600 transition-all rounded-full" id="b3"></span>
     </button>
   </div>
 
   <%# Menu mobile déroulant %>
-  <div id="mobile-menu" class="md:hidden hidden border-t border-gray-100 mt-4 pt-4 pb-2 space-y-1">
+  <div id="mobile-menu" class="md:hidden hidden border-t border-gray-100 mt-4 pt-2 pb-2 space-y-1">
     <%= link_to "Enchères", offers_path,
-        class: "block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl" %>
+        data: { turbo: false }, class: "block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl text-right" %>
     <%= link_to "Comment ça marche", about_path,
-        class: "block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl" %>
+        class: "block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl text-right" %>
     <% if user_signed_in? %>
       <%= link_to "Mes biens", properties_path,
-          class: "block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl" %>
+          class: "block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl text-right" %>
       <div class="border-t border-gray-100 mt-2 pt-2">
         <span class="block px-4 py-2 text-xs text-gray-400"><%= current_user.email %></span>
         <%= link_to "Déconnexion", destroy_user_session_path, data: { turbo_method: :delete },
@@ -50,7 +51,7 @@
     <% else %>
       <div class="border-t border-gray-100 mt-2 pt-2 space-y-1">
         <%= link_to "Connexion", new_user_session_path,
-            class: "block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl" %>
+            class: "block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl text-right" %>
         <%= link_to "Analyser mon bien gratuitement →", new_property_path,
             class: "block mx-4 mt-2 py-3 text-sm text-center bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700" %>
       </div>

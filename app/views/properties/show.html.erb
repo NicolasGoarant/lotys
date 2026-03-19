@@ -18,14 +18,24 @@
     <p class="text-gray-500"><%= @property.city %> <%= @property.zipcode %></p>
   </div>
   <div class="flex flex-col sm:flex-row gap-2 sm:mt-0">
+    <% if user_signed_in? && current_user == @property.user %>
     <%= link_to "Modifier", edit_property_path(@property), class: "text-center border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm hover:bg-gray-50 w-full sm:w-auto" %>
     <% if @property.draft? || @property.analyzed? %>
       <%= button_to "🔍 Lancer l'analyse IA", analyze_property_path(@property),
           class: "bg-blue-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-blue-700 font-medium w-full sm:w-auto" %>
     <% end %>
     <% if @property.analyzed? %>
-      <%= button_to "📢 Publier aux prestataires", publish_property_path(@property),
-          class: "bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-emerald-700 font-medium w-full sm:w-auto" %>
+      <%= link_to "👁️ Prévisualiser et publier", preview_property_path(@property),
+          class: "bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-emerald-700 font-medium w-full sm:w-auto text-center" %>
+    <% end %>
+    <% if @property.published? %>
+      <%= button_to "🔒 Dépublier", unpublish_property_path(@property),
+          class: "bg-gray-500 text-white px-4 py-2 rounded-xl text-sm hover:bg-gray-600 font-medium w-full sm:w-auto",
+          data: { confirm: "Dépublier ce bien ? Les prestataires ne pourront plus le voir." } %>
+    <% end %>
+    <% else %>
+    <%= link_to "← Retour aux dossiers", offers_path, class: "text-center border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm hover:bg-gray-50 w-full sm:w-auto" %>
+    <%= link_to "📩 Faire une proposition", new_property_offer_path(@property), class: "bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-emerald-700 font-medium w-full sm:w-auto text-center" %>
     <% end %>
   </div>
 </div>
@@ -120,14 +130,12 @@
   </div>
 </div>
 
-<%= render "advanced_insights", property: @property %>
-
 <%# Analyse IA %>
 <% if @property.analysis&.content.present? %>
   <% parsed = (JSON.parse(@property.analysis.content) rescue nil) %>
   <% if parsed %>
 
-    <% v = parsed["valeur"] %>
+    <% v = parsed&.[]("valeur") %>
     <% if v %>
     <div class="rounded-2xl overflow-hidden mb-8 bg-white" style="border:2px solid #e2e8f0; border-top:4px solid #16a34a; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
       <div class="flex items-start gap-3 sm:gap-4 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-5 border-b-2 border-gray-100 bg-gray-50">
@@ -161,7 +169,7 @@
     </div>
     <% end %>
 
-    <% e = parsed["energie"] %>
+    <% e = parsed&.[]("energie") %>
     <% if e %>
     <% dpe_hex2 = {"A"=>"#16a34a","B"=>"#22c55e","C"=>"#84cc16","D"=>"#eab308","E"=>"#f97316","F"=>"#ea580c","G"=>"#dc2626"} %>
     <div class="rounded-2xl overflow-hidden mb-8 bg-white" style="border:2px solid #e2e8f0; border-top:4px solid #ea580c; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
@@ -375,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
     </script>
     <% end %>
 
-    <% i = parsed["idees"] %>
+    <% i = parsed&.[]("idees") %>
     <% if i && i["scenarios"].present? %>
     <div class="rounded-2xl overflow-hidden mb-8 bg-white" style="border:2px solid #e2e8f0; border-top:4px solid #7c3aed; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
       <div class="flex items-start gap-3 sm:gap-4 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-5 border-b-2 border-gray-100 bg-gray-50">
@@ -411,7 +419,7 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
     </div>
     <% end %>
 
-    <% r = parsed["recommandation"] %>
+    <% r = parsed&.[]("recommandation") %>
     <% if r %>
     <div class="rounded-2xl overflow-hidden mb-8 shadow-md border-2 border-emerald-400">
       <div style="background:#047857; padding:1.5rem;">
@@ -442,6 +450,7 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
     </div>
   <% end %>
 <% end %>
+<% if user_signed_in? && current_user == @property.user %>
 <a name="documents" id="documents"></a>
 <%# Documents %>
 <div id="documents" class="bg-white rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8" style="border:2px solid #e2e8f0; border-top:4px solid #0ea5e9; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
@@ -533,9 +542,12 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
   </div>
 <% end %>
 
+<% end %><%# /owner-only: documents + offres %>
+
 <%# ============================================================ %>
-<%# PHASE 2 — Financement %>
+<%# PHASE 2 — Financement (propriétaire uniquement) %>
 <%# ============================================================ %>
+<% if user_signed_in? && current_user == @property.user %>
 <% if @property.device_simulation && @property.valuation %>
   <% sim = @property.device_simulation %>
   <% v   = @property.valuation %>
@@ -799,66 +811,8 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
     }
   </script>
 
-
-    <% i = parsed["idees"] %>
-    <% if i && i["scenarios"].present? %>
-    <div class="rounded-2xl overflow-hidden mb-8 bg-white" style="border:2px solid #e2e8f0; border-top:4px solid #7c3aed; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
-      <div class="flex items-start gap-3 sm:gap-4 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-5 border-b-2 border-gray-100 bg-gray-50">
-        <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=200&q=80&auto=format&fit=crop" alt="" class="w-16 h-16 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-xl object-cover shadow-sm flex-shrink-0">
-        <div>
-          <h2 class="font-black text-gray-900 text-lg sm:text-2xl leading-tight">💡 <%= i["titre"] %></h2>
-          <p class="text-gray-500 text-sm mt-0.5">Des pistes moins évidentes, propres à votre bien.</p>
-        </div>
-      </div>
-      <div class="bg-white p-6">
-        <div class="space-y-3">
-          <% i["scenarios"].each do |s| %>
-            <div class="flex items-start gap-4 bg-gray-50 rounded-xl p-5">
-              <span class="text-3xl leading-none mt-1"><%= s["emoji"] %></span>
-              <div class="flex-1">
-                <p class="font-bold text-gray-900 text-lg mb-1"><%= s["titre"] %></p>
-                <p class="text-gray-700 text-base leading-relaxed mb-3"><%= s["description"] %></p>
-                <div class="flex items-center gap-3 flex-wrap">
-                  <span class="text-sm bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-bold"><%= s["gain_estime"] %></span>
-                  <% if s["faisabilite"] == "haute" %>
-                    <span style="background:#dcfce7;color:#166534;" class="text-sm px-3 py-1 rounded-full font-bold">Faisabilité : haute</span>
-                  <% elsif s["faisabilite"] == "moyenne" %>
-                    <span style="background:#fef9c3;color:#713f12;" class="text-sm px-3 py-1 rounded-full font-bold">Faisabilité : moyenne</span>
-                  <% else %>
-                    <span style="background:#fee2e2;color:#991b1b;" class="text-sm px-3 py-1 rounded-full font-bold">Faisabilité : basse</span>
-                  <% end %>
-                </div>
-              </div>
-            </div>
-          <% end %>
-        </div>
-      </div>
-    </div>
-    <% end %>
-
-    <% r = parsed["recommandation"] %>
-    <% if r %>
-    <div class="rounded-2xl overflow-hidden mb-8 shadow-md border-2 border-emerald-400">
-      <div style="background:#047857; padding:1.5rem;">
-        <h2 style="font-weight:900; color:#ffffff; font-size:1.25rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">✅ <%= r["titre"] %></h2>
-        <p style="color:#ffffff; font-size:1.125rem; line-height:1.75; font-weight:700;"><%= r["action_prioritaire"] %></p>
-      </div>
-      <div class="bg-white p-6">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="bg-emerald-50 rounded-xl p-5">
-            <p class="text-xs font-black text-emerald-700 uppercase tracking-wider mb-2">⏱ Court terme (3 mois)</p>
-            <p style="white-space:pre-line;" class="text-gray-800 text-base leading-relaxed"><%= r["horizon_court"] %></p>
-          </div>
-          <div class="bg-blue-50 rounded-xl p-5">
-            <p class="text-xs font-black text-blue-700 uppercase tracking-wider mb-2">📅 Moyen terme (1-2 ans)</p>
-            <p style="white-space:pre-line;" class="text-gray-800 text-base leading-relaxed"><%= r["horizon_moyen"] %></p>
-          </div>
-        </div>
-      </div>
-    </div>
-    <% end %>
-
   <% else %>
   <% end %>
+<% end %><%# /owner-only: financement %>
 
 </div>

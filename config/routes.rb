@@ -9,6 +9,8 @@ Rails.application.routes.draw do
     member do
       post :analyze
       post :publish
+      post :unpublish
+      get  :preview
       patch :update_dpe_target
     end
     resources :documents, only: [:new, :create, :destroy]

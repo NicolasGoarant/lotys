@@ -1,6 +1,6 @@
 class PropertiesController < ApplicationController
-  before_action :authenticate_user!, except: [:index, :new, :create]
-  before_action :set_property, only: [:show, :edit, :update, :destroy, :analyze, :publish]
+  before_action :authenticate_user!, except: [:index, :new, :create, :show]
+  before_action :set_property, only: [:show, :edit, :update, :destroy, :analyze, :publish, :unpublish, :preview]
 
   def index
     if user_signed_in?
@@ -61,6 +61,14 @@ class PropertiesController < ApplicationController
     redirect_to @property, notice: "Votre dossier est maintenant visible par les prestataires."
   end
 
+  def unpublish
+    @property.update(status: :analyzed)
+    redirect_to @property, notice: "Votre bien a été dépublié."
+  end
+
+  def preview
+  end
+
   def update_dpe_target
     @property.update(dpe_target: params[:dpe_target])
     redirect_to @property, notice: "Objectif DPE mis à jour."
@@ -81,37 +89,38 @@ class PropertiesController < ApplicationController
     property.update(status: :analyzed)
   end
 
-def attach_uploaded_documents
-  uploaded = params.dig(:property, :uploaded_files)
-  return unless uploaded.present?
+  def attach_uploaded_documents
+    uploaded = params.dig(:property, :uploaded_files)
+    return unless uploaded.present?
 
-  Array(uploaded).each do |file|
-    next unless file.respond_to?(:original_filename)
+    Array(uploaded).each do |file|
+      next unless file.respond_to?(:original_filename)
 
-    ext = File.extname(file.original_filename).downcase
-    doc_type = detect_document_type(file.original_filename)
-
-    doc = @property.documents.build(
-      document_type: doc_type,
-      name: file.original_filename
-    )
-    doc.file.attach(file)
-    doc.save
+      doc_type = detect_document_type(file.original_filename)
+      doc = @property.documents.build(
+        document_type: doc_type,
+        name: file.original_filename
+      )
+      doc.file.attach(file)
+      doc.save
+    end
   end
-end
 
-def detect_document_type(filename)
-  name = filename.downcase
-  return :dpe          if name.include?("dpe")
-  return :pv_ag        if name.include?("pv") || name.include?("coprop")
-  return :titre_propriete if name.include?("attestation") || name.include?("acte") || name.include?("vente") || name.include?("aae")
-  return :photo        if name.match?(/\.(jpg|jpeg|png|webp)$/)
-  :autre
-end
-
+  def detect_document_type(filename)
+    name = filename.downcase
+    return :dpe             if name.include?("dpe")
+    return :pv_ag           if name.include?("pv") || name.include?("coprop")
+    return :titre_propriete if name.include?("attestation") || name.include?("acte") || name.include?("vente") || name.include?("aae")
+    return :photo           if name.match?(/\.(jpg|jpeg|png|webp)$/)
+    :autre
+  end
 
   def set_property
-    @property = current_user.properties.find(params[:id])
+    if user_signed_in? && current_user.properties.exists?(params[:id])
+      @property = current_user.properties.find(params[:id])
+    else
+      @property = Property.published.find(params[:id])
+    end
   end
 
   def property_params

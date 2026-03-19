@@ -1,3 +1,5 @@
+<div class="max-w-5xl mx-auto">
+
 <div class="mb-8">
   <h1 class="text-3xl font-bold text-gray-900 mb-2">Enchères inversées</h1>
   <p class="text-gray-500">
@@ -121,7 +123,8 @@
 <% else %>
 
   <%# Carte Leaflet %>
-  <div id="map" class="w-full rounded-2xl mb-6 border border-gray-100 shadow-sm" style="height: 340px;"></div>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <div id="map" style="height: 320px; width: 100%; border-radius: 1rem; margin-bottom: 1.5rem; border: 1px solid #f3f4f6; box-shadow: 0 1px 3px rgba(0,0,0,0.1); z-index: 0;"></div>
 
   <div id="pane-dossiers-disponibles" class="tab-pane">
     <% if @properties.empty? %>
@@ -131,54 +134,137 @@
       </div>
     <% else %>
       <div class="space-y-4">
-        <% @properties.each do |property| %>
-          <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-            <div class="flex items-start justify-between mb-4">
-              <div>
-                <p class="font-bold text-gray-800 text-lg"><%= property.address %>, <%= property.city %></p>
-                <div class="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
-                  <% if property.surface %><span>📐 <%= property.surface %> m²</span><% end %>
-                  <% if property.dpe_class %><span>⚡ DPE <%= property.dpe_class.upcase %></span><% end %>
-                  <span><%= property.is_copropriete ? "🏘️ Copropriété (#{property.nb_lots} lots)" : "🏠 Individuel" %></span>
+        <% photos = {
+          "appartement" => [
+            "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&q=80",
+            "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400&q=80",
+            "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&q=80",
+            "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&q=80",
+          ],
+          "maison" => [
+            "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=400&q=80",
+            "https://images.unsplash.com/photo-1572120360610-d971b9d7767c?w=400&q=80",
+          ]
+        } %>
+        <% dpe_labels = { "G" => ["Passoire thermique", "bg-red-100 text-red-700"], "F" => ["Très énergivore", "bg-red-100 text-red-700"], "E" => ["Énergivore", "bg-orange-100 text-orange-700"], "D" => ["Peu performant", "bg-yellow-100 text-yellow-700"], "C" => ["Assez performant", "bg-lime-100 text-lime-700"], "B" => ["Performant", "bg-green-100 text-green-700"], "A" => ["Très performant", "bg-emerald-100 text-emerald-700"] } %>
+
+        <% @properties.each_with_index do |property, i| %>
+          <%# — Construction du scénario précis — %>
+          <% dpe = property.dpe_class&.upcase %>
+          <% dpe_info = dpe_labels[dpe] %>
+          <% desc = property.description.to_s.downcase %>
+
+          <%# Phrase descriptive du bien %>
+          <% bien_label = [
+            property.property_type&.capitalize,
+            property.construction_year ? "de #{property.construction_year}" : nil,
+            property.surface ? "· #{property.surface} m²" : nil,
+            property.is_copropriete ? "· copropriété #{property.nb_lots} lots" : nil,
+            property.city ? "· #{property.city}" : nil
+          ].compact.join(" ") %>
+
+          <%# Phrase scénario principale %>
+          <% dpe_cible = case dpe
+            when "G" then "C ou mieux"
+            when "F" then "C"
+            when "E" then "D"
+            else nil
+          end %>
+
+          <% scenario_phrases = [] %>
+
+          <% has_renovation = %w[F G].include?(dpe) || desc.include?("rénov") || desc.include?("isolation") || desc.include?("travaux") %>
+
+          <% if has_renovation %>
+            <% phrase = "Rénovation thermique"
+               phrase += " (DPE #{dpe} → #{dpe_cible})" if dpe && dpe_cible
+               scenario_phrases << { emoji: "🔨", text: phrase, color: "bg-blue-50 border-blue-200 text-blue-800" }
+            %>
+          <% end %>
+          <% if dpe == "E" || desc.include?("louer") || desc.include?("location") || desc.include?("locatif") %>
+            <% scenario_phrases << { emoji: "🔑", text: "Mise en location envisagée#{dpe == 'E' ? ' (avant interdiction 2028)' : ''}", color: "bg-teal-50 border-teal-200 text-teal-800" } %>
+          <% end %>
+          <% if desc.include?("promoteur") || desc.include?("investisseur") || desc.include?("bloc") || (property.is_copropriete && property.valuation&.bulk_sale_estimate) %>
+            <% lots_txt = property.is_copropriete ? " — #{property.nb_lots} lots à réunir" : ""
+               scenario_phrases << { emoji: "🏗️", text: "Ouvert à offre promoteur#{lots_txt}", color: "bg-orange-50 border-orange-200 text-orange-800" }
+            %>
+          <% end %>
+
+          <%# Financement : déclenché si travaux importants (DPE F/G ou surface > 60m²) ou mention explicite %>
+          <% sim = property.device_simulation %>
+          <% reste_a_charge = sim ? [sim.total_aid_estimate * 1.8 - sim.total_aid_estimate, 0].max.round(-2) : nil %>
+          <% needs_financing = has_renovation && (
+               %w[F G].include?(dpe) ||
+               (property.surface.to_i > 60) ||
+               desc.include?("financ") || desc.include?("banq") || desc.include?("prêt") || desc.include?("ptz")
+             ) %>
+          <% if needs_financing %>
+            <% financement_txt = "Financement travaux à challenger"
+               financement_txt += " — reste à charge est. #{number_to_currency(reste_a_charge, unit: '€', format: '%n %u', precision: 0)}" if reste_a_charge && reste_a_charge > 0
+               scenario_phrases << { emoji: "🏦", text: financement_txt, color: "bg-purple-50 border-purple-200 text-purple-800" }
+            %>
+          <% end %>
+
+          <% if scenario_phrases.empty? %>
+            <% scenario_phrases << { emoji: "📋", text: "Dossier en cours d'orientation", color: "bg-gray-50 border-gray-200 text-gray-600" } %>
+          <% end %>
+
+          <% type = property.property_type || "appartement" %>
+          <% pool = photos[type] || photos["appartement"] %>
+          <% photo_url = pool[i % pool.size] %>
+
+          <div class="bg-white rounded-2xl overflow-hidden border border-gray-100 flex flex-col md:flex-row hover:border-gray-200 hover:shadow-sm transition-all">
+
+            <%# Photo avec DPE superposé %>
+            <% dpe_bg = {"A"=>"#16a34a","B"=>"#22c55e","C"=>"#84cc16","D"=>"#ca8a04","E"=>"#ea580c","F"=>"#dc2626","G"=>"#b91c1c"} %>
+            <div class="relative md:w-40 shrink-0">
+              <img src="<%= photo_url %>" alt="Bien immobilier" class="w-full h-40 md:h-full object-cover">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+              <% if dpe %>
+                <div class="absolute bottom-2 left-2 flex items-center gap-1.5">
+                  <span class="text-white font-black text-xl leading-none px-2 py-1 rounded-md" style="background:<%= dpe_bg[dpe] || '#6b7280' %>"><%= dpe %></span>
+                  <span class="text-white text-xs font-medium opacity-90"><%= dpe_info ? dpe_info[0] : "" %></span>
+                </div>
+              <% end %>
+            </div>
+
+            <%# Contenu %>
+            <div class="p-5 flex-1 flex flex-col min-h-0">
+
+              <%# Titre : nature du bien %>
+              <div class="flex items-start justify-between mb-3">
+                <h3 class="text-base font-bold text-gray-900 leading-tight"><%= bien_label %></h3>
+                <span class="text-xs text-gray-400 shrink-0 ml-3 mt-1"><%= time_ago_in_words(property.created_at) %></span>
+              </div>
+
+              <%# Besoins détaillés %>
+              <div class="mb-4">
+                <p class="text-xs font-bold text-gray-600 uppercase tracking-widest mb-2">J'aurais besoin de :</p>
+                <div class="flex flex-col gap-1.5">
+                  <% scenario_phrases.each do |s| %>
+                    <div class="flex items-center gap-2">
+                      <span class="text-base leading-none w-5 text-center shrink-0"><%= s[:emoji] %></span>
+                      <span class="text-sm font-semibold text-gray-800"><%= s[:text] %></span>
+                    </div>
+                  <% end %>
                 </div>
               </div>
-              <span class="text-xs text-gray-400 shrink-0"><%= time_ago_in_words(property.created_at) %></span>
-            </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-              <% if property.valuation %>
-                <div class="bg-gray-50 rounded-xl p-3 text-center">
-                  <p class="text-xs text-gray-500 mb-1">Valeur estimée</p>
-                  <p class="font-bold text-gray-800"><%= number_to_currency(property.valuation.estimated_value, unit: "€", format: "%n %u", precision: 0) %></p>
-                </div>
-                <% if property.valuation.bulk_sale_estimate %>
-                  <div class="bg-orange-50 rounded-xl p-3 text-center">
-                    <p class="text-xs text-orange-600 mb-1">Potentiel vente en bloc</p>
-                    <p class="font-bold text-orange-700"><%= number_to_currency(property.valuation.bulk_sale_estimate, unit: "€", format: "%n %u", precision: 0) %></p>
-                  </div>
-                <% end %>
+              <%# Citation %>
+              <% if property.description.present? %>
+                <p class="text-sm text-gray-500 italic leading-relaxed flex-1 mb-3">"<%= property.description.truncate(110) %>"</p>
               <% end %>
-              <% if property.device_simulation %>
-                <div class="bg-emerald-50 rounded-xl p-3 text-center">
-                  <p class="text-xs text-emerald-600 mb-1">Aides disponibles</p>
-                  <p class="font-bold text-emerald-700"><%= number_to_currency(property.device_simulation.total_aid_estimate, unit: "€", format: "%n %u", precision: 0) %></p>
-                </div>
-              <% end %>
-            </div>
 
-            <% if property.description.present? %>
-              <p class="text-sm text-gray-500 italic mb-4">"<%= property.description.truncate(150) %>"</p>
-            <% end %>
+              <%# Footer %>
+              <div class="flex items-center justify-between pt-2 border-t border-gray-100 mt-auto">
+                <span class="text-sm text-gray-400">
+                  <% n = property.offers.count %>
+                  <%= n == 0 ? "Soyez le premier à répondre" : "#{n} proposition#{n > 1 ? 's' : ''} reçue#{n > 1 ? 's' : ''}" %>
+                </span>
+                <%= link_to "Faire une proposition →", new_property_offer_path(property),
+                    class: "text-sm font-bold text-emerald-600 hover:text-emerald-700 transition-colors" %>
+              </div>
 
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-gray-400"><%= property.offers.count %> offre<%= property.offers.count > 1 ? "s" : "" %> reçue<%= property.offers.count > 1 ? "s" : "" %></span>
-              <% if user_signed_in? %>
-                <%= link_to "Faire une offre →", new_property_offer_path(property),
-                    class: "bg-emerald-600 text-white px-5 py-2 rounded-xl text-sm hover:bg-emerald-700 font-medium" %>
-              <% else %>
-                <%= link_to "Faire une offre →", new_user_session_path,
-                    class: "bg-emerald-600 text-white px-5 py-2 rounded-xl text-sm hover:bg-emerald-700 font-medium" %>
-              <% end %>
             </div>
           </div>
         <% end %>
@@ -188,7 +274,7 @@
 
   <% if user_signed_in? %>
     <div id="pane-mes-offres" class="tab-pane hidden">
-      <% mes_offres = user_signed_in? ? current_user.offers.includes(:property).order(created_at: :desc) : [] %>
+      <% mes_offres = current_user.offers.includes(:property).order(created_at: :desc) %>
       <% if mes_offres.empty? %>
         <div class="text-center py-20 text-gray-400">
           <div class="text-6xl mb-4">📤</div>
@@ -223,12 +309,11 @@
 
 <% end %>
 
-<%# Leaflet %>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</div>
 
+<%# Leaflet JS — chargé après le DOM %>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// Onglets — IDs boutons préfixés "btn-", IDs panneaux préfixés "pane-"
 function showTab(name) {
   document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -244,35 +329,53 @@ function showTab(name) {
   }
 }
 
-// Carte Leaflet
-const mapEl = document.getElementById('map');
-if (mapEl) {
+function initMap() {
+  const mapEl = document.getElementById('map');
+  if (!mapEl) return;
+  if (mapEl._leaflet_id) {
+    mapEl._leaflet_id = null;
+    mapEl.innerHTML = '';
+  }
+
   const map = L.map('map').setView([48.6921, 6.1844], 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
   }).addTo(map);
 
-  const properties = <%= raw @properties.map { |p|
+  const properties = <%= raw @properties.each_with_index.map { |p, i|
+    photos_rb = {
+      "appartement" => [
+        "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=300&q=80",
+        "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=300&q=80",
+        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=300&q=80",
+        "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&q=80",
+      ],
+      "maison" => [
+        "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=300&q=80",
+        "https://images.unsplash.com/photo-1572120360610-d971b9d7767c?w=300&q=80",
+      ]
+    }
+    type = p.property_type || "appartement"
+    pool = photos_rb[type] || photos_rb["appartement"]
     {
       address: p.address,
       city: p.city,
       dpe: p.dpe_class&.upcase,
       surface: p.surface,
       value: p.valuation&.estimated_value,
-      offers: p.offers.count
+      offers: p.offers.count,
+      photo: pool[i % pool.size]
     }
   }.to_json %>;
 
-  // Coordonnées approximatives par adresse connue (fallback sur centre Nancy)
   const coords = {
-    "14 rue Saint-Georges": [48.6934, 6.1801],
-    "3 rue des Lilas":       [48.6650, 6.1750],
-    "7 avenue du Général Leclerc": [48.6880, 6.1650],
-    "22 rue de la Commanderie": [48.6910, 6.1820],
-    "8 rue de la Craffe":    [48.6980, 6.1760],
-    "31 rue du Faubourg des Trois-Maisons": [48.6750, 6.2010],
-    "5 rue Isabey":          [48.6860, 6.1890],
-    "19 boulevard d'Austrasie": [48.7010, 6.1770],
+    "14 rue Saint-Georges":                  [48.6934, 6.1801],
+    "3 rue des Lilas":                       [48.6650, 6.1750],
+    "7 avenue du Général Leclerc":           [48.6880, 6.1650],
+    "8 rue de la Craffe":                    [48.6980, 6.1760],
+    "31 rue du Faubourg des Trois-Maisons":  [48.6750, 6.2010],
+    "5 rue Isabey":                          [48.6860, 6.1890],
+    "19 boulevard d'Austrasie":              [48.7010, 6.1770],
   };
 
   const dpeColor = { A:'#22c55e', B:'#84cc16', C:'#a3e635', D:'#facc15', E:'#fb923c', F:'#f97316', G:'#ef4444' };
@@ -281,25 +384,24 @@ if (mapEl) {
     const latlng = coords[p.address] || [48.6921 + (Math.random()-0.5)*0.02, 6.1844 + (Math.random()-0.5)*0.03];
     const color = dpeColor[p.dpe] || '#6b7280';
     const marker = L.circleMarker(latlng, {
-      radius: 14,
-      fillColor: color,
-      color: '#fff',
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 0.9
+      radius: 14, fillColor: color, color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.9
     }).addTo(map);
     marker.bindPopup(`
-      <div style="min-width:180px">
-        <p style="font-weight:700;margin-bottom:4px">${p.address}</p>
-        <p style="color:#6b7280;font-size:12px">${p.city}</p>
-        <div style="display:flex;gap:8px;margin-top:8px;font-size:12px">
+      <div style="min-width:200px;max-width:220px;">
+        ${p.photo ? `<img src="${p.photo}" style="width:100%;height:100px;object-fit:cover;border-radius:8px;margin-bottom:8px;">` : ''}
+        <p style="font-weight:700;margin-bottom:2px;font-size:13px">${p.address}</p>
+        <p style="color:#6b7280;font-size:11px;margin-bottom:8px">${p.city}</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px">
           ${p.dpe ? `<span style="background:${color};color:white;padding:2px 8px;border-radius:20px;font-weight:700">DPE ${p.dpe}</span>` : ''}
-          ${p.surface ? `<span>${p.surface} m²</span>` : ''}
+          ${p.surface ? `<span style="color:#6b7280">${p.surface} m²</span>` : ''}
         </div>
-        ${p.value ? `<p style="margin-top:8px;font-weight:700;color:#059669">${new Intl.NumberFormat('fr-FR').format(p.value)} €</p>` : ''}
-        <p style="font-size:11px;color:#9ca3af;margin-top:4px">${p.offers} offre${p.offers > 1 ? 's' : ''} reçue${p.offers > 1 ? 's' : ''}</p>
+        ${p.value ? `<p style="margin-top:6px;font-weight:700;color:#059669;font-size:13px">${new Intl.NumberFormat('fr-FR').format(p.value)} €</p>` : ''}
+        <p style="font-size:10px;color:#9ca3af;margin-top:3px">${p.offers} offre${p.offers > 1 ? 's' : ''} reçue${p.offers > 1 ? 's' : ''}</p>
       </div>
-    `);
+    `, { maxWidth: 230 });
   });
 }
+
+document.addEventListener('turbo:load', initMap);
+document.addEventListener('turbo:render', initMap);
 </script>

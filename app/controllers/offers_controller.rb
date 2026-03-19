@@ -1,5 +1,5 @@
 class OffersController < ApplicationController
-  before_action :authenticate_user!, except: [:index]
+  before_action :authenticate_user!, except: [:index, :new]
 
   def index
     if user_signed_in? && current_user.proprietaire?
@@ -14,6 +14,7 @@ class OffersController < ApplicationController
   end
 
   def create
+    authenticate_user! and return unless user_signed_in?
     @property = Property.published.find(params[:property_id])
     @offer = @property.offers.build(offer_params)
     @offer.user = current_user
@@ -24,6 +25,11 @@ class OffersController < ApplicationController
     else
       render :new, status: :unprocessable_entity
     end
+  end
+
+  def new
+  @property = Property.published.find(params[:property_id])
+  @offer = @property.offers.build
   end
 
   def update
