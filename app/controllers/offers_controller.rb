@@ -21,6 +21,7 @@ class OffersController < ApplicationController
     @offer.status = :pending
     @offer.expires_at = 30.days.from_now
     if @offer.save
+      OfferMailer.new_offer(@offer).deliver_later
       redirect_to offers_path, notice: "Votre offre a été transmise au propriétaire."
     else
       render :new, status: :unprocessable_entity
