@@ -1,0 +1,574 @@
+<%# ============================================================
+    show.html.erb v2 — design inspiré Caisse d'Épargne
+    Architecture v1 conservée : show_v1_legacy.html.erb
+    ============================================================ %>
+
+<% parsed = @property.analysis&.content.present? ? (JSON.parse(@property.analysis.content) rescue nil) : nil %>
+<% v   = parsed&.[]("valeur") %>
+<% e   = parsed&.[]("energie") %>
+<% i   = parsed&.[]("idees") %>
+<% r   = parsed&.[]("recommandation") %>
+<% is_owner = user_signed_in? && current_user == @property.user %>
+
+<% dpe_hex   = {"A"=>"#16a34a","B"=>"#22c55e","C"=>"#84cc16","D"=>"#eab308","E"=>"#f97316","F"=>"#ea580c","G"=>"#dc2626"} %>
+<% dpe_label = {"A"=>"Très performant","B"=>"Performant","C"=>"Assez performant","D"=>"Peu performant","E"=>"Énergivore","F"=>"Très énergivore","G"=>"Passoire thermique"} %>
+<% dpe_cur   = (@property.dpe_class || e&.[]("dpe_estime"))&.upcase %>
+<% dpe_cib   = (@property.dpe_target || e&.[]("dpe_cible"))&.upcase %>
+
+<%# ── Styles injectés une fois ─────────────────────────────── %>
+<style>
+  .lotys-show { max-width:680px; margin:0 auto; padding:16px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  .ls-card    { background:#fff; border-radius:20px; border:1px solid #e5e7eb; overflow:hidden; margin-bottom:16px; box-shadow:0 2px 10px rgba(0,0,0,0.06); }
+  .ls-card-hd { padding:16px 20px 14px; border-bottom:1px solid #f3f4f6; }
+  .ls-card-bd { padding:18px 20px; }
+  .ls-label   { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#9ca3af; margin-bottom:4px; }
+  .ls-val     { font-size:1.1rem; font-weight:800; color:#111827; }
+  .ls-section-title { font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#6b7280; margin-bottom:12px; }
+  /* DPE chevrons */
+  .dpe-scale  { display:flex; flex-direction:column; gap:3px; }
+  .dpe-bar    { display:flex; align-items:center; height:36px; border-radius:4px 18px 18px 4px; padding-left:12px; position:relative; }
+  .dpe-bar .letter { font-weight:900; font-size:1rem; color:#fff; width:22px; }
+  .dpe-bar .badge  { position:absolute; right:-16px; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:1.1rem; color:#fff; border:3px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,0.2); z-index:2; }
+  /* Travaux checkbox */
+  .travaux-item { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-radius:14px; background:#f9fafb; margin-bottom:8px; cursor:pointer; border:1.5px solid transparent; transition:all 0.15s; }
+  .travaux-item:hover { border-color:#d1fae5; background:#f0fdf4; }
+  .travaux-item.checked { background:#f0fdf4; border-color:#6ee7b7; }
+  /* Budget barre */
+  .budget-bar { background:#f0fdf4; border:1.5px solid #6ee7b7; border-radius:14px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; margin-top:12px; }
+  /* Aides */
+  .aide-row  { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-radius:12px; margin-bottom:6px; }
+  /* Profil revenus */
+  .profil-btn { padding:8px 12px; border-radius:10px; font-size:0.8rem; font-weight:600; border:1.5px solid #e5e7eb; cursor:pointer; background:#fff; color:#374151; transition:all 0.15s; }
+  .profil-btn.active { border-color:#059669; background:#f0fdf4; color:#059669; }
+  /* Scénarios */
+  .scenario-card { border:2px solid #e5e7eb; border-radius:16px; padding:16px; margin-bottom:10px; cursor:pointer; transition:all 0.15s; }
+  .scenario-card.active { border-color:#059669; background:#f0fdf4; }
+  .scenario-card .sc-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .scenario-radio { width:22px; height:22px; border-radius:50%; border:2px solid #d1d5db; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .scenario-card.active .scenario-radio { border-color:#059669; background:#059669; }
+  .scenario-card.active .scenario-radio::after { content:''; width:8px; height:8px; border-radius:50%; background:#fff; }
+</style>
+
+<div class="lotys-show">
+
+<%# ── Header du bien ───────────────────────────────────────── %>
+<div class="ls-card">
+  <div class="ls-card-hd" style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+      <div>
+        <p style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:4px;"><%= @property.city %> · <%= @property.zipcode %></p>
+        <h1 style="color:#fff;font-size:1.3rem;font-weight:900;line-height:1.2;margin-bottom:6px;"><%= @property.address %></h1>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <span style="background:rgba(255,255,255,0.12);color:#e2e8f0;font-size:0.7rem;font-weight:600;padding:3px 10px;border-radius:20px;">
+            <%= @property.property_type&.capitalize || "Bien" %> · <%= @property.surface %> m²
+            <% if @property.nb_rooms.present? %> · T<%= @property.nb_rooms %><% end %>
+          </span>
+          <span style="font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:20px;
+            <%= @property.analyzed? ? 'background:rgba(59,130,246,0.3);color:#93c5fd;' :
+                @property.published? ? 'background:rgba(16,185,129,0.3);color:#6ee7b7;' :
+                'background:rgba(255,255,255,0.1);color:#94a3b8;' %>">
+            <%= @property.analyzed? ? '✅ Analysé' : @property.published? ? '📢 Publié' : @property.analyzing? ? '🔄 En cours' : '⏳ Brouillon' %>
+          </span>
+        </div>
+      </div>
+      <% if dpe_cur %>
+        <div style="width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.6rem;color:#fff;flex-shrink:0;" style="background:<%= dpe_hex[dpe_cur] || '#6b7280' %>">
+          <div style="background:<%= dpe_hex[dpe_cur] || '#6b7280' %>;width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.6rem;color:#fff;">
+            <%= dpe_cur %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  <div class="ls-card-bd" style="padding:12px 20px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <% if is_owner %>
+        <%= link_to "✏️ Modifier", edit_property_path(@property), style: "font-size:0.8rem;font-weight:600;padding:8px 14px;border-radius:10px;border:1.5px solid #e5e7eb;color:#374151;text-decoration:none;background:#fff;" %>
+        <% if @property.draft? || @property.analyzed? %>
+          <%= button_to "🔍 Lancer l'analyse", analyze_property_path(@property),
+              style: "font-size:0.8rem;font-weight:700;padding:8px 14px;border-radius:10px;background:#1d4ed8;color:#fff;border:none;cursor:pointer;" %>
+        <% end %>
+        <% if @property.analyzed? %>
+          <%= link_to "👁️ Prévisualiser & publier", preview_property_path(@property),
+              style: "font-size:0.8rem;font-weight:700;padding:8px 14px;border-radius:10px;background:#059669;color:#fff;text-decoration:none;" %>
+        <% end %>
+        <% if @property.published? %>
+          <%= button_to "🔒 Dépublier", unpublish_property_path(@property),
+              style: "font-size:0.8rem;font-weight:600;padding:8px 14px;border-radius:10px;background:#f3f4f6;color:#6b7280;border:none;cursor:pointer;",
+              data: { confirm: "Dépublier ce bien ?" } %>
+        <% end %>
+      <% else %>
+        <%= link_to "← Retour", offers_path, style: "font-size:0.8rem;font-weight:600;padding:8px 14px;border-radius:10px;border:1.5px solid #e5e7eb;color:#374151;text-decoration:none;" %>
+        <%= link_to "📩 Faire une proposition", new_property_offer_path(@property),
+            style: "font-size:0.8rem;font-weight:700;padding:8px 14px;border-radius:10px;background:#059669;color:#fff;text-decoration:none;" %>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<%# ── Valeur du bien ─────────────────────────────────────── %>
+<% if v %>
+<div class="ls-card">
+  <div class="ls-card-hd">
+    <p class="ls-section-title">🏷️ Valeur du bien aujourd'hui</p>
+  </div>
+  <div class="ls-card-bd">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:#f0fdf4;border-radius:14px;padding:14px;text-align:center;border:1.5px solid #bbf7d0;">
+        <p style="font-size:0.68rem;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Estimation basse</p>
+        <p style="font-size:1.5rem;font-weight:900;color:#065f46;"><%= number_to_currency(v["estimation_basse"], unit: "€", format: "%n %u", precision: 0, delimiter: " ") %></p>
+      </div>
+      <div style="background:#eff6ff;border-radius:14px;padding:14px;text-align:center;border:1.5px solid #bfdbfe;">
+        <p style="font-size:0.68rem;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Estimation haute</p>
+        <p style="font-size:1.5rem;font-weight:900;color:#1e3a8a;"><%= number_to_currency(v["estimation_haute"], unit: "€", format: "%n %u", precision: 0, delimiter: " ") %></p>
+      </div>
+    </div>
+    <% if v["prix_acquisition"].present? %>
+      <div style="background:#f9fafb;border-radius:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <p style="font-size:0.8rem;color:#6b7280;font-weight:600;">Prix d'achat</p>
+        <p style="font-size:0.9rem;font-weight:800;color:#374151;"><%= number_to_currency(v["prix_acquisition"], unit: "€", format: "%n %u", precision: 0, delimiter: " ") %></p>
+      </div>
+    <% end %>
+    <% if v["points_cles"].present? %>
+      <div style="border-top:1px solid #f3f4f6;padding-top:12px;">
+        <% v["points_cles"].first(3).each do |pt| %>
+          <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">
+            <span style="color:#059669;font-weight:700;font-size:0.9rem;margin-top:1px;">✓</span>
+            <p style="font-size:0.85rem;color:#374151;line-height:1.5;"><%= pt %></p>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+<% end %>
+
+<%# ── DPE visuel + Rénovation ─────────────────────────────── %>
+<% if e || dpe_cur %>
+<div class="ls-card">
+  <div class="ls-card-hd">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <p class="ls-section-title" style="margin:0;">⚡ Rénovation énergétique</p>
+      <% if e&.[]("urgence") == "haute" %>
+        <span style="background:#fef2f2;color:#dc2626;font-size:0.68rem;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid #fecaca;">⚠️ Urgence réglementaire</span>
+      <% end %>
+    </div>
+  </div>
+  <div class="ls-card-bd">
+
+    <%# Échelle DPE visuelle — style chevrons %>
+    <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:20px;">
+      <div class="dpe-scale" style="flex:1;">
+        <% widths = {"A"=>55,"B"=>62,"C"=>70,"D"=>78,"E"=>86,"F"=>93,"G"=>100} %>
+        <% %w[A B C D E F G].each do |letter| %>
+          <% is_cur = letter == dpe_cur %>
+          <% is_cib = letter == dpe_cib %>
+          <div class="dpe-bar" style="width:<%= widths[letter] %>%;background:<%= dpe_hex[letter] %>;opacity:<%= is_cur || is_cib ? '1' : '0.25' %>;">
+            <span class="letter"><%= letter %></span>
+            <% if is_cur %>
+              <div class="badge" style="background:<%= dpe_hex[letter] %>;">A</div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+      <div style="flex-shrink:0;text-align:center;padding-top:4px;">
+        <% if dpe_cur %>
+          <div style="width:56px;height:56px;border-radius:14px;background:<%= dpe_hex[dpe_cur] || '#6b7280' %>;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.8rem;color:#fff;margin-bottom:4px;"><%= dpe_cur %></div>
+          <p style="font-size:0.65rem;color:#6b7280;font-weight:600;"><%= dpe_label[dpe_cur] %></p>
+        <% end %>
+        <% if dpe_cib && dpe_cib != dpe_cur %>
+          <div style="margin-top:8px;">
+            <p style="font-size:0.6rem;color:#059669;font-weight:700;margin-bottom:3px;">OBJECTIF</p>
+            <div style="width:56px;height:56px;border-radius:14px;background:<%= dpe_hex[dpe_cib] || '#059669' %>;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.8rem;color:#fff;border:3px solid #059669;"><%= dpe_cib %></div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Alerte interdiction %>
+    <% if %w[F G].include?(dpe_cur) %>
+      <div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+        <p style="font-size:0.85rem;color:#dc2626;font-weight:700;line-height:1.5;">🚫 Ce logement ne peut plus être mis en location depuis le 1er janvier 2023 (DPE <%= dpe_cur %>).</p>
+      </div>
+    <% elsif dpe_cur == "E" %>
+      <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+        <p style="font-size:0.85rem;color:#c2410c;font-weight:700;line-height:1.5;">⚠️ Interdiction de louer un logement classé E prévue en 2028.</p>
+      </div>
+    <% end %>
+
+    <%# Travaux groupés en scénarios %>
+    <% if e&.[]("travaux").present? %>
+      <% travaux = e["travaux"].sort_by{|t| t["priorite"].to_i} %>
+      <% scenarios = [
+        { key: "minimal",       label: "Scénario minimal",       color: "#eab308", bg: "#fefce8", count: 1 },
+        { key: "intermediaire", label: "Scénario intermédiaire",  color: "#f97316", bg: "#fff7ed", count: [2, travaux.size-1].min },
+        { key: "complet",       label: "Scénario complet",        color: "#dc2626", bg: "#fef2f2", count: travaux.size },
+      ].select { |s| s[:count] > 0 && s[:count] <= travaux.size } %>
+
+      <p class="ls-section-title" style="margin-bottom:10px;">Choisissez votre niveau de travaux</p>
+      <div id="scenarios-list">
+        <% scenarios.each_with_index do |sc, idx| %>
+          <% sc_travaux = travaux.first(sc[:count]) %>
+          <% sc_min = sc_travaux.sum{|t| t["cout_min"].to_i} %>
+          <% sc_max = sc_travaux.sum{|t| t["cout_max"].to_i} %>
+          <% sc_gains = sc_travaux.map{|t| t["gain_dpe"]}.compact %>
+          <div class="scenario-card <%= idx == 1 ? 'active' : '' %>" id="sc-<%= sc[:key] %>"
+               onclick="selectScenario('<%= sc[:key] %>', <%= sc[:count] %>)">
+            <div class="sc-header">
+              <div>
+                <p style="font-weight:800;font-size:0.9rem;color:#111827;margin-bottom:2px;"><%= sc[:label] %></p>
+                <p style="font-size:0.75rem;color:#6b7280;"><%= sc_travaux.map{|t| t["poste"]}.join(" + ") %></p>
+              </div>
+              <div class="scenario-radio"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div style="background:<%= sc[:bg] %>;border-radius:10px;padding:8px 10px;">
+                <p style="font-size:0.65rem;font-weight:700;color:<%= sc[:color] %>;text-transform:uppercase;margin-bottom:2px;">Travaux estimés</p>
+                <p style="font-size:0.95rem;font-weight:900;color:#111827;"><%= sc_min.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1 ').reverse %> – <%= sc_max.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1 ').reverse %> €</p>
+              </div>
+              <% if sc_gains.any? %>
+                <div style="background:#f0fdf4;border-radius:10px;padding:8px 10px;">
+                  <p style="font-size:0.65rem;font-weight:700;color:#059669;text-transform:uppercase;margin-bottom:2px;">Gain DPE</p>
+                  <p style="font-size:0.85rem;font-weight:800;color:#065f46;"><%= sc_gains.join(", ") %></p>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <%# Checklist détaillée (repliée par défaut) %>
+      <details style="margin-top:6px;">
+        <summary style="font-size:0.8rem;font-weight:600;color:#6b7280;cursor:pointer;padding:8px 0;list-style:none;">▸ Voir le détail des travaux</summary>
+        <div id="travaux-list" style="margin-top:8px;">
+          <% travaux.each do |t| %>
+            <label class="travaux-item" id="trav-<%= t['priorite'] %>">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <input type="checkbox" class="travaux-cb" style="width:18px;height:18px;accent-color:#059669;"
+                       data-min="<%= t['cout_min'] %>" data-max="<%= t['cout_max'] %>" data-gain="<%= t['gain_dpe'] %>"
+                       checked onchange="calcTravaux()">
+                <div>
+                  <p style="font-size:0.88rem;font-weight:700;color:#111827;"><%= t["poste"] %></p>
+                  <p style="font-size:0.75rem;color:#059669;font-weight:600;"><%= t["gain_dpe"] %></p>
+                </div>
+              </div>
+              <p style="font-size:0.85rem;font-weight:800;color:#374151;white-space:nowrap;"><%= t["cout_min"].to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1 ').reverse %> – <%= t["cout_max"].to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1 ').reverse %> €</p>
+            </label>
+          <% end %>
+        </div>
+      </details>
+
+      <%# Budget sélectionné %>
+      <div class="budget-bar" id="travaux-total">
+        <div>
+          <p style="font-size:0.85rem;font-weight:800;color:#065f46;">Budget sélectionné</p>
+          <p style="font-size:0.72rem;color:#059669;" id="travaux-dpe-impact">—</p>
+        </div>
+        <p style="font-size:1.1rem;font-weight:900;color:#065f46;" id="travaux-montant">—</p>
+      </div>
+
+      <script>
+      var scenarioData = {
+        <% scenarios.each do |sc| %>
+          '<%= sc[:key] %>': <%= sc[:count] %>,
+        <% end %>
+      };
+      function selectScenario(key, count) {
+        document.querySelectorAll('.scenario-card').forEach(el => el.classList.remove('active'));
+        document.getElementById('sc-' + key).classList.add('active');
+        var cbs = document.querySelectorAll('.travaux-cb');
+        cbs.forEach(function(cb, idx) { cb.checked = (idx < count); });
+        calcTravaux();
+      }
+      function calcTravaux() {
+        var cbs = document.querySelectorAll('.travaux-cb');
+        var mn=0, mx=0, gains=[];
+        cbs.forEach(function(cb){ if(cb.checked){ mn+=parseInt(cb.dataset.min)||0; mx+=parseInt(cb.dataset.max)||0; if(cb.dataset.gain) gains.push(cb.dataset.gain); } });
+        var fmt=function(x){return x.toLocaleString('fr-FR')+' €';};
+        document.getElementById('travaux-montant').textContent = mn>0 ? fmt(mn)+' – '+fmt(mx) : '—';
+        document.getElementById('travaux-dpe-impact').textContent = gains.length>0 ? 'Impact : '+gains.join(', ') : 'Aucun travaux sélectionné';
+        var sim=document.getElementById('sim-montant');
+        if(sim && mx>0){ sim.value=mx; if(typeof calcPret==='function') calcPret(); }
+        if(typeof calcAides==='function') calcAides();
+      }
+      document.addEventListener('DOMContentLoaded', function(){ selectScenario('intermediaire', scenarioData['intermediaire'] || 2); });
+      </script>
+    <% end %>
+  </div>
+</div>
+<% end %>
+
+<%# ── Aides ──────────────────────────────────────────────── %>
+<% if e %>
+<div class="ls-card">
+  <div class="ls-card-hd">
+    <p class="ls-section-title">💰 Aides mobilisables</p>
+  </div>
+  <div class="ls-card-bd">
+    <p style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:10px;">Vos revenus annuels (foyer fiscal) :</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+      <% [["Très modestes","< 21 000 €/an",0],["Modestes","21 – 30 k€",1],["Intermédiaires","30 – 45 k€",2],["Supérieurs","> 45 000 €",3]].each do |label,sub,idx| %>
+        <button onclick="setProfil(<%= idx %>)" class="profil-btn" id="profil-<%= idx %>">
+          <%= label %><br><span style="font-size:0.65rem;font-weight:400;color:#9ca3af;"><%= sub %></span>
+        </button>
+      <% end %>
+    </div>
+
+    <div class="aide-row" style="background:#eff6ff;">
+      <div>
+        <p style="font-size:0.85rem;font-weight:700;color:#1e3a8a;">Éco-PTZ</p>
+        <p style="font-size:0.72rem;color:#3b82f6;">Prêt à 0% · Sans condition de ressources</p>
+      </div>
+      <p style="font-size:0.95rem;font-weight:900;color:#1e3a8a;">jusqu'à 50 000 €</p>
+    </div>
+
+    <div class="aide-row" style="background:#faf5ff;">
+      <div>
+        <p style="font-size:0.85rem;font-weight:700;color:#581c87;">MaPrimeRénov'</p>
+        <p style="font-size:0.72rem;color:#7c3aed;" id="aide-mpr-label">Sélectionnez votre profil</p>
+      </div>
+      <p style="font-size:0.95rem;font-weight:900;color:#581c87;" id="aide-mpr">—</p>
+    </div>
+
+    <div class="aide-row" style="background:#fffbeb;">
+      <div>
+        <p style="font-size:0.85rem;font-weight:700;color:#78350f;">CEE</p>
+        <p style="font-size:0.72rem;color:#d97706;">Via artisan RGE · Variable</p>
+      </div>
+      <p style="font-size:0.95rem;font-weight:900;color:#78350f;" id="aide-cee">—</p>
+    </div>
+
+    <div style="background:#f0fdf4;border:1.5px solid #6ee7b7;border-radius:14px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;margin-top:10px;margin-bottom:4px;">
+      <div>
+        <p style="font-size:0.85rem;font-weight:800;color:#065f46;">Reste à financer</p>
+        <p style="font-size:0.72rem;color:#059669;">Budget sélectionné – aides estimées</p>
+      </div>
+      <p style="font-size:1.15rem;font-weight:900;color:#065f46;" id="reste-financer">—</p>
+    </div>
+    <p style="font-size:0.68rem;color:#9ca3af;margin-top:6px;">⚠️ Estimations indicatives 2025. MaPrimeRénov' peut nécessiter un audit énergétique.</p>
+
+    <%= render "local_aids", property: @property %>
+  </div>
+</div>
+<% end %>
+
+<%# ── Simulateur crédit ────────────────────────────────── %>
+<% if e %>
+<div class="ls-card">
+  <div class="ls-card-hd">
+    <p class="ls-section-title">🏦 Simulateur de financement</p>
+  </div>
+  <div class="ls-card-bd">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div>
+        <p style="font-size:0.68rem;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:6px;">Montant</p>
+        <input type="range" id="sim-montant" min="5000" max="100000" step="1000" value="<%= e['budget_total_min'] || 30000 %>" style="width:100%;accent-color:#059669;" oninput="calcPret()">
+        <p style="font-size:0.8rem;font-weight:800;color:#111827;text-align:right;margin-top:4px;" id="sim-montant-label">—</p>
+      </div>
+      <div>
+        <p style="font-size:0.68rem;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:6px;">Durée</p>
+        <input type="range" id="sim-duree" min="5" max="25" step="1" value="15" style="width:100%;accent-color:#059669;" oninput="calcPret()">
+        <p style="font-size:0.8rem;font-weight:800;color:#111827;text-align:right;margin-top:4px;" id="sim-duree-label">—</p>
+      </div>
+      <div>
+        <p style="font-size:0.68rem;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:6px;">Taux</p>
+        <input type="range" id="sim-taux" min="0" max="6" step="0.1" value="3.5" style="width:100%;accent-color:#059669;" oninput="calcPret()">
+        <p style="font-size:0.8rem;font-weight:800;color:#111827;text-align:right;margin-top:4px;" id="sim-taux-label">—</p>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px;text-align:center;">
+        <p style="font-size:0.65rem;font-weight:700;color:#059669;text-transform:uppercase;margin-bottom:4px;">Mensualité</p>
+        <p style="font-size:1.1rem;font-weight:900;color:#065f46;" id="sim-mensualite">—</p>
+      </div>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:12px;text-align:center;">
+        <p style="font-size:0.65rem;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:4px;">Coût total</p>
+        <p style="font-size:1.1rem;font-weight:900;color:#374151;" id="sim-cout-total">—</p>
+      </div>
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:12px;text-align:center;">
+        <p style="font-size:0.65rem;font-weight:700;color:#f97316;text-transform:uppercase;margin-bottom:4px;">Intérêts</p>
+        <p style="font-size:1.1rem;font-weight:900;color:#c2410c;" id="sim-interets">—</p>
+      </div>
+    </div>
+    <p style="font-size:0.68rem;color:#9ca3af;margin-top:8px;">💡 Hors assurance. Pour l'Éco-PTZ, réglez le taux sur 0%.</p>
+  </div>
+</div>
+<% end %>
+
+<%# ── Opportunités ────────────────────────────────────────── %>
+<% if i && i["scenarios"].present? %>
+<div class="ls-card">
+  <div class="ls-card-hd">
+    <p class="ls-section-title">💡 <%= i["titre"] || "Y avez-vous pensé ?" %></p>
+  </div>
+  <div class="ls-card-bd" style="padding-top:12px;">
+    <% i["scenarios"].each do |s| %>
+      <div style="display:flex;gap:12px;padding:14px;border-radius:14px;background:#f9fafb;margin-bottom:10px;border:1px solid #f3f4f6;">
+        <span style="font-size:1.6rem;line-height:1;flex-shrink:0;margin-top:2px;"><%= s["emoji"] %></span>
+        <div>
+          <p style="font-size:0.9rem;font-weight:800;color:#111827;margin-bottom:4px;"><%= s["titre"] %></p>
+          <p style="font-size:0.82rem;color:#374151;line-height:1.5;margin-bottom:8px;"><%= s["description"] %></p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span style="background:#dcfce7;color:#166534;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:20px;"><%= s["gain_estime"] %></span>
+            <% faisabilite_style = s["faisabilite"] == "haute" ? "background:#dcfce7;color:#166534;" : s["faisabilite"] == "moyenne" ? "background:#fef9c3;color:#713f12;" : "background:#fee2e2;color:#991b1b;" %>
+            <span style="<%= faisabilite_style %>font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:20px;">Faisabilité : <%= s["faisabilite"] %></span>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+<% end %>
+
+<%# ── Recommandation ──────────────────────────────────────── %>
+<% if r %>
+<div class="ls-card" style="border-color:#059669;border-width:2px;">
+  <div style="background:#047857;padding:16px 20px;">
+    <p style="font-size:0.7rem;font-weight:700;color:#6ee7b7;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">✅ Notre recommandation</p>
+    <p style="font-size:1rem;font-weight:800;color:#fff;line-height:1.5;"><%= r["action_prioritaire"] %></p>
+  </div>
+  <div class="ls-card-bd">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="background:#f0fdf4;border-radius:12px;padding:12px;">
+        <p style="font-size:0.65rem;font-weight:700;color:#059669;text-transform:uppercase;margin-bottom:6px;">⏱ Court terme (3 mois)</p>
+        <p style="font-size:0.82rem;color:#374151;line-height:1.5;white-space:pre-line;"><%= r["horizon_court"] %></p>
+      </div>
+      <div style="background:#eff6ff;border-radius:12px;padding:12px;">
+        <p style="font-size:0.65rem;font-weight:700;color:#1d4ed8;text-transform:uppercase;margin-bottom:6px;">📅 Moyen terme (1-2 ans)</p>
+        <p style="font-size:0.82rem;color:#374151;line-height:1.5;white-space:pre-line;"><%= r["horizon_moyen"] %></p>
+      </div>
+    </div>
+  </div>
+</div>
+<% end %>
+
+<%# ── Documents (propriétaire) ─────────────────────────── %>
+<% if is_owner %>
+<div class="ls-card">
+  <div class="ls-card-hd" style="display:flex;align-items:center;justify-content:space-between;">
+    <p class="ls-section-title" style="margin:0;">📎 Documents (<%= @property.documents.count %>)</p>
+    <%= link_to "+ Ajouter", new_property_document_path(@property), style: "font-size:0.8rem;font-weight:600;color:#059669;text-decoration:none;" %>
+  </div>
+  <% if @property.documents.any? %>
+    <div style="padding:10px 16px 14px;">
+      <% @property.documents.each do |doc| %>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f3f4f6;">
+          <span style="font-size:1rem;">📄</span>
+          <div style="flex:1;min-width:0;">
+            <p style="font-size:0.82rem;font-weight:600;color:#111827;truncate;"><%= doc.name.presence || doc.document_type.humanize %></p>
+            <% if doc.ai_summary.present? %>
+              <p style="font-size:0.7rem;color:#6b7280;line-height:1.4;margin-top:2px;"><%= doc.ai_summary.truncate(120) %></p>
+            <% end %>
+          </div>
+          <% if doc.processed? %>
+            <span style="font-size:0.65rem;font-weight:700;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:20px;">✓</span>
+          <% end %>
+          <%= button_to "🗑", property_document_path(@property, doc), method: :delete,
+              style: "background:transparent;border:none;cursor:pointer;color:#d1d5db;font-size:0.9rem;padding:4px;",
+              data: { confirm: "Supprimer ?", turbo: false } %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div style="padding:16px 20px;">
+      <p style="font-size:0.82rem;color:#9ca3af;">Aucun document téléchargé.</p>
+    </div>
+  <% end %>
+</div>
+
+<%# Offres reçues %>
+<% if @property.published? && @property.offers.any? %>
+<div class="ls-card">
+  <div class="ls-card-hd" style="display:flex;align-items:center;justify-content:space-between;">
+    <p class="ls-section-title" style="margin:0;">🤝 Offres reçues</p>
+    <span style="background:#dcfce7;color:#166534;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:20px;"><%= @property.offers.count %></span>
+  </div>
+  <div style="padding:10px 16px 14px;">
+    <% @property.offers.order(created_at: :desc).each do |offer| %>
+      <div style="border:1px solid #e5e7eb;border-radius:14px;padding:14px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:20px;
+            <%= offer.offer_type=='renovation' ? 'background:#dbeafe;color:#1e40af;' : offer.offer_type=='financement' ? 'background:#ede9fe;color:#5b21b6;' : 'background:#ffedd5;color:#c2410c;' %>">
+            <%= offer.offer_type=='renovation' ? '🔨 Rénovation' : offer.offer_type=='financement' ? '🏦 Financement' : '🏗️ Promoteur' %>
+          </span>
+          <% if offer.amount %>
+            <p style="font-size:1rem;font-weight:900;color:#059669;"><%= number_to_currency(offer.amount, unit: "€", format: "%n %u", precision: 0) %></p>
+          <% end %>
+        </div>
+        <p style="font-size:0.82rem;color:#374151;line-height:1.5;margin-bottom:10px;"><%= offer.description %></p>
+        <% if offer.pending? %>
+          <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <%= button_to "✓ Accepter", offer_path(offer, status: "accepted"), method: :patch,
+                style: "font-size:0.78rem;font-weight:700;background:#059669;color:#fff;padding:8px 14px;border-radius:10px;border:none;cursor:pointer;" %>
+            <%= button_to "✗ Décliner", offer_path(offer, status: "rejected"), method: :patch,
+                style: "font-size:0.78rem;font-weight:600;background:#f3f4f6;color:#6b7280;padding:8px 14px;border-radius:10px;border:none;cursor:pointer;" %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+<% end %>
+<% end %>
+
+</div>
+
+<%# ── JS global ─────────────────────────────────────────── %>
+<script>
+function calcPret() {
+  var M=parseInt(document.getElementById('sim-montant').value);
+  var D=parseInt(document.getElementById('sim-duree').value);
+  var T=parseFloat(document.getElementById('sim-taux').value);
+  document.getElementById('sim-montant-label').textContent=M.toLocaleString('fr-FR')+' €';
+  document.getElementById('sim-duree-label').textContent=D+' ans';
+  document.getElementById('sim-taux-label').textContent=T.toFixed(1)+' %';
+  var n=D*12, fmt=function(x){return Math.round(x).toLocaleString('fr-FR')+' €';};
+  if(T===0){
+    var m=M/n;
+    document.getElementById('sim-mensualite').textContent=fmt(m)+'/mois';
+    document.getElementById('sim-cout-total').textContent=fmt(M);
+    document.getElementById('sim-interets').textContent='0 €';
+  } else {
+    var r=(T/100)/12, m=M*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1), tot=m*n;
+    document.getElementById('sim-mensualite').textContent=fmt(m)+'/mois';
+    document.getElementById('sim-cout-total').textContent=fmt(tot);
+    document.getElementById('sim-interets').textContent=fmt(tot-M);
+  }
+}
+
+var currentProfil=-1;
+var mprTaux=[0.70,0.50,0.35,0.15];
+var mprLabels=['Bleu – 70% max','Jaune – 50% max','Violet – 35% max','Rose – 15% max'];
+
+function setProfil(p) {
+  currentProfil=p;
+  document.querySelectorAll('.profil-btn').forEach(function(b,i){
+    b.classList.toggle('active', i===p);
+  });
+  calcAides();
+}
+
+function calcAides() {
+  var cbs=document.querySelectorAll('.travaux-cb');
+  var maxB=0;
+  cbs.forEach(function(cb){ if(cb.checked) maxB+=parseInt(cb.dataset.max)||0; });
+  var cee=maxB>0?Math.min(Math.round(maxB*0.08),4000):0;
+  document.getElementById('aide-cee').textContent=cee>0?cee.toLocaleString('fr-FR')+' €':'—';
+  var mpr=0;
+  if(currentProfil>=0 && maxB>0){
+    mpr=Math.min(Math.round(maxB*mprTaux[currentProfil]),20000);
+    document.getElementById('aide-mpr').textContent=mpr.toLocaleString('fr-FR')+' €';
+    document.getElementById('aide-mpr-label').textContent=mprLabels[currentProfil];
+  } else {
+    document.getElementById('aide-mpr').textContent='—';
+    document.getElementById('aide-mpr-label').textContent='Sélectionnez votre profil';
+  }
+  var totalAides=(currentProfil>=0?mpr:0)+cee;
+  var reste=Math.max(0,maxB-totalAides);
+  document.getElementById('reste-financer').textContent=reste>0?reste.toLocaleString('fr-FR')+' €':maxB>0?'0 €':'—';
+  var sl=document.getElementById('sim-montant');
+  if(sl && reste>0){sl.value=reste;calcPret();}
+}
+
+document.addEventListener('DOMContentLoaded', function(){ calcPret(); calcAides(); });
+</script>

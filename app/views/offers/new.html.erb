@@ -14,7 +14,12 @@
       <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end px-5 pb-4">
         <div>
           <p class="text-white font-bold text-lg leading-tight">
-            <%= [@property.property_type&.capitalize, @property.construction_year ? "de #{@property.construction_year}" : nil].compact.join(" ") %>
+            <% type_label = @property.property_type == "maison" ? "Maison" : "Appartement"
+               rooms_label = @property.nb_rooms.present? ? " T#{@property.nb_rooms}" : ""
+               surface_label = @property.surface.present? ? " de #{@property.surface} m²" : ""
+               copro_label = @property.is_copropriete ? " · Copropriété #{@property.nb_lots} lots" : ""
+               city_label = @property.city.present? ? " · #{@property.city}" : "" %>
+            <%= "#{type_label}#{rooms_label}#{surface_label}#{copro_label}#{city_label}" %>
             <% if @property.surface %> · <%= @property.surface %> m²<% end %>
           </p>
           <p class="text-white/75 text-sm"><%= @property.city %><% if @property.is_copropriete %> · Copropriété <%= @property.nb_lots %> lots<% end %></p>

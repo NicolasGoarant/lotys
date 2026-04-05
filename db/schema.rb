@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_03_16_111625) do
+ActiveRecord::Schema[7.2].define(version: 2026_03_21_182448) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -40,6 +40,31 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_16_111625) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "aid_rules", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "slug", null: false
+    t.string "aid_type"
+    t.string "territory"
+    t.text "description"
+    t.jsonb "conditions", default: {}
+    t.string "amount_type"
+    t.decimal "amount_value", precision: 10, scale: 2
+    t.decimal "amount_max", precision: 10, scale: 2
+    t.decimal "amount_min", precision: 10, scale: 2
+    t.string "amount_base"
+    t.text "amount_notes"
+    t.date "valid_from", null: false
+    t.date "valid_until"
+    t.boolean "active", default: true
+    t.string "source_url"
+    t.string "source_label"
+    t.integer "priority", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["slug"], name: "index_aid_rules_on_slug", unique: true
+    t.index ["territory", "aid_type", "active"], name: "index_aid_rules_on_territory_and_aid_type_and_active"
   end
 
   create_table "analyses", force: :cascade do |t|
@@ -169,6 +194,12 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_16_111625) do
     t.string "income_bracket"
     t.string "dpe_target"
     t.string "construction_period"
+    t.decimal "surface_ite"
+    t.decimal "surface_iti"
+    t.decimal "surface_sarking"
+    t.decimal "surface_combles_perdus"
+    t.decimal "surface_toiture_terrasse"
+    t.decimal "surface_plancher_bas"
     t.index ["user_id"], name: "index_properties_on_user_id"
   end
 

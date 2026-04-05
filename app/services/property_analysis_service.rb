@@ -10,14 +10,25 @@ class PropertyAnalysisService
       "**#{doc.document_type.humanize}** : #{doc.ai_summary}"
     end.join("\n\n")
 
+    # Données DVF si disponibles
+    dvf_context = if @property.valuation&.dvf_raw.present?
+      dvf = @property.valuation.dvf_raw
+      "Données DVF réelles (ventes passées dans le secteur) : prix moyen #{dvf['avg_price_sqm']} €/m² sur #{dvf['sample_size']} transactions comparables."
+    else
+      "Données DVF non disponibles pour ce secteur."
+    end
+
     prompt = <<~PROMPT
       Tu es un conseiller patrimonial expert en immobilier résidentiel français.
+      Tu produis des estimations de valeur rigoureuses, ancrées dans les données de marché réelles.
+
       Voici le dossier d'un bien immobilier :
       - Adresse : #{@property.address}, #{@property.city} (#{@property.zipcode})
       - Surface : #{@property.surface || "inconnue"} m²
       - Année de construction : #{@property.construction_year || "inconnue"}
       - Classe DPE : #{@property.dpe_class || "non renseignée"}
       - Copropriété : #{@property.is_copropriete ? "Oui (#{@property.nb_lots} lots)" : "Non"}
+      - #{dvf_context}
 
       Analyses des documents fournis :
       #{summaries.presence || "Aucun document analysé."}
@@ -30,7 +41,7 @@ class PropertyAnalysisService
           "estimation_basse": 120000,
           "estimation_haute": 145000,
           "prix_acquisition": 149000,
-          "analyse": "Texte d'analyse de 3-4 phrases sur la valeur actuelle, l'évolution du marché nancéien, et la plus-value latente.",
+          "analyse": "Texte d'analyse de 3-4 phrases. IMPORTANT : (1) base ton estimation sur le prix au m² réel du secteur AVANT toute décote, puis applique la décote DPE ; (2) n'utilise PAS le prix d'acquisition pour valider ton estimation — ce sont deux choses distinctes ; (3) ne juge pas si le prix d'achat était justifié.",
           "points_cles": ["point 1", "point 2", "point 3"]
         },
         "energie": {
@@ -135,6 +146,33 @@ class PropertyAnalysisService
       Les scores doivent être réalistes, sur 100, et cohérents avec l'état du bien.
       La timeline travaux doit être ordonnée, crédible, et simple à exécuter.
       La projection de valeur doit être cohérente avec la valeur actuelle et les travaux proposés.
+
+      RÈGLES IMPÉRATIVES POUR L'ESTIMATION DE VALEUR :
+
+      1. MÉTHODE DE CALCUL :
+         - Commence par le prix au m² brut du secteur (marché réel, pas les valeurs "bons états")
+         - Pour Nancy intra-muros et proches communes : base-toi sur 1 600–2 200 €/m² selon quartier
+         - Applique ensuite une seule décote DPE, pas d'autres pénalités cumulées
+
+      2. DÉCOTES DPE RÉALISTES (source : études notariales 2023-2024) :
+         - DPE A/B : 0% (prime verte possible +3-5%)
+         - DPE C/D : 0% (référence)
+         - DPE E : -5 à -8%
+         - DPE F maison individuelle hors copro : -8 à -12%
+         - DPE F appartement en copro : -12 à -18%
+         - DPE G maison individuelle hors copro : -12 à -18%
+         - DPE G appartement en copro : -18 à -25%
+
+      3. NE PAS FAIRE :
+         - Ne pas commenter si le prix d'acquisition était "au-dessus des fondamentaux" ou "surévalué"
+         - Ne pas cumuler décote DPE + pénalité ancienneté + pénalité surface
+         - Ne pas appliquer une décote supérieure à 20% sauf cas exceptionnel justifié
+         - Ne pas utiliser le prix d'acquisition comme référence pour valider l'estimation
+
+      4. PRÉSENTER SYSTÉMATIQUEMENT :
+         - Valeur état actuel (fourchette basse/haute)
+         - Valeur potentielle après travaux de rénovation
+         - Les deux sont utiles au propriétaire pour décider
     PROMPT
 
     response = call_claude(prompt)

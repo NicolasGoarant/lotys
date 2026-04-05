@@ -1,6 +1,6 @@
 class PropertiesController < ApplicationController
   before_action :authenticate_user!, except: [:index, :new, :create, :show]
-  before_action :set_property, only: [:show, :edit, :update, :destroy, :analyze, :publish, :unpublish, :preview]
+  before_action :set_property, only: [:show, :edit, :update, :destroy, :analyze, :publish, :unpublish, :preview, :update_income_bracket]
 
   def index
     if user_signed_in?
@@ -12,6 +12,9 @@ class PropertiesController < ApplicationController
   end
 
   def show
+    if user_signed_in? && current_user == @property.user
+      @aid_result = AidCalculatorService.new(@property).call
+    end
   end
 
   def new
@@ -74,6 +77,13 @@ class PropertiesController < ApplicationController
     redirect_to @property, notice: "Objectif DPE mis à jour."
   end
 
+  def update_income_bracket
+    @property.update(income_bracket: params[:income_bracket])
+    @aid_result = AidCalculatorService.new(@property).call
+    # Turbo Frame redessine uniquement l'étape 3
+    render partial: "properties/aid_result", locals: { property: @property, aid_result: @aid_result }
+  end
+
   private
 
   def run_analysis(property)
@@ -86,7 +96,35 @@ class PropertiesController < ApplicationController
     DeviceSimulationService.new(property).call
     PropertyAnalysisService.new(property).call
     LocalAidCalculator.new(property).call
+    sync_analysis_fields(property)
     property.update(status: :analyzed)
+  end
+
+  # Sync automatique des champs depuis le JSON d'analyse
+  # Évite à l'utilisateur de ressaisir ce que l'IA a déjà calculé
+  def sync_analysis_fields(property)
+    return unless property.analysis&.content.present?
+    parsed = JSON.parse(property.analysis.content) rescue nil
+    return unless parsed
+
+    updates = {}
+
+    # dpe_target : copié depuis energie.dpe_cible si non renseigné
+    if property.dpe_target.blank?
+      dpe_cible = parsed.dig("energie", "dpe_cible")&.upcase
+      updates[:dpe_target] = dpe_cible if dpe_cible.present? && %w[A B C D E F G].include?(dpe_cible)
+    end
+
+    # dpe_class : depuis energie.dpe_estime si non renseigné
+    if property.dpe_class.blank?
+      dpe_estime = parsed.dig("energie", "dpe_estime")&.upcase
+      updates[:dpe_class] = dpe_estime if dpe_estime.present? && %w[A B C D E F G].include?(dpe_estime)
+    end
+
+    property.update(updates) if updates.any?
+    Rails.logger.info("sync_analysis_fields: #{updates.keys.join(', ')}")
+  rescue => e
+    Rails.logger.error("sync_analysis_fields failed: #{e.message}")
   end
 
   def attach_uploaded_documents

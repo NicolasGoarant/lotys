@@ -138,3 +138,163 @@ puts "  Propriétaires : nicolas@lotys.fr · marie.dupont@gmail.com · pierre.ma
 puts "  Prestataires  : ruddy@isolexpert.fr · sophie.courtier@pretto.fr · dev@angelotti-immo.fr"
 puts "  Mot de passe  : password123"
 load Rails.root.join("db/seeds_local_aids.rb")
+# ============================================================
+# Règles d'aides — Grand Nancy + National
+# Sources : ANAH, ALEC Nancy (échanges Fabien Collet / Thibaud Diehl)
+# Dernière mise à jour : mars 2026
+# ============================================================
+
+AidRule.delete_all
+
+# ============================================================
+# 1. MaPrimeRénov' — Parcours accompagné
+# ============================================================
+AidRule.create!(
+  name:         "MaPrimeRénov' — Parcours accompagné",
+  slug:         "mpr_parcours_accompagne",
+  aid_type:     "mpr",
+  territory:    "national",
+  description:  "Aide nationale pour rénovation globale. Nécessite un Accompagnateur Rénov', " \
+                "au moins 2 gestes d'isolation, traitement de la ventilation, et saut minimum de 2 classes DPE.",
+  conditions: {
+    nb_gestes_isolation:    { operator: ">=", value: 2 },
+    ventilation_traitee:    { operator: "==", value: true },
+    dpe_saut_classes:       { operator: ">=", value: 2 },
+    # Revenus : taux différents selon bracket
+    income_bracket:         { operator: "in", value: ["tres_modeste", "modeste", "intermediaire", "superieur"] }
+  },
+  # Taux selon revenus (% du coût HT, plafonné)
+  amount_type:  "percentage",
+  amount_base:  "cost_ht",
+  amount_notes: "Très modestes : 70% | Modestes : 50% | Intermédiaires : 35% | Supérieurs : 15% — " \
+                "Bonus sortie passoire (+10%) si DPE G/F → D ou mieux. Plafond 70 000 € HT de travaux.",
+  amount_max:   49000.0,  # 70% × 70 000
+  amount_min:   nil,
+  valid_from:   Date.new(2024, 1, 1),
+  valid_until:  nil,
+  active:       true,
+  source_url:   "https://www.maprimerenov.gouv.fr",
+  source_label: "ANAH — MaPrimeRénov' 2024",
+  priority:     10
+)
+
+# ============================================================
+# 2. CEE — Isolation thermique (certificats d'économie d'énergie)
+# ============================================================
+AidRule.create!(
+  name:         "CEE — Isolation thermique",
+  slug:         "cee_isolation",
+  aid_type:     "cee",
+  territory:    "national",
+  description:  "Primes CEE via artisan RGE. Montants indicatifs basés sur les retours terrain ALEC Nancy " \
+                "(Thibaud Diehl, juin 2025). Variables selon les offres des fournisseurs d'énergie.",
+  conditions: {
+    artisan_rge:            { operator: "==", value: true }
+  },
+  amount_type:  "fixed",
+  amount_notes: "ITE : ~565 € | ITI : ~320 € | VMC double flux : 250–300 € | Sarking : ~533 € " \
+                "(source : ALEC Nancy, devis Rénov-Habitat 54, juin 2025)",
+  amount_value: nil,   # calculé poste par poste dans le service
+  amount_max:   nil,
+  valid_from:   Date.new(2024, 1, 1),
+  valid_until:  nil,
+  active:       true,
+  source_url:   "https://www.ecologie.gouv.fr/dispositif-des-certificats-deconomies-denergie",
+  source_label: "ADEME — CEE 2024 + retours terrain ALEC Nancy",
+  priority:     20
+)
+
+# ============================================================
+# 3. Éco-PTZ — Bouquet de travaux
+# ============================================================
+AidRule.create!(
+  name:         "Éco-PTZ — Prêt à taux zéro travaux",
+  slug:         "eco_ptz",
+  aid_type:     "eco_ptz",
+  territory:    "national",
+  description:  "Prêt à taux zéro sans condition de revenus. Remboursable lors de la vente du bien. " \
+                "30 000 € max pour 3 gestes ou plus (bouquet). 50 000 € en parcours accompagné.",
+  conditions: {
+    nb_gestes:              { operator: ">=", value: 3 }
+  },
+  amount_type:  "fixed",
+  amount_value: 30000.0,
+  amount_max:   50000.0,  # parcours accompagné
+  amount_min:   nil,
+  amount_base:  nil,
+  amount_notes: "30 000 € pour bouquet 3 gestes. 50 000 € si parcours accompagné. " \
+                "Durée max 15 ans. Soldé à la vente du bien (source : ALEC Nancy, mars 2025).",
+  valid_from:   Date.new(2024, 1, 1),
+  valid_until:  nil,
+  active:       true,
+  source_url:   "https://www.service-public.fr/particuliers/vosdroits/F19905",
+  source_label: "Service Public — Éco-PTZ",
+  priority:     30
+)
+
+# ============================================================
+# 4. Grand Nancy — Prime "dernier geste" isolation
+# ============================================================
+AidRule.create!(
+  name:         "Grand Nancy — Prime dernier geste isolation",
+  slug:         "grand_nancy_dernier_geste",
+  aid_type:     "local",
+  territory:    "grand_nancy",
+  description:  "Prime de la Métropole du Grand Nancy pour le dernier geste d'isolation manquant, " \
+                "dans le cadre du PCAET. Nécessite un audit/DPE prouvant que c'est le dernier geste " \
+                "ET que les travaux permettent d'atteindre au minimum l'étiquette C. " \
+                "Justifier pourquoi le plancher bas n'est pas isolé (dalle sur terre-plein).",
+  conditions: {
+    territory:              { operator: "==", value: "grand_nancy" },
+    dpe_cible:              { operator: "in", value: ["A", "B", "C"] },
+    dernier_geste:          { operator: "==", value: true },
+    audit_energetique:      { operator: "==", value: true }
+  },
+  amount_type:  "per_m2",
+  amount_notes: "ITE : 30 €/m² | ITI : 10 €/m² | Sarking (toiture extérieure) : 50 €/m² " \
+                "(source : ALEC Nancy, Thibaud Diehl, juin 2025 — PCAET Métropole Grand Nancy)",
+  amount_value: nil,   # calculé selon le poste
+  amount_max:   nil,
+  valid_from:   Date.new(2024, 1, 1),
+  valid_until:  nil,
+  active:       true,
+  source_url:   "https://www.grandnancy.eu/vivre-habiter/primes-energie/particuliers",
+  source_label: "Métropole du Grand Nancy — PCAET",
+  priority:     40
+)
+
+# ============================================================
+# 5. Grand Nancy — Bonus BBC (rénovation globale A/B)
+# ============================================================
+AidRule.create!(
+  name:         "Grand Nancy — Bonus BBC rénovation globale",
+  slug:         "grand_nancy_bonus_bbc",
+  aid_type:     "local",
+  territory:    "grand_nancy",
+  description:  "Bonification de la Métropole du Grand Nancy pour atteinte d'une étiquette A ou B " \
+                "dans le cadre du parcours de rénovation globale. Majore le taux MPR de 5%. " \
+                "N'est pas cumulable avec la prime dernier geste.",
+  conditions: {
+    territory:              { operator: "==", value: "grand_nancy" },
+    dpe_cible:              { operator: "in", value: ["A", "B"] },
+    parcours_accompagne:    { operator: "==", value: true }
+  },
+  amount_type:  "percentage",
+  amount_base:  "cost_ht",
+  amount_notes: "Majoration de 5% du taux MPR. Exemple : intermédiaires 35% + 5% = 40% " \
+                "sur un coût HT de 50 000 € → aide totale ~20 000 € (source : ALEC Nancy, avril 2025).",
+  amount_value: 5.0,    # +5% sur le taux MPR
+  amount_max:   nil,
+  valid_from:   Date.new(2024, 1, 1),
+  valid_until:  nil,
+  active:       true,
+  source_url:   "https://www.grandnancy.eu/vivre-habiter/primes-energie/particuliers",
+  source_label: "Métropole du Grand Nancy — Bonus BBC",
+  priority:     50
+)
+
+puts "✅ #{AidRule.count} règles d'aides créées"
+puts ""
+AidRule.order(:priority).each do |r|
+  puts "  #{r.priority.to_s.rjust(2)}. [#{r.territory.upcase}] #{r.name}"
+end

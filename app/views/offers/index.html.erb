@@ -133,7 +133,7 @@
         <p class="text-lg font-medium">Aucun dossier disponible pour l'instant.</p>
       </div>
     <% else %>
-      <div class="space-y-4">
+      <div class="space-y-6">
         <% photos = {
           "appartement" => [
             "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&q=80",
@@ -155,13 +155,12 @@
           <% desc = property.description.to_s.downcase %>
 
           <%# Phrase descriptive du bien %>
-          <% bien_label = [
-            property.property_type&.capitalize,
-            property.construction_year ? "de #{property.construction_year}" : nil,
-            property.surface ? "· #{property.surface} m²" : nil,
-            property.is_copropriete ? "· copropriété #{property.nb_lots} lots" : nil,
-            property.city ? "· #{property.city}" : nil
-          ].compact.join(" ") %>
+          <% type_label = property.property_type == "maison" ? "Maison" : "Appartement"
+             rooms_label = property.nb_rooms.present? ? " T#{property.nb_rooms}" : ""
+             surface_label = property.surface.present? ? " de #{property.surface} m²" : ""
+             copro_label = property.is_copropriete ? " · copropriété #{property.nb_lots} lots" : ""
+             city_label = property.city.present? ? " · #{property.city}" : ""
+             bien_label = "#{type_label}#{rooms_label}#{surface_label}#{copro_label}#{city_label}" %>
 
           <%# Phrase scénario principale %>
           <% dpe_cible = case dpe
@@ -213,7 +212,11 @@
           <% pool = photos[type] || photos["appartement"] %>
           <% photo_url = pool[i % pool.size] %>
 
-          <div class="bg-white rounded-2xl overflow-hidden border border-gray-100 flex flex-col md:flex-row hover:border-gray-200 hover:shadow-sm transition-all">
+          <div class="bg-white rounded-2xl overflow-hidden border border-gray-200 flex flex-col md:flex-row hover:shadow-md transition-all shadow-sm">
+
+            <%# Bande DPE en haut de la card %>
+            <% card_dpe_color = {"A"=>"#16a34a","B"=>"#22c55e","C"=>"#84cc16","D"=>"#ca8a04","E"=>"#ea580c","F"=>"#dc2626","G"=>"#b91c1c"}[dpe] || "#9ca3af" %>
+            <div class="hidden md:block w-1.5 shrink-0" style="background:<%= card_dpe_color %>;"></div>
 
             <%# Photo avec DPE superposé %>
             <% dpe_bg = {"A"=>"#16a34a","B"=>"#22c55e","C"=>"#84cc16","D"=>"#ca8a04","E"=>"#ea580c","F"=>"#dc2626","G"=>"#b91c1c"} %>
@@ -221,9 +224,8 @@
               <img src="<%= photo_url %>" alt="Bien immobilier" class="w-full h-40 md:h-full object-cover">
               <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
               <% if dpe %>
-                <div class="absolute bottom-2 left-2 flex items-center gap-1.5">
+                <div class="absolute bottom-2 left-2">
                   <span class="text-white font-black text-xl leading-none px-2 py-1 rounded-md" style="background:<%= dpe_bg[dpe] || '#6b7280' %>"><%= dpe %></span>
-                  <span class="text-white text-xs font-medium opacity-90"><%= dpe_info ? dpe_info[0] : "" %></span>
                 </div>
               <% end %>
             </div>
@@ -233,18 +235,18 @@
 
               <%# Titre : nature du bien %>
               <div class="flex items-start justify-between mb-3">
-                <h3 class="text-base font-bold text-gray-900 leading-tight"><%= bien_label %></h3>
+                <h3 class="text-lg font-black text-gray-900 leading-tight"><%= bien_label %></h3>
                 <span class="text-xs text-gray-400 shrink-0 ml-3 mt-1"><%= time_ago_in_words(property.created_at) %></span>
               </div>
 
               <%# Besoins détaillés %>
               <div class="mb-4">
-                <p class="text-xs font-bold text-gray-600 uppercase tracking-widest mb-2">J'aurais besoin de :</p>
+                <p class="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">J'aurais besoin de :</p>
                 <div class="flex flex-col gap-1.5">
                   <% scenario_phrases.each do |s| %>
                     <div class="flex items-center gap-2">
                       <span class="text-base leading-none w-5 text-center shrink-0"><%= s[:emoji] %></span>
-                      <span class="text-sm font-semibold text-gray-800"><%= s[:text] %></span>
+                      <span class="text-base font-semibold text-gray-800"><%= s[:text] %></span>
                     </div>
                   <% end %>
                 </div>
@@ -252,7 +254,7 @@
 
               <%# Citation %>
               <% if property.description.present? %>
-                <p class="text-sm text-gray-500 italic leading-relaxed flex-1 mb-3">"<%= property.description.truncate(110) %>"</p>
+                <p class="text-base text-gray-500 italic leading-relaxed mb-3">"<%= property.description.truncate(240) %>"</p>
               <% end %>
 
               <%# Footer %>
@@ -361,10 +363,14 @@ function initMap() {
       address: p.address,
       city: p.city,
       dpe: p.dpe_class&.upcase,
+      dpe_cible: ({"G"=>"C","F"=>"C","E"=>"D"}[p.dpe_class&.upcase]),
       surface: p.surface,
+      type_label: p.property_type == "maison" ? "Maison" : "Appartement",
+      rooms: p.nb_rooms,
       value: p.valuation&.estimated_value,
       offers: p.offers.count,
-      photo: pool[i % pool.size]
+      photo: pool[i % pool.size],
+      id: p.id
     }
   }.to_json %>;
 
@@ -386,19 +392,31 @@ function initMap() {
     const marker = L.circleMarker(latlng, {
       radius: 14, fillColor: color, color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.9
     }).addTo(map);
+    const typeLabel = p.type_label || "Appartement";
+    const roomsLabel = p.rooms ? ` T${p.rooms}` : "";
+    const surfaceLabel = p.surface ? ` · ${p.surface} m²` : "";
+    const offerLabel = p.offers === 0 ? "Soyez le premier à répondre" : `${p.offers} proposition${p.offers > 1 ? "s" : ""} reçue${p.offers > 1 ? "s" : ""}`;
+    const cibleLabel = p.dpe_cible ? `<span style="background:#f0fdf4;color:#059669;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;border:1px solid #bbf7d0;">→ Objectif ${p.dpe_cible}</span>` : "";
+
     marker.bindPopup(`
-      <div style="min-width:200px;max-width:220px;">
-        ${p.photo ? `<img src="${p.photo}" style="width:100%;height:100px;object-fit:cover;border-radius:8px;margin-bottom:8px;">` : ''}
-        <p style="font-weight:700;margin-bottom:2px;font-size:13px">${p.address}</p>
-        <p style="color:#6b7280;font-size:11px;margin-bottom:8px">${p.city}</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px">
-          ${p.dpe ? `<span style="background:${color};color:white;padding:2px 8px;border-radius:20px;font-weight:700">DPE ${p.dpe}</span>` : ''}
-          ${p.surface ? `<span style="color:#6b7280">${p.surface} m²</span>` : ''}
+      <div style="min-width:240px;max-width:260px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
+        ${p.photo ? `<div style="position:relative;margin-bottom:10px;border-radius:10px;overflow:hidden;">
+          <img src="${p.photo}" style="width:100%;height:110px;object-fit:cover;display:block;">
+          <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.45),transparent);"></div>
+          ${p.dpe ? `<span style="position:absolute;bottom:6px;left:6px;background:${color};color:white;padding:3px 8px;border-radius:6px;font-weight:900;font-size:13px;">${p.dpe}</span>` : ""}
+        </div>` : ""}
+        <p style="font-weight:800;font-size:13px;margin:0 0 2px;color:#111827;">${typeLabel}${roomsLabel}${surfaceLabel}</p>
+        <p style="color:#6b7280;font-size:11px;margin:0 0 8px;">${p.address} · ${p.city}</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+          ${cibleLabel}
         </div>
-        ${p.value ? `<p style="margin-top:6px;font-weight:700;color:#059669;font-size:13px">${new Intl.NumberFormat('fr-FR').format(p.value)} €</p>` : ''}
-        <p style="font-size:10px;color:#9ca3af;margin-top:3px">${p.offers} offre${p.offers > 1 ? 's' : ''} reçue${p.offers > 1 ? 's' : ''}</p>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid #f3f4f6;">
+          ${p.value ? `<p style="font-weight:800;color:#059669;font-size:14px;margin:0;">${new Intl.NumberFormat("fr-FR").format(p.value)} €</p>` : '<span></span>'}
+          <p style="font-size:10px;color:${p.offers > 0 ? "#059669" : "#9ca3af"};margin:0;font-weight:600;">${offerLabel}</p>
+        </div>
+        <a href="/properties/${p.id}/offers/new" style="display:block;margin-top:10px;background:#059669;color:white;text-align:center;padding:8px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">Faire une proposition →</a>
       </div>
-    `, { maxWidth: 230 });
+    `, { maxWidth: 270 });
   });
 }
 

@@ -23,3 +23,21 @@
 #   # Report violations without enforcing the policy.
 #   # config.content_security_policy_report_only = true
 # end
+# config/initializers/content_security_policy.rb
+# config/initializers/content_security_policy.rb
+Rails.application.configure do
+  config.content_security_policy do |policy|
+    policy.default_src :self, :https
+    policy.font_src    :self, :https, :data
+    policy.img_src     :self, :data, :blob, :https,
+                       "*.tile.openstreetmap.org",
+                       "*.basemaps.cartocdn.com",
+                       "images.unsplash.com"
+    policy.object_src  :none
+    policy.script_src  :self, :https, :unsafe_inline, "unpkg.com"
+    policy.style_src   :self, :https, :unsafe_inline, "unpkg.com"
+    policy.connect_src :self, :https,
+                       "*.tile.openstreetmap.org",
+                       "*.basemaps.cartocdn.com"
+  end
+end
