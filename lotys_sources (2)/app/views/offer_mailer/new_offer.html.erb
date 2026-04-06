@@ -1,0 +1,58 @@
+<%# app/views/offer_mailer/new_offer.html.erb %>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#f9fafb; margin:0; padding:24px; color:#111827; }
+    .card { background:white; border-radius:16px; max-width:520px; margin:0 auto; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+    .header { background:#059669; padding:28px 32px; }
+    .header h1 { color:white; font-size:1.25rem; font-weight:900; margin:0 0 4px; }
+    .header p { color:#d1fae5; font-size:0.875rem; margin:0; }
+    .body { padding:28px 32px; }
+    .label { font-size:0.7rem; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
+    .value { font-size:1rem; font-weight:600; color:#111827; margin:0 0 20px; }
+    .tag { display:inline-block; padding:4px 12px; border-radius:20px; font-size:0.8rem; font-weight:600; margin-bottom:20px; }
+    .tag-reno { background:#dbeafe; color:#1d4ed8; }
+    .tag-fin  { background:#ede9fe; color:#6d28d9; }
+    .tag-promo { background:#ffedd5; color:#c2410c; }
+    .amount { font-size:2rem; font-weight:900; color:#059669; margin:0 0 20px; }
+    .message-box { background:#f9fafb; border-radius:12px; padding:16px 20px; border-left:3px solid #059669; font-size:0.9rem; color:#374151; line-height:1.6; margin-bottom:24px; }
+    .btn { display:block; background:#059669; color:white; text-decoration:none; padding:14px 24px; border-radius:12px; font-weight:700; font-size:0.9375rem; text-align:center; margin-bottom:12px; }
+    .footer { background:#f3f4f6; padding:16px 32px; text-align:center; }
+    .footer p { font-size:0.75rem; color:#9ca3af; margin:0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h1>💼 Nouvelle proposition reçue</h1>
+      <p>Pour votre bien au <%= @property.address %>, <%= @property.city %></p>
+    </div>
+    <div class="body">
+
+      <p class="label">Type de proposition</p>
+      <% tag_class = @offer.offer_type == "renovation" ? "tag-reno" : @offer.offer_type == "financement" ? "tag-fin" : "tag-promo" %>
+      <% tag_label = @offer.offer_type == "renovation" ? "🔨 Devis rénovation / travaux" : @offer.offer_type == "financement" ? "🏦 Expression d'intérêt — financement" : "🏗️ Offre promoteur / investisseur" %>
+      <span class="tag <%= tag_class %>"><%= tag_label %></span>
+
+      <% if @offer.amount.present? %>
+        <p class="label">Montant proposé</p>
+        <p class="amount"><%= number_to_currency(@offer.amount, unit: "€", format: "%n %u", precision: 0, delimiter: " ") %></p>
+      <% end %>
+
+      <% if @offer.description.present? %>
+        <p class="label">Message du prestataire</p>
+        <div class="message-box"><%= @offer.description %></div>
+      <% end %>
+
+      <%= link_to "Voir la proposition →", property_url(@property), class: "btn" %>
+
+    </div>
+    <div class="footer">
+      <p>Lotys · L'immobilier, enfin lisible · <a href="<%= root_url %>" style="color:#6b7280;">lotys.fr</a></p>
+    </div>
+  </div>
+</body>
+</html>

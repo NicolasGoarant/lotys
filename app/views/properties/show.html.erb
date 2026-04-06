@@ -1,35 +1,25 @@
-<%# show.html.erb v4 — ultra-épuré %>
+<%# show.html.erb — vue unifiée propriétaire + prestataire %>
 
-<% parsed   = @property.analysis&.content.present? ? (JSON.parse(@property.analysis.content) rescue nil) : nil %>
-<% v        = parsed&.[]("valeur") %>
-<% e        = parsed&.[]("energie") %>
-<% i_       = parsed&.[]("idees") %>
-<% is_owner = user_signed_in? && current_user == @property.user %>
+<% parsed    = @property.analysis&.content.present? ? (JSON.parse(@property.analysis.content) rescue nil) : nil %>
+<% v         = parsed&.[]("valeur") %>
+<% e         = parsed&.[]("energie") %>
+<% i_        = parsed&.[]("idees") %>
+<% is_owner  = user_signed_in? && current_user == @property.user %>
 
-<% dpe_all = %w[A B C D E F G] %>
-<% dpe_colors = {"A"=>"#16a34a","B"=>"#4ade80","C"=>"#a3e635","D"=>"#facc15","E"=>"#fb923c","F"=>"#ef4444","G"=>"#991b1b"} %>
+<% dpe_all    = %w[A B C D E F G] %>
+<% dpe_colors = {"A"=>"#16a34a","B"=>"#4ade80","C"=>"#a3e635","D"=>"#ca8a04","E"=>"#fb923c","F"=>"#ef4444","G"=>"#991b1b"} %>
+<% dpe_labels = {"A"=>"Très performant","B"=>"Performant","C"=>"Assez performant","D"=>"Peu performant","E"=>"Énergivore","F"=>"Très énergivore","G"=>"Passoire thermique"} %>
 <% dpe_cur    = (@property.dpe_class || e&.[]("dpe_estime"))&.upcase %>
 <% dpe_cib    = (e&.[]("dpe_cible"))&.upcase %>
 <% travaux    = (e&.[]("travaux") || []).sort_by{|t| t["priorite"].to_i} %>
 <% cur_idx    = dpe_all.index(dpe_cur) || 5 %>
 <% tgt_idx    = dpe_cib ? [dpe_all.index(dpe_cib) || (cur_idx-2), 0].max : [cur_idx-2, 0].max %>
 
-<%# Aides selon profil %>
 <% mpr_taux = case @property.income_bracket&.to_s
-     when "tres_modeste"  then 0.70
-     when "modeste"       then 0.50
-     when "intermediaire" then 0.35
-     else 0.15
-   end %>
-<% mpr_profil = case @property.income_bracket&.to_s
-     when "tres_modeste"  then "Très modestes (< 21 000 €/an)"
-     when "modeste"       then "Modestes (21–30 000 €/an)"
-     when "intermediaire" then "Intermédiaires (30–45 000 €/an)"
-     when "superieur"     then "Supérieurs (> 45 000 €/an)"
-     else nil
-   end %>
-<% budget_max = travaux.sum{|t| t["cout_max"].to_i} %>
-<% budget_min = travaux.sum{|t| t["cout_min"].to_i} %>
+     when "tres_modeste" then 0.70; when "modeste" then 0.50
+     when "intermediaire" then 0.35; else 0.15; end %>
+<% budget_max  = travaux.sum{|t| t["cout_max"].to_i} %>
+<% budget_min  = travaux.sum{|t| t["cout_min"].to_i} %>
 <% mpr_montant = budget_max > 0 ? [( budget_max * mpr_taux).round(-2), 20000].min : 0 %>
 <% cee_montant = budget_max > 0 ? [(budget_max * 0.08).round(-2), 4000].min : 0 %>
 <% sauts       = dpe_cur && dpe_cib ? (dpe_all.index(dpe_cur).to_i - dpe_all.index(dpe_cib).to_i) : 2 %>
@@ -43,18 +33,16 @@
   .lbl { font-size:.68rem; font-weight:700; color:#9ca3af;
          text-transform:uppercase; letter-spacing:.07em; }
   .bod { font-size:.88rem; color:#374151; line-height:1.6; }
-  .big { font-size:1.7rem; font-weight:900; color:#111; line-height:1; }
+  .big { font-size:1.6rem; font-weight:900; color:#111; line-height:1; }
   .cd  { background:#fff; border-radius:18px; border:1px solid #e5e7eb;
-         box-shadow:0 2px 14px rgba(0,0,0,.07); margin-bottom:32px; overflow:hidden; }
+         box-shadow:0 2px 14px rgba(0,0,0,.07); margin-bottom:24px; overflow:hidden; }
   .cd-hd { padding:13px 20px; font-size:.75rem; font-weight:800;
             text-transform:uppercase; letter-spacing:.09em; color:#fff; }
   .row { display:flex; justify-content:space-between; align-items:baseline;
          gap:12px; padding:11px 0; border-bottom:1px solid #f3f4f6; }
   .row:last-child { border-bottom:none; }
   .row p:last-child { white-space:nowrap; flex-shrink:0; }
-  /* Jauge DPE */
-  .dpe-track { position:relative; height:48px; display:flex;
-               border-radius:24px; overflow:hidden; }
+  .dpe-track { position:relative; height:48px; display:flex; border-radius:24px; overflow:hidden; }
   .dpe-seg   { flex:1; display:flex; align-items:center; justify-content:center;
                font-size:.85rem; font-weight:900; color:rgba(255,255,255,.75); }
   .pin       { position:absolute; top:50%; transform:translateY(-50%);
@@ -62,55 +50,92 @@
   .pin-dot   { width:32px; height:32px; border-radius:50%; display:flex; align-items:center;
                justify-content:center; font-size:.85rem; font-weight:900; color:#fff;
                border:3px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.25); }
-  /* Animation pulse constante sur le pin objectif */
   @keyframes pulse-pin {
-    0%, 100% { transform:scale(1); box-shadow:0 0 0 3px rgba(5,150,105,.3); }
-    50%      { transform:scale(1.2); box-shadow:0 0 0 7px rgba(5,150,105,.12); }
+    0%,100% { transform:scale(1); }
+    50%     { transform:scale(1.2); box-shadow:0 0 0 6px rgba(5,150,105,.15); }
   }
   #pin-tgt-dot { animation: pulse-pin 1.8s ease-in-out infinite; }
-  /* Animation d'invitation à glisser — 2 allers-retours puis stop */
-
+  .sv-prof { padding:7px 10px; border-radius:8px; border:1.5px solid #e5e7eb;
+             font-size:.78rem; font-weight:600; cursor:pointer; background:#fff; color:#374151; }
+  .sv-prof.on { border-color:#5b21b6; background:#faf5ff; color:#5b21b6; }
 </style>
 
 <div class="sh">
 
-<%# ── HEADER ─────────────────────────────────────────────── %>
+<%# ── HEADER avec photo ────────────────────────────────────── %>
 <div class="cd">
-  <%# Photo du bien — réelle si disponible, placeholder sinon %>
   <% photo_url = @property.property_type == "maison" ?
        "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&q=80" :
        "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80" %>
   <div style="position:relative;height:180px;overflow:hidden;">
-    <img src="<%= photo_url %>" alt="<%= @property.address %>"
-         style="width:100%;height:100%;object-fit:cover;display:block;">
-    <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(15,23,42,.85) 0%,rgba(15,23,42,.3) 60%,transparent 100%);"></div>
-    <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 20px;">
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;">
-        <div>
-          <p class="lbl" style="color:rgba(255,255,255,.6);margin:0 0 3px;"><%= @property.city %></p>
-          <h1 style="font-size:1.25rem;font-weight:900;color:#fff;margin:0 0 4px;line-height:1.2;"><%= @property.address %></h1>
-          <p style="font-size:.92rem;font-weight:600;color:rgba(255,255,255,.85);"><%= @property.property_type&.capitalize %><% if @property.nb_rooms %> · T<%= @property.nb_rooms %><% end %> · <%= @property.surface %> m²<% if @property.construction_year %> · <%= @property.construction_year %><% end %></p>
-        </div>
-        <% if dpe_cur %>
-          <div style="width:44px;height:44px;border-radius:11px;background:<%= dpe_colors[dpe_cur] %>;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:900;color:#fff;flex-shrink:0;border:2px solid rgba(255,255,255,.3);"><%= dpe_cur %></div>
-        <% end %>
+    <img src="<%= photo_url %>" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+    <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(15,23,42,.85) 0%,rgba(15,23,42,.2) 60%,transparent 100%);"></div>
+    <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 20px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px;">
+      <div>
+        <p class="lbl" style="color:rgba(255,255,255,.5);margin:0 0 2px;"><%= @property.city %></p>
+        <h1 style="font-size:1.25rem;font-weight:900;color:#fff;margin:0 0 4px;line-height:1.2;"><%= @property.address %></h1>
+        <p style="font-size:.92rem;font-weight:600;color:rgba(255,255,255,.85);">
+          <%= @property.property_type&.capitalize %>
+          <% if @property.nb_rooms %> · T<%= @property.nb_rooms %><% end %>
+          · <%= @property.surface %> m²
+          <% if @property.construction_year %> · <%= @property.construction_year %><% end %>
+        </p>
       </div>
+      <% if dpe_cur %>
+        <div style="width:48px;height:48px;border-radius:12px;background:<%= dpe_colors[dpe_cur] %>;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:#fff;flex-shrink:0;"><%= dpe_cur %></div>
+      <% end %>
     </div>
   </div>
 
+  <%# Mini-map %>
+  <div id="prop-map" style="height:130px;"></div>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+  function initPropMap(){
+    var el=document.getElementById('prop-map');
+    if(!el||el._leaflet_id)return;
+    var coords={"3 impasse du canal":[48.685,6.189]};
+    var addr="<%= @property.address %>";
+    var ll=coords[addr]||[48.6921,6.1844];
+    var col={"A":"#16a34a","B":"#22c55e","C":"#84cc16","D":"#ca8a04","E":"#f97316","F":"#dc2626","G":"#991b1b"};
+    var c=col["<%= @property.dpe_class&.upcase || 'F' %>"]||"#6b7280";
+    var map=L.map(el,{zoomControl:false,dragging:false,scrollWheelZoom:false,attributionControl:false}).setView(ll,15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+    var icon=L.divIcon({html:'<div style="width:28px;height:28px;border-radius:50%;background:'+c+';display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:900;color:#fff;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);">'+"<%= @property.dpe_class&.upcase || '?' %>"+'</div>',className:'',iconSize:[28,28],iconAnchor:[14,14]});
+    L.marker(ll,{icon:icon}).addTo(map);
+  }
+  document.addEventListener('turbo:load',initPropMap);
+  document.addEventListener('DOMContentLoaded',initPropMap);
+  </script>
+
+  <%# Boutons selon profil %>
+  <div style="padding:10px 16px;display:flex;gap:8px;flex-wrap:wrap;">
+    <% if is_owner %>
+      <%= link_to "Modifier", edit_property_path(@property), style:"font-size:.78rem;font-weight:600;padding:7px 12px;border-radius:8px;border:1px solid #e5e7eb;color:#374151;text-decoration:none;" %>
+      <% if @property.draft? || @property.analyzed? %>
+        <%= button_to "Lancer l'analyse →", analyze_property_path(@property), style:"font-size:.78rem;font-weight:700;padding:7px 12px;border-radius:8px;background:#1d4ed8;color:#fff;border:none;cursor:pointer;" %>
+      <% end %>
+      <% if @property.analyzed? %>
+        <%= link_to "Publier →", preview_property_path(@property), style:"font-size:.78rem;font-weight:700;padding:7px 12px;border-radius:8px;background:#059669;color:#fff;text-decoration:none;" %>
+      <% end %>
+    <% else %>
+      <%= link_to "← Retour à la carte", root_path, style:"font-size:.78rem;font-weight:600;padding:7px 12px;border-radius:8px;border:1px solid #e5e7eb;color:#374151;text-decoration:none;" %>
+    <% end %>
+  </div>
 </div>
 
-<%# ── VALEUR ──────────────────────────────────────────────── %>
-<% if v %>
+<%# ── VALEUR (propriétaire uniquement) ───────────────────── %>
+<% if v && is_owner %>
 <div class="cd">
   <div class="cd-hd" style="background:#ea580c;">🏷️ Valeur estimée</div>
   <div style="padding:20px;">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-      <div style="background:#f9fafb;border-radius:12px;padding:14px;">
+      <div style="background:#f9fafb;border-radius:12px;padding:14px;text-align:center;">
         <p class="lbl" style="margin-bottom:5px;">Estimation basse</p>
         <p class="big"><%= number_to_currency(v["estimation_basse"], unit:"€", format:"%n %u", precision:0, delimiter:" ") %></p>
       </div>
-      <div style="background:#f9fafb;border-radius:12px;padding:14px;">
+      <div style="background:#f9fafb;border-radius:12px;padding:14px;text-align:center;">
         <p class="lbl" style="margin-bottom:5px;">Estimation haute</p>
         <p class="big"><%= number_to_currency(v["estimation_haute"], unit:"€", format:"%n %u", precision:0, delimiter:" ") %></p>
       </div>
@@ -125,105 +150,138 @@
 </div>
 <% end %>
 
-<%# ── RÉNOVATION : JAUGE + TRAVAUX ───────────────────────── %>
+<%# ── RÉNOVATION — commune à tous ─────────────────────────── %>
 <% if dpe_cur %>
 <div class="cd">
   <div class="cd-hd" style="background:#059669;">⚡ Rénovation énergétique</div>
   <div style="padding:20px;">
 
+    <% if %w[F G].include?(dpe_cur) %>
+      <p class="bod" style="color:#dc2626;font-size:.82rem;margin-bottom:14px;">🚫 Ce logement ne peut plus être mis en location depuis le 1er janvier 2023.</p>
+    <% elsif dpe_cur == "E" %>
+      <p class="bod" style="color:#ea580c;font-size:.82rem;margin-bottom:14px;">⚠️ Interdiction de louer en 2028.</p>
+    <% end %>
 
-
-    <%# Animation sur le pin pour inviter à glisser %>
-    <%# Wrapper pour la jauge + pin sans clip %>
-    <div style="position:relative;margin-bottom:20px;">
-      <%# Barre colorée (overflow:hidden pour arrondir les coins) %>
-      <%# Étiquette "Votre DPE" au-dessus du segment actuel %>
-      <div style="display:flex;margin-bottom:4px;">
-        <% dpe_all.each do |l| %>
-          <div style="flex:1;text-align:center;">
-            <% if l == dpe_cur %>
-              <span style="font-size:.6rem;font-weight:800;color:#ea580c;text-transform:uppercase;letter-spacing:.04em;">▼ actuel</span>
-            <% end %>
+    <%# Pour le prestataire : DPE statique simple %>
+    <% if !is_owner %>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+        <div style="text-align:center;">
+          <div style="width:44px;height:44px;border-radius:10px;background:<%= dpe_colors[dpe_cur] %>;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:900;color:#fff;"><%= dpe_cur %></div>
+          <p class="lbl" style="margin-top:4px;font-size:.6rem;">Actuel</p>
+        </div>
+        <% if dpe_cib && dpe_cib != dpe_cur %>
+          <p style="font-size:1.3rem;color:#d1d5db;">→</p>
+          <div style="text-align:center;">
+            <div style="width:44px;height:44px;border-radius:10px;background:<%= dpe_colors[dpe_cib] || '#059669' %>;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:900;color:#fff;border:2px solid #059669;"><%= dpe_cib %></div>
+            <p class="lbl" style="margin-top:4px;font-size:.6rem;color:#059669;">Objectif</p>
           </div>
         <% end %>
-      </div>
-      <div class="dpe-track" id="dpe-track">
-        <% dpe_all.each do |l| %>
-          <div class="dpe-seg" style="background:<%= dpe_colors[l] %>;opacity:<%= l == dpe_cur ? '1' : '0.4' %>;cursor:pointer;" data-l="<%= l %>" data-idx="<%= dpe_all.index(l) %>" onclick="clickSeg(<%= dpe_all.index(l) %>)"><%= l %></div>
-        <% end %>
+        <div style="flex:1;padding-left:4px;">
+          <p class="bod" style="font-weight:700;"><%= dpe_labels[dpe_cur] %></p>
+        </div>
       </div>
 
-      <%# Pin objectif (déplaçable) %>
-      <div class="pin" id="pin-tgt" style="left:calc(<%= tgt_idx %>/7*100% + 1/14*100% - 16px);">
-        <div class="pin-dot" style="background:<%= dpe_colors[dpe_all[tgt_idx]] || '#059669' %>;border-color:#059669;box-shadow:0 0 0 3px rgba(5,150,105,.3);" id="pin-tgt-dot"><%= dpe_all[tgt_idx] %></div>
+    <%# Pour le propriétaire : jauge interactive %>
+    <% else %>
+      <div style="position:relative;margin-bottom:20px;">
+        <div style="display:flex;margin-bottom:4px;">
+          <% dpe_all.each do |l| %>
+            <div style="flex:1;text-align:center;">
+              <% if l == dpe_cur %><span style="font-size:.6rem;font-weight:800;color:#ea580c;">▼ actuel</span><% end %>
+            </div>
+          <% end %>
+        </div>
+        <div style="position:relative;">
+          <div class="dpe-track" id="dpe-track">
+            <% dpe_all.each do |l| %>
+              <div class="dpe-seg" style="background:<%= dpe_colors[l] %>;opacity:<%= l == dpe_cur ? '1' : '0.4' %>;cursor:pointer;" onclick="clickSeg(<%= dpe_all.index(l) %>)"><%= l %></div>
+            <% end %>
+          </div>
+          <div class="pin" id="pin-tgt" style="left:calc(<%= tgt_idx %>/7*100% + 1/14*100% - 16px);">
+            <div class="pin-dot" style="background:<%= dpe_colors[dpe_all[tgt_idx]] || '#059669' %>;border-color:#059669;box-shadow:0 0 0 3px rgba(5,150,105,.3);" id="pin-tgt-dot"><%= dpe_all[tgt_idx] %></div>
+          </div>
+          <input type="range" id="dpe-slider" min="0" max="6" step="1" value="<%= tgt_idx %>"
+                 style="position:absolute;top:0;left:0;width:100%;height:48px;opacity:0;cursor:pointer;margin:0;z-index:10;"
+                 oninput="slideTgt(this.value)">
+        </div>
+        <div style="margin-bottom:20px;"></div>
       </div>
+    <% end %>
 
-      <%# Slider invisible par-dessus %>
-      <input type="range" id="dpe-slider" min="0" max="6" step="1" value="<%= tgt_idx %>"
-             style="position:absolute;top:0;left:0;width:100%;height:48px;opacity:0;cursor:pointer;margin:0;z-index:10;"
-             oninput="slideTgt(this.value)">
-    </div>
+    <%# Travaux — commun à tous %>
+    <% if travaux.any? %>
+      <p class="lbl" style="margin-bottom:8px;">Travaux envisagés</p>
+      <% travaux.each do |t| %>
+        <% poste = t["poste"].to_s.downcase %>
+        <% emoji = poste.include?("combles") || poste.include?("toit") ? "🏠" :
+                   poste.include?("mur") || poste.include?("isolation") ? "🧱" :
+                   poste.include?("chauffage") || poste.include?("pompe") || poste.include?("chaudière") ? "🔥" :
+                   poste.include?("fenêtre") || poste.include?("menuiserie") ? "🪟" :
+                   poste.include?("ventilation") || poste.include?("vmc") ? "💨" : "🔧" %>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;background:#f9fafb;border-radius:10px;margin-bottom:6px;">
+          <div style="display:flex;align-items:center;gap:8px;flex:1;">
+            <span style="font-size:1rem;flex-shrink:0;"><%= emoji %></span>
+            <p class="bod" style="font-weight:600;font-size:.88rem;"><%= t["poste"] %></p>
+          </div>
+          <%# Prix visibles uniquement pour le propriétaire %>
+          <% if is_owner %>
+            <p class="bod" style="font-weight:700;white-space:nowrap;"><%= t["cout_min"].to_i.to_s.reverse.gsub(/(\d{3})(?=\d)/,'\\1 ').reverse %> – <%= t["cout_max"].to_i.to_s.reverse.gsub(/(\d{3})(?=\d)/,'\\1 ').reverse %> €</p>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
 
-<div style="margin-bottom:20px;display:none;"></div>
-
-    <%# Travaux calculés %>
-    <div id="trav-list"></div>
-
-    <div style="background:#f9fafb;border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;" id="budget-box" style="display:none;">
-      <p class="lbl">Budget estimé</p>
-      <p style="font-size:1.1rem;font-weight:900;color:#111;" id="budget-val">—</p>
-    </div>
+    <%# Budget total — commun %>
+    <% if travaux.any? %>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#f0fdf4;border-radius:10px;margin-top:10px;" id="budget-box">
+        <p class="lbl">Budget total estimé</p>
+        <p style="font-size:1.1rem;font-weight:900;color:#065f46;" id="budget-val">
+          <%= budget_min.to_s.reverse.gsub(/(\d{3})(?=\d)/,'\\1 ').reverse %> – <%= budget_max.to_s.reverse.gsub(/(\d{3})(?=\d)/,'\\1 ').reverse %> €
+        </p>
+      </div>
+    <% end %>
   </div>
 </div>
 <% end %>
 
-<%# ── AIDES (national + local fusionnés) ─────────────────── %>
-<% if e %>
+<%# ── AIDES + FINANCEMENT (propriétaire uniquement) ───────── %>
+<% if is_owner && e %>
+
 <div class="cd">
   <div class="cd-hd" style="background:#5b21b6;">💶 Aides</div>
   <div style="padding:20px;">
-
-    <%# Sélecteur revenus %>
     <p class="lbl" style="margin-bottom:8px;">Revenus annuels de votre foyer fiscal</p>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
-      <% [["< 21k","tres_modeste",0],["21–30k","modeste",1],["30–45k","intermediaire",2],["> 45k","superieur",3]].each do |label,key,idx| %>
-        <button onclick="setRev(<%= idx %>,'<%= key %>')"
-                id="rev-<%= idx %>"
-                style="padding:6px 10px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.78rem;font-weight:600;cursor:pointer;background:<%= @property.income_bracket.to_s == key ? '#ede9fe' : '#fff' %>;color:<%= @property.income_bracket.to_s == key ? '#5b21b6' : '#374151' %>;border-color:<%= @property.income_bracket.to_s == key ? '#5b21b6' : '#e5e7eb' %>;">
-          <%= label %>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
+      <% [["< 21k","tres_modeste",0],["21–30k","modeste",1],["30–45k","intermediaire",2],["> 45k","superieur",3]].each do |l,k,idx| %>
+        <button onclick="setProfil(<%= idx %>,'<%= k %>')" class="sv-prof" id="profil-<%= idx %>"
+                style="<%= @property.income_bracket.to_s == k ? 'border-color:#5b21b6;background:#faf5ff;color:#5b21b6;' : '' %>">
+          <%= l %>
         </button>
       <% end %>
     </div>
-
-    <%# 3 lignes d'aides nationales %>
-    <div class="row">
+    <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f3f4f6;">
       <p class="bod" style="font-weight:600;">🏛️ MaPrimeRénov'</p>
-      <p class="bod" style="font-weight:800;" id="mpr-val"><%= mpr_montant > 0 ? number_to_currency(mpr_montant, unit:"€", format:"%n %u", precision:0, delimiter:" ") : "—" %></p>
+      <p class="bod" style="font-weight:800;" id="mpr-val"><%= mpr_montant > 0 ? "#{mpr_montant.to_s.reverse.gsub(/(\d{3})(?=\d)/,'\\1 ').reverse} €" : "—" %></p>
     </div>
-    <div class="row">
+    <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f3f4f6;">
       <p class="bod" style="font-weight:600;">🔋 CEE</p>
-      <p class="bod" style="font-weight:800;" id="cee-val"><%= cee_montant > 0 ? number_to_currency(cee_montant, unit:"€", format:"%n %u", precision:0, delimiter:" ") : "—" %></p>
+      <p class="bod" style="font-weight:800;" id="cee-val"><%= cee_montant > 0 ? "#{cee_montant.to_s.reverse.gsub(/(\d{3})(?=\d)/,'\\1 ').reverse} €" : "—" %></p>
     </div>
-    <%# Reste %>
-    <div style="background:#ede9fe;border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:14px;margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#ede9fe;border-radius:10px;margin-top:12px;">
       <p class="bod" style="font-weight:700;color:#5b21b6;">💰 Reste à financer</p>
-      <p style="font-size:1.1rem;font-weight:900;color:#5b21b6;" id="reste-val"><%= reste > 0 ? number_to_currency(reste, unit:"€", format:"%n %u", precision:0, delimiter:" ") : budget_max > 0 ? "0 €" : "—" %></p>
+      <p style="font-size:1.1rem;font-weight:900;color:#5b21b6;" id="reste-val"><%= reste > 0 ? "#{reste.to_s.reverse.gsub(/(\d{3})(?=\d)/,'\\1 ').reverse} €" : budget_max > 0 ? "0 €" : "—" %></p>
     </div>
-
-
+    <%= render "local_aids", property: @property %>
   </div>
 </div>
-<% end %>
 
-<%# ── FINANCEMENT ──────────────────────────────────────────── %>
-<% if e %>
 <div class="cd">
   <div class="cd-hd" style="background:#1d4ed8;">🏦 Financement</div>
   <div style="padding:20px;">
     <div class="row">
       <div>
         <p class="bod" style="font-weight:600;">🏦 Éco-PTZ</p>
-        <p class="lbl" style="margin-top:2px;">Prêt à 0% · Sans condition de ressources · Cumulable MPR</p>
+        <p class="lbl" style="margin-top:2px;">Prêt à 0% · Sans condition de ressources</p>
       </div>
       <p class="bod" style="font-weight:800;">jusqu'à <%= number_to_currency(eco_ptz, unit:"€", format:"%n %u", precision:0, delimiter:" ") %></p>
     </div>
@@ -234,68 +292,54 @@
       </div>
       <p class="bod" style="color:#6b7280;">à négocier</p>
     </div>
-    <div style="margin-top:16px;">
-      <div style="background:#eff6ff;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
-        <p class="bod" style="font-size:.82rem;color:#1e3a8a;font-weight:600;">Simulation sur le reste à financer</p>
-        <p class="bod" style="font-weight:800;color:#1e3a8a;" id="fin-reste-lbl"><%= reste > 0 ? number_to_currency(reste, unit:"€", format:"%n %u", precision:0, delimiter:" ") : "—" %></p>
+    <% if reste > 0 %>
+    <div style="background:#eff6ff;border-radius:10px;padding:10px 14px;margin-top:14px;display:flex;justify-content:space-between;align-items:center;">
+      <p class="bod" style="font-size:.82rem;color:#1e3a8a;font-weight:600;">Simulation sur le reste à financer</p>
+      <p class="bod" style="font-weight:800;color:#1e3a8a;" id="fin-reste-lbl"><%= reste.to_s.reverse.gsub(/(\d{3})(?=\d)/,'\\1 ').reverse %> €</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;margin-bottom:14px;">
+      <div>
+        <p class="lbl" style="margin-bottom:5px;">Durée</p>
+        <input type="range" id="sim-d" min="5" max="25" step="1" value="15" style="width:100%;accent-color:#1d4ed8;" oninput="calcPret()">
+        <p style="font-size:.78rem;font-weight:700;color:#1d4ed8;text-align:right;margin-top:3px;" id="sim-d-lbl">—</p>
       </div>
-      <%# Montant fixé = reste à financer, pas de slider %>
-      <script>var SIM_M=<%= [reste,0].max %>;</script>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-        <div>
-          <p class="lbl" style="margin-bottom:5px;">Durée</p>
-          <input type="range" id="sim-d" min="5" max="25" step="1" value="15"
-                 style="width:100%;accent-color:#1d4ed8;" oninput="calcPret()">
-          <p style="font-size:.78rem;font-weight:700;color:#1d4ed8;text-align:right;margin-top:3px;" id="sim-d-lbl">—</p>
-        </div>
-        <div>
-          <p class="lbl" style="margin-bottom:5px;">Taux</p>
-          <input type="range" id="sim-t" min="0" max="6" step="0.1" value="3.5"
-                 style="width:100%;accent-color:#1d4ed8;" oninput="calcPret()">
-          <p style="font-size:.78rem;font-weight:700;color:#1d4ed8;text-align:right;margin-top:3px;" id="sim-t-lbl">—</p>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-        <div style="background:#eff6ff;border-radius:10px;padding:12px;text-align:center;">
-          <p class="lbl" style="margin-bottom:3px;">Mensualité</p>
-          <p style="font-size:1rem;font-weight:900;color:#1e3a8a;" id="sim-mens">—</p>
-        </div>
-        <div style="background:#e0f2fe;border-radius:10px;padding:12px;text-align:center;">
-          <p class="lbl" style="margin-bottom:3px;">Total remboursé</p>
-          <p style="font-size:1rem;font-weight:900;color:#0369a1;" id="sim-total">—</p>
-        </div>
-        <div style="background:#dbeafe;border-radius:10px;padding:12px;text-align:center;">
-          <p class="lbl" style="margin-bottom:3px;">dont intérêts</p>
-          <p style="font-size:1rem;font-weight:900;color:#1d4ed8;" id="sim-cout">—</p>
-        </div>
+      <div>
+        <p class="lbl" style="margin-bottom:5px;">Taux</p>
+        <input type="range" id="sim-t" min="0" max="6" step="0.1" value="3.5" style="width:100%;accent-color:#1d4ed8;" oninput="calcPret()">
+        <p style="font-size:.78rem;font-weight:700;color:#1d4ed8;text-align:right;margin-top:3px;" id="sim-t-lbl">—</p>
       </div>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+      <div style="background:#eff6ff;border-radius:10px;padding:12px;text-align:center;">
+        <p class="lbl" style="margin-bottom:3px;">Mensualité</p>
+        <p style="font-size:1rem;font-weight:900;color:#1e3a8a;" id="sim-mens">—</p>
+      </div>
+      <div style="background:#e0f2fe;border-radius:10px;padding:12px;text-align:center;">
+        <p class="lbl" style="margin-bottom:3px;">Total remboursé</p>
+        <p style="font-size:1rem;font-weight:900;color:#0369a1;" id="sim-total">—</p>
+      </div>
+      <div style="background:#dbeafe;border-radius:10px;padding:12px;text-align:center;">
+        <p class="lbl" style="margin-bottom:3px;">dont intérêts</p>
+        <p style="font-size:1rem;font-weight:900;color:#1d4ed8;" id="sim-cout">—</p>
+      </div>
+    </div>
+    <% end %>
   </div>
 </div>
+
 <% end %>
 
-<%# ── AUTRES PISTES (minimal) ─────────────────────────────── %>
-<% if i_ && i_["scenarios"].present? %>
+<%# ── AUTRES PISTES (propriétaire uniquement) ────────────── %>
+<% if is_owner && i_ && i_["scenarios"].present? %>
 <div class="cd">
   <div class="cd-hd" style="background:#b45309;">💡 Autres pistes</div>
   <div style="padding:0 20px;">
     <% i_["scenarios"].each do |s| %>
-      <%
-        route_map = {
-          "panneaux"  => "panneaux_solaires_path",
-          "borne"     => "borne_electrique_path",
-          "meublée"   => "location_meublee_path",
-          "combles"   => "amenagement_combles_path",
-          "extérieur" => "espace_exterieur_path",
-          "stockage"  => "box_stockage_path",
-        }
-        guide_path = route_map.find { |k, _| s["titre"].to_s.downcase.include?(k) }&.last
-      %>
+      <% route_map = {"panneaux"=>"panneaux_solaires_path","borne"=>"borne_electrique_path","meublée"=>"location_meublee_path","combles"=>"amenagement_combles_path","extérieur"=>"espace_exterieur_path","stockage"=>"box_stockage_path"} %>
+      <% guide_path = route_map.find{|k,_| s["titre"].to_s.downcase.include?(k)}&.last %>
       <div class="row" style="gap:12px;">
         <span style="font-size:1.1rem;flex-shrink:0;"><%= s["emoji"] %></span>
-        <div style="flex:1;">
-          <p class="bod" style="font-weight:700;font-size:.85rem;"><%= s["titre"] %></p>
-        </div>
+        <p class="bod" style="font-weight:700;font-size:.85rem;flex:1;"><%= s["titre"] %></p>
         <% if guide_path %>
           <%= link_to "En savoir plus →", send(guide_path), style:"font-size:.72rem;font-weight:700;color:#b45309;text-decoration:none;white-space:nowrap;flex-shrink:0;" %>
         <% end %>
@@ -305,130 +349,97 @@
 </div>
 <% end %>
 
-</div><%# /sh %>
+<%# ── FORMULAIRE PROPOSITION (prestataire) ────────────────── %>
+<% unless is_owner %>
+<%= render "offer_form", property: @property %>
+<% end %>
 
-<%# JS — jauge DPE uniquement %>
+<%# ── DOCUMENTS + OFFRES REÇUES (propriétaire) ────────────── %>
+<% if is_owner %>
+<div class="cd">
+  <div style="background:#334155;padding:13px 20px;display:flex;align-items:center;justify-content:space-between;">
+    <p style="font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#fff;">Documents (<%= @property.documents.count %>)</p>
+    <%= link_to "+ Ajouter", new_property_document_path(@property), style:"font-size:.78rem;font-weight:600;color:rgba(255,255,255,.7);text-decoration:none;" %>
+  </div>
+  <% if @property.documents.any? %>
+    <div style="padding:0 16px;">
+      <% @property.documents.each do |doc| %>
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f9fafb;">
+          <span style="font-size:.85rem;">📄</span>
+          <p style="flex:1;font-size:.82rem;font-weight:600;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><%= doc.name.presence || doc.document_type.humanize %></p>
+          <% if doc.processed? %><span style="font-size:.65rem;font-weight:700;color:#059669;">✓</span><% end %>
+          <%= button_to "✕", property_document_path(@property, doc), method: :delete, style:"background:transparent;border:none;cursor:pointer;color:#d1d5db;font-size:.8rem;padding:4px;", data: { confirm: "Supprimer ?", turbo: false } %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div style="padding:14px 20px;"><p class="bod" style="color:#9ca3af;font-size:.82rem;">Aucun document.</p></div>
+  <% end %>
+</div>
+<% end %>
+
+</div>
+
 <script>
-var DPE=['A','B','C','D','E','F','G'];
-var C={A:'#16a34a',B:'#4ade80',C:'#a3e635',D:'#facc15',E:'#fb923c',F:'#ef4444',G:'#991b1b'};
+var dpe_all=['A','B','C','D','E','F','G'];
+var C_DPE={A:'#16a34a',B:'#4ade80',C:'#a3e635',D:'#ca8a04',E:'#fb923c',F:'#ef4444',G:'#991b1b'};
 var CUR=<%= cur_idx %>;
-var TRAVAUX=<%= travaux.map{|t|{poste:t["poste"],cout_min:t["cout_min"].to_i,cout_max:t["cout_max"].to_i,priorite:t["priorite"].to_i}}.to_json.html_safe %>;
+var TRAVAUX=<%= travaux.map{|t|{poste:t["poste"],cout_min:t["cout_min"].to_i,cout_max:t["cout_max"].to_i}}.to_json.html_safe %>;
+var SIM_M=<%= [reste,0].max %>;
 
-function clickSeg(idx){
-  // Cliquer sur un segment = choisir cet objectif (sauf segment actuel ou pire)
-  if(idx>=CUR)return;
-  document.getElementById('dpe-slider').value=idx;
-  slideTgt(idx);
-}
-
+function clickSeg(idx){ if(idx<CUR){document.getElementById('dpe-slider').value=idx;slideTgt(idx);} }
 function slideTgt(v){
-  // Retirer l'animation dès la première interaction
-  document.getElementById('pin-tgt').classList.remove('nudge');
   v=parseInt(v);
-  // Empêcher de viser pire ou identique
-  if(v>=CUR){ v=Math.max(0,CUR-1); document.getElementById('dpe-slider').value=v; }
-
+  if(v>=CUR){v=Math.max(0,CUR-1);document.getElementById('dpe-slider').value=v;}
   var pct=(v/7*100+1/14*100).toFixed(2);
   document.getElementById('pin-tgt').style.left='calc('+pct+'% - 16px)';
   var dot=document.getElementById('pin-tgt-dot');
-  dot.textContent=DPE[v];
-  dot.style.background=C[DPE[v]];
-
-
-  // Colorer les segments entre objectif et actuel
-  document.querySelectorAll('.dpe-seg').forEach(function(seg,i){
-    seg.style.opacity=(i>=v&&i<=CUR)?'1':'0.4';
-  });
-
+  dot.textContent=dpe_all[v]; dot.style.background=C_DPE[dpe_all[v]];
+  document.querySelectorAll('.dpe-seg').forEach(function(seg,i){seg.style.opacity=(i>=v&&i<=CUR)?'1':'0.4';});
   calcTravaux(v);
 }
-
 function calcTravaux(tgtIdx){
-  var sauts=CUR-tgtIdx;
-  if(sauts<=0||!TRAVAUX.length){
-    document.getElementById('trav-list').innerHTML='';
-    document.getElementById('budget-val').textContent='—';
-    return;
-  }
-  var sel=[],mn=0,mx=0,gains=0,html='';
-  for(var i=0;i<TRAVAUX.length;i++){
-    var t=TRAVAUX[i]; sel.push(t); mn+=t.cout_min; mx+=t.cout_max; gains++;
-    var emojis={'isolation':'🧱','combles':'🏠','chauffage':'🔥','pompe':'🔥','chaudière':'🔥','mur':'🧱','extérieur':'🧱','intérieur':'🧱','ventilation':'💨','vmc':'💨','fenêtre':'🪟','menuiserie':'🪟','toit':'🏠','toiture':'🏠','sarking':'🏠','plancher':'🧱','ite':'🧱'};
-    var emoji='🔧';
-    Object.keys(emojis).forEach(function(k){if(t.poste.toLowerCase().includes(k))emoji=emojis[k];});
-    html+='<div class="row"><p class="bod" style="font-weight:600;">'+emoji+' '+t.poste+'</p>'
-         +'<p class="bod" style="font-weight:700;white-space:nowrap;">'+t.cout_min.toLocaleString('fr-FR')+' – '+t.cout_max.toLocaleString('fr-FR')+' €</p></div>';
-    if(gains>=sauts)break;
-  }
-  document.getElementById('trav-list').innerHTML=html;
-  document.getElementById('budget-val').textContent=mn.toLocaleString('fr-FR')+' – '+mx.toLocaleString('fr-FR')+' €';
-  document.getElementById('budget-box').style.display='flex';
+  var sauts=CUR-tgtIdx; if(sauts<=0||!TRAVAUX.length)return;
+  var mn=0,mx=0; TRAVAUX.slice(0,sauts).forEach(function(t){mn+=t.cout_min;mx+=t.cout_max;});
+  var bv=document.getElementById('budget-val');
+  if(bv) bv.textContent=mn.toLocaleString('fr-FR')+' – '+mx.toLocaleString('fr-FR')+' €';
+}
+
+var _p=<%= {"tres_modeste"=>0,"modeste"=>1,"intermediaire"=>2,"superieur"=>3}[@property.income_bracket.to_s] || 3 %>;
+var _mT=[.70,.50,.35,.15];
+function setProfil(p,k){
+  _p=p;
+  document.querySelectorAll('.sv-prof').forEach(function(b,i){b.classList.toggle('on',i===p);});
+  calcAides();
+}
+function calcAides(){
+  var mx=<%= budget_max %>;
+  var mpr=Math.min(Math.round(mx*_mT[_p]),20000);
+  var cee=Math.min(Math.round(mx*.08),4000);
+  var reste=Math.max(0,mx-mpr-cee);
+  var fmt=function(x){return x.toLocaleString('fr-FR')+' €';};
+  var me=document.getElementById('mpr-val'); if(me) me.textContent=mpr>0?fmt(mpr):'—';
+  var ce=document.getElementById('cee-val'); if(ce) ce.textContent=cee>0?fmt(cee):'—';
+  var re=document.getElementById('reste-val'); if(re) re.textContent=reste>0?fmt(reste):mx>0?'0 €':'—';
+  var fl=document.getElementById('fin-reste-lbl'); if(fl) fl.textContent=fmt(reste);
+  SIM_M=reste; calcPret();
+}
+
+function calcPret(){
+  var D=parseInt(document.getElementById('sim-d')?.value)||15;
+  var T=parseFloat(document.getElementById('sim-t')?.value)||0;
+  var dl=document.getElementById('sim-d-lbl'); if(dl) dl.textContent=D+' ans';
+  var tl=document.getElementById('sim-t-lbl'); if(tl) tl.textContent=T.toFixed(1)+' %';
+  var M=SIM_M,n=D*12,fmt=function(x){return Math.round(x).toLocaleString('fr-FR')+' €';};
+  var ms=document.getElementById('sim-mens'),st=document.getElementById('sim-total'),sc=document.getElementById('sim-cout');
+  if(!ms)return;
+  if(T===0){ms.textContent=fmt(M/n)+'/mois';st.textContent=fmt(M);sc.textContent='0 €';}
+  else{var r=(T/100)/12,m=M*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1),tot=m*n;ms.textContent=fmt(m)+'/mois';st.textContent=fmt(tot);sc.textContent=fmt(tot-M);}
 }
 
 document.addEventListener('DOMContentLoaded',function(){
-  slideTgt(<%= tgt_idx %>);
+  var sl=document.getElementById('dpe-slider');
+  if(sl) slideTgt(<%= tgt_idx %>);
   calcPret();
-  // Animation d'invitation : oscillation JS sur left du pin
-  var pin=document.getElementById('pin-tgt');
-  if(!pin)return;
-  var base=parseFloat(pin.style.left);
-  var steps=[-14,10,-8,5,-3,0];
-  var delay=700;
-  steps.forEach(function(dx,i){
-    setTimeout(function(){
-      pin.style.left='calc('+(<%=tgt_idx%>/7*100+1/14*100).toFixed(2)+'% - 16px + '+dx+'px)';
-    }, delay + i*160);
-  });
-  setTimeout(function(){
-    pin.style.left='calc('+(<%=tgt_idx%>/7*100+1/14*100).toFixed(2)+'% - 16px)';
-  }, delay + steps.length*160);
 });
-
-// Sélecteur revenus
-var MPR_TAUX=[0.70,0.50,0.35,0.15];
-var _budget=<%= budget_max %>;
-var _curRev=<%= {"tres_modeste"=>0,"modeste"=>1,"intermediaire"=>2,"superieur"=>3}[@property.income_bracket.to_s] || 3 %>;
-
-function setRev(idx,key){
-  _curRev=idx;
-  [0,1,2,3].forEach(function(i){
-    var b=document.getElementById('rev-'+i);
-    if(!b)return;
-    b.style.background=i===idx?'#ede9fe':'#fff';
-    b.style.color=i===idx?'#5b21b6':'#374151';
-    b.style.borderColor=i===idx?'#5b21b6':'#e5e7eb';
-  });
-  recalcAides(_budget);
-}
-
-function recalcAides(mx){
-  if(!mx)return;
-  var mpr=Math.min(Math.round(mx*MPR_TAUX[_curRev]),-2+20002,20000);
-  mpr=Math.min(Math.round(mx*MPR_TAUX[_curRev]),20000);
-  var cee=Math.min(Math.round(mx*0.08),4000);
-  var reste=Math.max(0,mx-mpr-cee);
-  var fmt=function(x){return x.toLocaleString('fr-FR')+' €';};
-  var mprEl=document.getElementById('mpr-val');
-  var ceeEl=document.getElementById('cee-val');
-  var resteEl=document.getElementById('reste-val');
-  if(mprEl) mprEl.textContent=mpr>0?fmt(mpr):'—';
-  if(ceeEl) ceeEl.textContent=cee>0?fmt(cee):'—';
-  if(resteEl) resteEl.textContent=reste>0?fmt(reste):mx>0?'0 €':'—';
-  // Mettre à jour le slider financement
-  var sl=document.getElementById('sim-m');
-  if(sl&&reste>0){sl.value=reste;calcPret();}
-}
-
-// Simulateur prêt
-function calcPret(){
-  var M=typeof SIM_M!=='undefined'?SIM_M:(parseInt(document.getElementById('sim-m')&&document.getElementById('sim-m').value)||0);
-  var D=parseInt(document.getElementById('sim-d').value)||15;
-  var T=parseFloat(document.getElementById('sim-t').value)||0;
-
-  document.getElementById('sim-d-lbl').textContent=D+' ans';
-  document.getElementById('sim-t-lbl').textContent=T.toFixed(1)+' %';
-  var n=D*12,fmt=function(x){return Math.round(x).toLocaleString('fr-FR')+' €';};
-  if(T===0){var m=M/n;document.getElementById('sim-mens').textContent=fmt(m)+'/mois';document.getElementById('sim-total').textContent=fmt(M);document.getElementById('sim-cout').textContent='0 €';}
-  else{var r=(T/100)/12,m=M*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1),tot=m*n;document.getElementById('sim-mens').textContent=fmt(m)+'/mois';document.getElementById('sim-total').textContent=fmt(tot);document.getElementById('sim-cout').textContent=fmt(tot-M);}
-}
 </script>

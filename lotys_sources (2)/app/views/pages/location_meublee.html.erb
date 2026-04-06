@@ -1,0 +1,122 @@
+<%# app/views/pages/location_meublee.html.erb %>
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+
+  <div class="mb-8">
+    <a href="javascript:history.back()" class="text-sm text-gray-400 hover:text-emerald-600 transition">← Retour</a>
+    <h1 class="text-3xl font-black text-gray-900 mt-4 mb-2">🏠 Location meublée (LMNP)</h1>
+    <p class="text-gray-500 text-lg">Louer en meublé pour optimiser ses revenus locatifs et sa fiscalité.</p>
+  </div>
+
+  <%# Pourquoi le meublé %>
+  <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-emerald-900 mb-3">✅ Pourquoi c'est avantageux</h2>
+    <ul class="space-y-2 text-emerald-800 text-sm">
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Loyers plus élevés :</strong> +15 à 30% par rapport à un bien nu équivalent, surtout sur les petites surfaces.</span></li>
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Fiscalité allégée :</strong> le régime micro-BIC offre un abattement de 50% sur les revenus (71% en meublé de tourisme classé).</span></li>
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Amortissement du bien :</strong> en régime réel, vous pouvez amortir le bien et le mobilier, réduisant fortement votre base imposable.</span></li>
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Nancy, ville étudiante :</strong> forte demande locative toute l'année (université, école des Mines, CHU, IEP).</span></li>
+    </ul>
+  </div>
+
+  <%# Les deux régimes %>
+  <h2 class="text-xl font-bold text-gray-900 mb-4">⚖️ Micro-BIC ou régime réel ?</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+    <div class="bg-white border border-gray-200 rounded-2xl p-5">
+      <p class="font-bold text-gray-900 mb-2">Micro-BIC</p>
+      <p class="text-xs text-emerald-700 bg-emerald-50 rounded-lg px-2 py-1 mb-3 font-semibold">Si revenus locatifs < 77 700 €/an</p>
+      <ul class="text-sm text-gray-600 space-y-1">
+        <li>• Abattement forfaitaire de <strong>50%</strong></li>
+        <li>• Déclaration simplifiée</li>
+        <li>• Idéal si peu de charges réelles</li>
+      </ul>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-2xl p-5">
+      <p class="font-bold text-gray-900 mb-2">Régime réel</p>
+      <p class="text-xs text-blue-700 bg-blue-50 rounded-lg px-2 py-1 mb-3 font-semibold">Plus avantageux avec des travaux</p>
+      <ul class="text-sm text-gray-600 space-y-1">
+        <li>• Déduction des charges réelles</li>
+        <li>• <strong>Amortissement</strong> du bien et du mobilier</li>
+        <li>• Peut effacer toute imposition pendant 10-15 ans</li>
+      </ul>
+    </div>
+  </div>
+
+  <%# Obligations %>
+  <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-4">📋 Les obligations du meublé</h2>
+    <div class="space-y-3 text-sm text-gray-700">
+      <div>
+        <p class="font-bold text-gray-800 mb-1">Liste minimale de mobilier (décret 2015)</p>
+        <p>Literie avec couette, volets/rideaux, plaques de cuisson, four ou micro-ondes, réfrigérateur, vaisselle, ustensiles de cuisine, table, sièges, étagères, luminaires, matériel d'entretien. <strong>Manquer un élément rend le logement nu.</strong></p>
+      </div>
+      <div>
+        <p class="font-bold text-gray-800 mb-1">Durée de bail</p>
+        <p><strong>1 an</strong> (renouvelable) pour les baux classiques. <strong>9 mois</strong> pour les étudiants (non renouvelable automatiquement, très adapté à Nancy).</p>
+      </div>
+      <div>
+        <p class="font-bold text-gray-800 mb-1">Déclaration en mairie</p>
+        <p>Obligatoire dans les communes de plus de 200 000 habitants (dont Nancy) : déclaration en ligne via le formulaire Cerfa n°14004.</p>
+      </div>
+    </div>
+  </div>
+
+  <%# Simulation rapide %>
+  <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-base font-bold text-gray-800 mb-3">📊 Simulation rapide — Nancy, 46 m²</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-200">
+            <th class="text-left py-2 text-gray-500 font-semibold"></th>
+            <th class="text-right py-2 text-gray-500 font-semibold">Nu</th>
+            <th class="text-right py-2 text-gray-500 font-semibold">Meublé</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <tr><td class="py-2">Loyer mensuel</td><td class="text-right">480 – 550 €</td><td class="text-right font-semibold text-emerald-700">580 – 680 €</td></tr>
+          <tr><td class="py-2">Revenus annuels bruts</td><td class="text-right">5 760 – 6 600 €</td><td class="text-right font-semibold text-emerald-700">6 960 – 8 160 €</td></tr>
+          <tr><td class="py-2">Base imposable (micro)</td><td class="text-right text-gray-400">—</td><td class="text-right">3 480 – 4 080 €</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs text-gray-400 mt-3">⚠️ Estimations basées sur le marché nancéien 2024 — secteur Ville-Vieille / Centre. Variable selon état et étage.</p>
+  </div>
+
+  <%# Par où commencer %>
+  <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-base font-bold text-gray-800 mb-3">🔧 Par où commencer ?</h2>
+    <ol class="space-y-2 text-sm text-gray-700">
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span><span>Comparez les loyers meublés dans votre secteur sur Leboncoin, SeLoger ou Particulier à Particulier.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span><span>Inscrivez-vous au <strong>Registre du Commerce</strong> (gratuit en ligne via l'INPI) pour obtenir votre numéro SIRET de loueur meublé.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span><span>Choisissez votre régime fiscal avec un comptable spécialisé LMNP — le réel simplifié est souvent rentable dès le 1er an si vous avez des travaux.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">4</span><span>Équipez le logement selon la liste légale et rédigez un état des lieux détaillé à l'entrée.</span></li>
+    </ol>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-5">💡 Trois exemples concrets</h2>
+    <div class="space-y-5">
+      <div class="border-l-4 border-emerald-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Studio 25 m², quartier Université Nancy, bail étudiant</p>
+        <p class="text-base text-gray-600 leading-relaxed">Loyer nu équivalent : 380 €/mois. En meublé avec bail 9 mois étudiant : 490 €/mois. Revenu annuel brut : 4 410 €. Abattement micro-BIC 50% : base imposable 2 205 €. Gain fiscal vs nu : ~300 €/an pour un foyer à 30%.</p>
+      </div>
+      <div class="border-l-4 border-emerald-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">46 m² rénové, centre Nancy, régime réel simplifié</p>
+        <p class="text-base text-gray-600 leading-relaxed">Loyer meublé : 620 €/mois. Revenus bruts : 7 440 €. Charges déductibles : 3 200 €. Amortissement du bien sur 30 ans : ~3 000 €/an. Résultat fiscal négatif les 10 premières années — aucun impôt sur les revenus locatifs.</p>
+      </div>
+      <div class="border-l-4 border-emerald-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">T3 65 m², Vandœuvre-lès-Nancy, colocation meublée</p>
+        <p class="text-base text-gray-600 leading-relaxed">3 chambres louées séparément à 350 €/chambre. Total : 1 050 €/mois vs 750 € en location classique. Rendement brut de 7,5% vs 5,4% en nu.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-xs text-gray-400 space-y-1">
+    <p class="font-semibold text-gray-500 mb-2">Sources</p>
+    <p>• <a href="https://www.service-public.fr/particuliers/vosdroits/F2892" target="_blank" class="underline">service-public.fr — Location meublée</a></p>
+    <p>• Décret n° 2015-981 du 31 juillet 2015 — liste des meubles obligatoires</p>
+    <p>• ANIL — <em>Fiscalité des locations meublées</em> (2024)</p>
+  </div>
+
+</div>

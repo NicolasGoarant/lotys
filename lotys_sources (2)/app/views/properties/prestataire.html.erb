@@ -1,0 +1,145 @@
+<%# app/views/properties/prestataire.html.erb %>
+
+<% parsed  = @property.analysis&.content.present? ? (JSON.parse(@property.analysis.content) rescue nil) : nil %>
+<% e       = parsed&.[]("energie") %>
+<% dpe_colors = {"A"=>"#16a34a","B"=>"#4ade80","C"=>"#a3e635","D"=>"#ca8a04","E"=>"#fb923c","F"=>"#ef4444","G"=>"#991b1b"} %>
+<% dpe_labels = {"A"=>"Très performant","B"=>"Performant","C"=>"Assez performant","D"=>"Peu performant","E"=>"Énergivore","F"=>"Très énergivore","G"=>"Passoire thermique"} %>
+<% dpe_cur    = (@property.dpe_class || e&.[]("dpe_estime"))&.upcase %>
+<% dpe_cib    = e&.[]("dpe_cible")&.upcase %>
+<% travaux    = (e&.[]("travaux") || []).sort_by{|t| t["priorite"].to_i} %>
+
+<style>
+  .pr { max-width:540px; margin:0 auto; padding:20px 14px 60px;
+        font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  .lbl { font-size:.68rem; font-weight:700; color:#9ca3af;
+         text-transform:uppercase; letter-spacing:.07em; }
+  .bod { font-size:.9rem; color:#374151; line-height:1.6; }
+  .cd  { background:#fff; border-radius:18px; border:1px solid #e5e7eb;
+         box-shadow:0 2px 14px rgba(0,0,0,.07); margin-bottom:20px; overflow:hidden; }
+</style>
+
+<div class="pr">
+
+  <%# ── HEADER ─────────────────────────────────────────────── %>
+  <div class="cd">
+    <% photo_url = @property.property_type == "maison" ?
+         "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&q=80" :
+         "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80" %>
+    <div style="position:relative;height:180px;overflow:hidden;">
+      <img src="<%= photo_url %>" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(15,23,42,.85) 0%,rgba(15,23,42,.2) 60%,transparent 100%);"></div>
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 20px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px;">
+        <div>
+          <p class="lbl" style="color:rgba(255,255,255,.5);margin:0 0 2px;"><%= @property.city %></p>
+          <h1 style="font-size:1.2rem;font-weight:900;color:#fff;margin:0 0 3px;line-height:1.2;"><%= @property.address %></h1>
+          <p style="font-size:.82rem;color:rgba(255,255,255,.75);font-weight:500;">
+            <%= @property.property_type&.capitalize %>
+            <% if @property.nb_rooms %> · T<%= @property.nb_rooms %><% end %>
+            · <%= @property.surface %> m²
+          </p>
+        </div>
+        <% if dpe_cur %>
+          <div style="width:42px;height:42px;border-radius:10px;background:<%= dpe_colors[dpe_cur] %>;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:900;color:#fff;flex-shrink:0;"><%= dpe_cur %></div>
+        <% end %>
+      </div>
+    </div>
+    <div style="padding:10px 18px;">
+      <%= link_to "← Retour à la carte", root_path,
+          style:"font-size:.78rem;font-weight:600;color:#6b7280;text-decoration:none;" %>
+    </div>
+  </div>
+
+  <%# ── CE QUI EST DEMANDÉ ───────────────────────────────────── %>
+  <div class="cd">
+    <div style="background:#1e293b;padding:13px 20px;">
+      <p style="font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:#fff;margin:0;">Ce bien a besoin de vous</p>
+    </div>
+    <div style="padding:20px;">
+
+      <%# DPE %>
+      <% if dpe_cur %>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+          <div style="text-align:center;">
+            <div style="width:44px;height:44px;border-radius:10px;background:<%= dpe_colors[dpe_cur] %>;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:900;color:#fff;"><%= dpe_cur %></div>
+            <p class="lbl" style="margin-top:4px;font-size:.58rem;">Actuel</p>
+          </div>
+          <p style="font-size:1.4rem;color:#d1d5db;">→</p>
+          <% if dpe_cib %>
+            <div style="text-align:center;">
+              <div style="width:44px;height:44px;border-radius:10px;background:<%= dpe_colors[dpe_cib] || '#059669' %>;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:900;color:#fff;border:2px solid #059669;"><%= dpe_cib %></div>
+              <p class="lbl" style="margin-top:4px;font-size:.58rem;color:#059669;">Objectif</p>
+            </div>
+          <% end %>
+          <div style="flex:1;padding-left:4px;">
+            <p class="bod" style="font-weight:700;color:#111;"><%= dpe_labels[dpe_cur] %></p>
+            <% if %w[F G].include?(dpe_cur) %>
+              <p class="bod" style="font-size:.78rem;color:#dc2626;">Interdiction de louer en vigueur</p>
+            <% elsif dpe_cur == "E" %>
+              <p class="bod" style="font-size:.78rem;color:#ea580c;">Interdiction de louer en 2028</p>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <%# Travaux — catégories seulement, sans prix %>
+      <% if travaux.any? %>
+        <p class="lbl" style="margin-bottom:10px;">Travaux envisagés</p>
+        <% travaux.each do |t| %>
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:#f9fafb;border-radius:10px;margin-bottom:6px;">
+            <span style="font-size:1rem;">
+              <% poste = t["poste"].to_s.downcase %>
+              <%= poste.include?("combles") || poste.include?("toit") ? "🏠" :
+                  poste.include?("mur") || poste.include?("isolation") ? "🧱" :
+                  poste.include?("chauffage") || poste.include?("pompe") || poste.include?("chaudière") ? "🔥" :
+                  poste.include?("fenêtre") || poste.include?("menuiserie") ? "🪟" :
+                  poste.include?("ventilation") || poste.include?("vmc") ? "💨" : "🔧" %>
+            </span>
+            <p class="bod" style="font-weight:600;font-size:.88rem;"><%= t["poste"] %></p>
+          </div>
+        <% end %>
+      <% end %>
+
+    <%# Budget global %>
+    <% if travaux.any? %>
+      <% budget_min = travaux.sum{|t| t["cout_min"].to_i} %>
+      <% budget_max = travaux.sum{|t| t["cout_max"].to_i} %>
+      <% mpr_taux = case @property.income_bracket&.to_s
+           when "tres_modeste" then 0.70
+           when "modeste"      then 0.50
+           when "intermediaire" then 0.35
+           else 0.15
+         end %>
+      <% aides_estimees = [( budget_max * mpr_taux).round(-2), 20000].min +
+                          [( budget_max * 0.08).round(-2), 4000].min %>
+      <% reste = [budget_max - aides_estimees, 0].max %>
+      <div style="border-top:1px solid #f3f4f6;margin-top:14px;padding-top:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid #f9fafb;">
+          <p class="bod" style="color:#6b7280;">Budget travaux estimé</p>
+          <p class="bod" style="font-weight:700;"><%= budget_min.to_s.reverse.gsub(/(\d{3})(?=\d)/,'\1 ').reverse %> – <%= budget_max.to_s.reverse.gsub(/(\d{3})(?=\d)/,'\1 ').reverse %> €</p>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid #f9fafb;">
+          <p class="bod" style="color:#6b7280;">Aides estimées <span style="font-size:.7rem;">(MPR + CEE)</span></p>
+          <p class="bod" style="font-weight:700;color:#059669;">− <%= aides_estimees.to_s.reverse.gsub(/(\d{3})(?=\d)/,'\1 ').reverse %> €</p>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#eff6ff;border-radius:10px;margin-top:8px;">
+          <p class="bod" style="font-weight:700;color:#1e3a8a;">Reste à financer</p>
+          <p style="font-size:1.15rem;font-weight:900;color:#1e3a8a;"><%= reste.to_s.reverse.gsub(/(\d{3})(?=\d)/,'\1 ').reverse %> €</p>
+        </div>
+      </div>
+    <% end %>
+
+    </div>
+  </div>
+
+  <%# ── CTA ─────────────────────────────────────────────────── %>
+  <% if user_signed_in? %>
+    <%= link_to "📩 Faire une proposition", new_property_offer_path(@property),
+        style:"display:block;text-align:center;background:#059669;color:#fff;font-size:1rem;font-weight:800;padding:16px;border-radius:14px;text-decoration:none;" %>
+  <% else %>
+    <p class="lbl" style="text-align:center;margin-bottom:10px;">Créez un compte prestataire pour répondre à ce dossier</p>
+    <%= link_to "S'inscrire et faire une proposition →", new_user_registration_path,
+        style:"display:block;text-align:center;background:#1d4ed8;color:#fff;font-size:1rem;font-weight:800;padding:16px;border-radius:14px;text-decoration:none;" %>
+  <% end %>
+  <p class="lbl" style="text-align:center;margin-top:10px;color:#9ca3af;">Le propriétaire recevra votre proposition par email.</p>
+
+</div>

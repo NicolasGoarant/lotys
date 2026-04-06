@@ -1,61 +1,59 @@
 class DvfEstimationService
-  DVF_API = "https://api.cquest.org/dvf"
+  BASE_URL = "https://apidf.cerema.fr/dvf_opendata/geomutations/"
 
   def initialize(property)
     @property = property
   end
 
   def call
-    results = fetch_comparable_sales
-    return false if results.empty?
+    response = HTTParty.get(BASE_URL, query: {
+      code_insee: "54395",
+      date_mutation_min: 3.years.ago.strftime("%Y-%m-%d"),
+      nb_resultats: 50
+    }, timeout: 10)
 
-    prices_per_sqm = results.filter_map do |r|
-      next if r["surface_reelle_bati"].to_f.zero?
-      price = r["valeur_fonciere"].to_f / r["surface_reelle_bati"].to_f
-      price if price > 500 && price < 15_000
+    return fallback unless response.success?
+
+    mutations = JSON.parse(response.body)["results"] rescue []
+    comparable = mutations.select do |m|
+      m["type_local"] == type_local_label &&
+      m["surface_reelle_bati"].to_f.between?(
+        @property.surface * 0.75, @property.surface * 1.25
+      ) &&
+      m["valeur_fonciere"].to_f > 0
     end
 
-    return false if prices_per_sqm.empty?
+    return fallback if comparable.empty?
 
-    avg_price_sqm = prices_per_sqm.sum / prices_per_sqm.size
-    estimated_value = (avg_price_sqm * @property.surface).round(-3)
+    prix_m2_values = comparable.map { |m|
+      m["valeur_fonciere"].to_f / m["surface_reelle_bati"].to_f
+    }.sort
+    prix_m2 = prix_m2_values[prix_m2_values.size / 2]
 
-    bulk_estimate = @property.is_copropriete ? (estimated_value * 1.20).round(-3) : nil
+    estimated = (prix_m2 * @property.surface).round(-3)
 
     valuation = @property.valuation || @property.build_valuation
-    valuation.update(
-      estimated_value: estimated_value,
-      min_value: (estimated_value * 0.90).round(-3),
-      max_value: (estimated_value * 1.10).round(-3),
-      bulk_sale_estimate: bulk_estimate,
-      comparable_sales: results.first(5),
-      methodology: "Basé sur #{results.size} ventes comparables (source : DVF)",
-      dvf_raw: { avg_price_sqm: avg_price_sqm.round(0), sample_size: results.size }
+    valuation.update!(
+      estimated_value: estimated,
+      min_value:       (estimated * 0.90).round(-3),
+      max_value:       (estimated * 1.10).round(-3),
+      methodology:     "CEREMA DVF — #{comparable.size} mutations comparables",
+      dvf_raw:         { prix_m2: prix_m2.round(0), nb_mutations: comparable.size }
     )
-    true
+
+    Rails.logger.info("DvfEstimationService: #{estimated} € estimés (#{comparable.size} mutations)")
+  rescue => e
+    Rails.logger.error("DvfEstimationService failed: #{e.message}")
+    fallback
   end
 
   private
 
-  def fetch_comparable_sales
-    response = HTTParty.get(
-      DVF_API,
-      query: {
-        code_postal: @property.zipcode,
-        type_local: @property.property_type&.capitalize || "Appartement",
-        per_page: 50
-      }
-    )
-    return [] unless response.success?
+  def type_local_label
+    @property.property_type == "maison" ? "Maison" : "Appartement"
+  end
 
-    data = JSON.parse(response.body)
-    (data["resultats"] || []).select do |r|
-      r["surface_reelle_bati"].to_f > 0 &&
-        r["valeur_fonciere"].to_f > 0 &&
-        Date.parse(r["date_mutation"]) > 3.years.ago
-    end
-  rescue => e
-    Rails.logger.error("DVF API error: #{e.message}")
-    []
+  def fallback
+    Rails.logger.warn("DvfEstimationService: fallback — aucune donnée CEREMA exploitable")
   end
 end

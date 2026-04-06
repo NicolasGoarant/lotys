@@ -1,0 +1,54 @@
+<div id="<%= dom_id property %>" class="w-full sm:w-auto my-5 space-y-5">
+  <div>
+    <strong class="block font-medium mb-1">User:</strong>
+    <%= property.user_id %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Address:</strong>
+    <%= property.address %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">City:</strong>
+    <%= property.city %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Zipcode:</strong>
+    <%= property.zipcode %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Surface:</strong>
+    <%= property.surface %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Property type:</strong>
+    <%= property.property_type %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Construction year:</strong>
+    <%= property.construction_year %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Dpe class:</strong>
+    <%= property.dpe_class %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Nb rooms:</strong>
+    <%= property.nb_rooms %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Nb lots:</strong>
+    <%= property.nb_lots %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Is copropriete:</strong>
+    <%= property.is_copropriete? ? "Yes" : "No" %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Description:</strong>
+    <%= property.description %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Status:</strong>
+    <%= property.status %>
+  </div>
+</div>

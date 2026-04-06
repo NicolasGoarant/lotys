@@ -1,0 +1,2 @@
+class AidRule < ApplicationRecord
+end

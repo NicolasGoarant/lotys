@@ -1,0 +1,15 @@
+<%# app/views/properties/edit.html.erb %>
+<% content_for :title, "Modifier le bien — #{@property.address}" %>
+
+<div class="mx-auto w-full max-w-2xl px-4 py-6">
+
+  <%# En-tête %>
+  <div class="mb-6">
+    <%= link_to "← Retour au dossier", @property, class: "text-sm text-gray-400 hover:text-emerald-600 transition" %>
+    <h1 class="text-2xl font-black text-gray-900 mt-3">Modifier le bien</h1>
+    <p class="text-sm text-gray-400 mt-0.5"><%= @property.address %>, <%= @property.city %></p>
+  </div>
+
+  <%= render "form", property: @property %>
+
+</div>

@@ -1,0 +1,76 @@
+<%# Formulaire inline prestataire — affiché dans show.html.erb %>
+<% offer = @offer || property.offers.build %>
+
+<div class="cd" id="formulaire-proposition" style="scroll-margin-top:20px;">
+  <div class="cd-hd" style="background:#059669;">📩 Faire une proposition</div>
+  <div style="padding:20px;">
+
+    <% if user_signed_in? %>
+      <%= form_with model: [property, offer], html: { id: "offer-form" } do |f| %>
+
+        <%# Type de proposition %>
+        <p class="lbl" style="margin-bottom:10px;">Quel type de proposition faites-vous ?</p>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;" id="offer-type-cards">
+          <% [
+            [:travaux,    "🔨", "Devis rénovation / travaux",               "Isolation, chauffage, menuiseries — vous proposez une intervention chiffrée."],
+            [:financement,"🏛️", "Expression d'intérêt — financement",       "Vous signalez votre intérêt pour étudier le dossier. Le propriétaire vous contactera."],
+            [:achat,      "🏗️", "Offre d'achat — promoteur / investisseur", "Vous proposez un prix d'acquisition ferme ou indicatif."]
+          ].each do |val, emoji, titre, desc| %>
+            <label id="card-<%= val %>" onclick="selectType('<%= val %>')"
+              style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1.5px solid #e5e7eb;border-radius:12px;cursor:pointer;background:#fff;transition:border-color .15s;">
+              <%= f.radio_button :offer_type, val, style:"display:none;", id:"radio-#{val}", onchange:"selectType('#{val}')" %>
+              <span style="font-size:1.3rem;flex-shrink:0;margin-top:2px;"><%= emoji %></span>
+              <div>
+                <p class="bod" style="font-weight:700;font-size:.9rem;margin-bottom:2px;"><%= titre %></p>
+                <p class="lbl" style="text-transform:none;font-size:.78rem;letter-spacing:0;color:#6b7280;"><%= desc %></p>
+              </div>
+            </label>
+          <% end %>
+        </div>
+
+        <%# Montant (optionnel) %>
+        <div style="margin-bottom:16px;">
+          <label class="lbl" style="display:block;margin-bottom:6px;">Montant estimé (optionnel)</label>
+          <%= f.number_field :amount, placeholder: "ex. 12000", style:"width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:.9rem;color:#111;" %>
+        </div>
+
+        <%# Message %>
+        <div style="margin-bottom:20px;">
+          <label class="lbl" style="display:block;margin-bottom:6px;">Votre message</label>
+          <p style="font-size:.78rem;color:#9ca3af;margin-bottom:6px;">Décrivez votre proposition clairement.</p>
+          <%= f.text_area :description, rows: 5, placeholder: "Décrivez votre proposition...",
+              style:"width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:.9rem;color:#111;resize:vertical;" %>
+        </div>
+
+        <%= f.submit "Envoyer ma proposition →",
+            style:"display:block;width:100%;background:#059669;color:#fff;font-size:1rem;font-weight:800;padding:16px;border-radius:14px;border:none;cursor:pointer;" %>
+        <p class="lbl" style="text-align:center;margin-top:10px;color:#9ca3af;">Votre identité n'est pas visible du propriétaire avant qu'il accepte votre offre.</p>
+
+      <% end %>
+
+    <% else %>
+      <p class="lbl" style="text-align:center;margin-bottom:10px;">Créez un compte prestataire pour répondre à ce dossier</p>
+      <%= link_to "S'inscrire et faire une proposition →", new_user_registration_path,
+          style:"display:block;text-align:center;background:#1d4ed8;color:#fff;font-size:1rem;font-weight:800;padding:16px;border-radius:14px;text-decoration:none;" %>
+    <% end %>
+
+  </div>
+</div>
+
+<script>
+function selectType(val) {
+  document.querySelectorAll('#offer-type-cards label').forEach(function(card) {
+    card.style.borderColor = '#e5e7eb';
+    card.style.background  = '#fff';
+  });
+  var card = document.getElementById('card-' + val);
+  if (card) { card.style.borderColor = '#059669'; card.style.background = '#f0fdf4'; }
+  var radio = document.getElementById('radio-' + val);
+  if (radio) radio.checked = true;
+}
+// Pré-sélectionner si déjà coché (retour d'erreur)
+document.addEventListener('DOMContentLoaded', function() {
+  var checked = document.querySelector('#offer-type-cards input[type=radio]:checked');
+  if (checked) selectType(checked.value);
+});
+</script>

@@ -1,0 +1,152 @@
+<%# app/views/properties/_local_aids.html.erb %>
+<% eligible_results = property.local_aid_results.select(&:eligible?) %>
+<% return if eligible_results.empty? %>
+
+<% eligible_results.each do |result| %>
+  <% scheme = result.local_aid_scheme %>
+
+  <%# Préparer les montants pour le JS (ordre : très modeste, modeste, intermédiaire, supérieur) %>
+  <% amounts_js = [
+       result.amounts["tres_modeste"].to_i,
+       result.amounts["modeste"].to_i,
+       result.amounts["intermediaire"].to_i,
+       result.amounts["superieur"].to_i
+     ] %>
+
+  <div class="rounded-xl px-4 py-3 mb-2" style="background:#f0fdf4; border:1px solid #bbf7d0;">
+    <div class="flex items-start justify-between gap-3 mb-2">
+      <div>
+        <p class="font-bold text-emerald-900 text-sm">
+          🏛️ <%= scheme.territory %> — Aide locale
+          <span class="ml-1 text-xs font-normal text-emerald-700 bg-emerald-100 rounded-full px-2 py-0.5"><%= scheme.aid_type_label %></span>
+        </p>
+        <p class="text-xs text-emerald-700 mt-0.5">
+          Complémentaire à MaPrimeRénov' · Valable jusqu'au <%= scheme.valid_until&.strftime("%d/%m/%Y") %>
+        </p>
+      </div>
+
+      <% if scheme.renov_globale? %>
+        <%# Montant dynamique selon la tranche sélectionnée %>
+        <p class="font-black text-emerald-900 text-base whitespace-nowrap"
+           id="aide-grand-nancy-amount"
+           data-amounts="<%= amounts_js.to_json %>">
+          —
+        </p>
+      <% end %>
+    </div>
+
+    <%# Alerte ALEC %>
+    <% if scheme.warning_text.present? %>
+      <div class="flex gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2">
+        <span class="text-amber-500 flex-shrink-0 mt-0.5">⚠️</span>
+        <p class="text-xs text-amber-800 leading-relaxed"><%= scheme.warning_text.gsub("⚠️ ", "") %></p>
+      </div>
+    <% end %>
+
+    <% if scheme.renov_globale? %>
+      <%# Grille des 4 tranches %>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2" id="grand-nancy-brackets">
+        <% [
+             { key: "tres_modeste",  label: "Très modestes",   idx: 0 },
+             { key: "modeste",       label: "Modestes",        idx: 1 },
+             { key: "intermediaire", label: "Intermédiaires",  idx: 2 },
+             { key: "superieur",     label: "Supérieurs",      idx: 3 }
+           ].each do |t| %>
+          <% amount = result.amounts[t[:key]].to_i %>
+          <div class="gn-bracket rounded-lg px-2 py-2 text-center border-2 border-transparent bg-white"
+               data-idx="<%= t[:idx] %>">
+            <p class="text-xs text-gray-500 leading-tight"><%= t[:label] %></p>
+            <p class="font-black text-emerald-700 text-sm">
+              <%= number_to_currency(amount, unit: "€", separator: ",", delimiter: " ", format: "%n %u") %>
+            </p>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if scheme.isolation? && scheme.forfait_data.present? %>
+      <details class="mt-1">
+        <summary class="text-xs text-emerald-700 cursor-pointer font-semibold">Voir les forfaits isolation au m²</summary>
+        <div class="mt-2 overflow-x-auto">
+          <table class="w-full text-xs border-collapse">
+            <thead>
+              <tr class="bg-emerald-50">
+                <th class="text-left px-2 py-1.5 font-semibold text-emerald-900">Isolation</th>
+                <th class="text-right px-2 py-1.5 font-semibold text-emerald-900">Modestes</th>
+                <th class="text-right px-2 py-1.5 font-semibold text-emerald-900">Intermédiaires+</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% {
+                   "murs_ext"         => "Murs ext. (ITE)",
+                   "murs_int"         => "Murs int.",
+                   "sarking"          => "Toiture sarking",
+                   "combles_perdus"   => "Combles perdus",
+                   "toiture_terrasse" => "Toiture-terrasse",
+                   "planchers_bas"    => "Planchers bas"
+                 }.each do |type, label| %>
+                <% rates = scheme.forfait_data[type] %>
+                <% next unless rates %>
+                <tr class="border-t border-emerald-100">
+                  <td class="px-2 py-1.5 text-gray-700"><%= label %></td>
+                  <td class="px-2 py-1.5 text-right font-semibold text-emerald-800"><%= rates["tres_modeste_et_modeste"] %> €/m²</td>
+                  <td class="px-2 py-1.5 text-right font-semibold text-emerald-800"><%= rates["intermediaire_et_superieur"] %> €/m²</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    <% end %>
+
+    <%# Conditions + source %>
+    <div class="flex items-center justify-between mt-2 pt-2 border-t border-emerald-100">
+      <% if scheme.contact_url.present? %>
+        <%= link_to scheme.contact_name, scheme.contact_url,
+              target: "_blank", rel: "noopener",
+              class: "text-xs text-emerald-600 hover:underline" %>
+      <% end %>
+      <% if scheme.source_url.present? %>
+        <%= link_to "📄 Règlement officiel", scheme.source_url,
+              target: "_blank", rel: "noopener",
+              class: "text-xs text-emerald-600 hover:underline" %>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<%# JS — connecte la tranche sélectionnée à l'affichage Grand Nancy %>
+<script>
+(function() {
+  var amountsEl = document.getElementById('aide-grand-nancy-amount');
+  if (!amountsEl) return;
+  var amounts = JSON.parse(amountsEl.dataset.amounts || '[0,0,0,0]');
+
+  function updateGrandNancy(profil) {
+    var amount = amounts[profil] || 0;
+    amountsEl.textContent = amount > 0
+      ? amount.toLocaleString('fr-FR') + ' €'
+      : '—';
+    // Mettre en surbrillance la bonne tranche
+    document.querySelectorAll('.gn-bracket').forEach(function(el) {
+      var isActive = parseInt(el.dataset.idx) === profil;
+      el.style.borderColor   = isActive ? '#059669' : 'transparent';
+      el.style.background    = isActive ? '#ecfdf5' : 'white';
+    });
+  }
+
+  // Surcharger setProfil pour qu'il mette aussi à jour le bloc Grand Nancy
+  var _originalSetProfil = window.setProfil;
+  window.setProfil = function(p) {
+    if (_originalSetProfil) _originalSetProfil(p);
+    updateGrandNancy(p);
+  };
+
+  // Init : si un profil est déjà actif au chargement
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof currentProfil !== 'undefined' && currentProfil >= 0) {
+      updateGrandNancy(currentProfil);
+    }
+  });
+})();
+</script>

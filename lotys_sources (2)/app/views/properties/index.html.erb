@@ -1,0 +1,80 @@
+<%# app/views/properties/index.html.erb %>
+
+<div class="mx-auto w-full max-w-3xl px-4 py-6">
+
+  <%# En-tête %>
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-black text-gray-900">Mes biens</h1>
+    <%= link_to "＋ Ajouter un bien", new_property_path,
+        class: "bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition" %>
+  </div>
+
+  <% if @properties.empty? %>
+    <div class="text-center py-20 bg-white rounded-2xl border border-gray-100">
+      <p class="text-4xl mb-4">🏠</p>
+      <p class="text-lg font-semibold text-gray-700 mb-2">Aucun bien pour l'instant</p>
+      <p class="text-sm text-gray-400 mb-6">Ajoutez votre premier bien pour obtenir une analyse complète.</p>
+      <%= link_to "Analyser mon bien gratuitement →", new_property_path,
+          class: "bg-emerald-600 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-emerald-700 transition inline-block" %>
+    </div>
+
+  <% else %>
+    <div class="space-y-3">
+      <% @properties.each do |property| %>
+        <div class="bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-start justify-between gap-4 p-5">
+
+            <%# Infos bien %>
+            <div class="flex items-start gap-4 flex-1 min-w-0">
+
+              <%# Badge DPE %>
+              <% dpe = property.dpe_class&.upcase %>
+              <% dpe_colors = {"A"=>"#16a34a","B"=>"#22c55e","C"=>"#84cc16","D"=>"#ca8a04","E"=>"#ea580c","F"=>"#dc2626","G"=>"#b91c1c"} %>
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-base shrink-0 mt-0.5"
+                   style="background:<%= dpe_colors[dpe] || '#9ca3af' %>">
+                <%= dpe || "?" %>
+              </div>
+
+              <div class="flex-1 min-w-0">
+                <p class="font-bold text-gray-900 text-base leading-tight truncate">
+                  <%= property.address %>
+                </p>
+                <p class="text-sm text-gray-400 mt-0.5">
+                  <%= property.city %>
+                  <% if property.surface.present? %>· <%= property.surface %> m²<% end %>
+                  · <%= property.is_copropriete ? "Copropriété" : "Individuel" %>
+                </p>
+
+                <%# Badge statut en français %>
+                <% status_fr = case property.status
+                     when "draft"     then ["⏳ Brouillon",    "bg-gray-100 text-gray-600"]
+                     when "analyzing" then ["🔄 En cours",     "bg-yellow-100 text-yellow-700"]
+                     when "analyzed"  then ["✅ Analysé",      "bg-blue-100 text-blue-700"]
+                     when "published" then ["📢 Publié",       "bg-emerald-100 text-emerald-700"]
+                     else                  ["—",               "bg-gray-100 text-gray-500"]
+                     end %>
+                <span class="inline-block mt-2 text-xs px-2.5 py-1 rounded-full font-semibold <%= status_fr[1] %>">
+                  <%= status_fr[0] %>
+                </span>
+              </div>
+            </div>
+
+            <%# Actions %>
+            <div class="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0">
+              <%= link_to "Voir", property,
+                  class: "text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition px-3 py-1.5 rounded-lg hover:bg-emerald-50" %>
+              <%= link_to "Modifier", edit_property_path(property),
+                  class: "text-sm text-gray-400 hover:text-gray-600 transition px-3 py-1.5 rounded-lg hover:bg-gray-50" %>
+              <%= button_to "Supprimer", property_path(property),
+                    method: :delete,
+                    form: { data: { turbo_confirm: "Supprimer ce bien et toutes ses données ? Cette action est irréversible." } },
+                    class: "text-xs text-red-400 hover:text-red-600 hover:bg-red-50 transition px-2 py-1.5 rounded-lg bg-transparent border-0 cursor-pointer" %>
+            </div>
+
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+</div>

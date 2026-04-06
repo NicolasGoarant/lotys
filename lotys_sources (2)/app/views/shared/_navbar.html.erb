@@ -1,0 +1,100 @@
+<nav class="bg-white border-b border-gray-100 px-6 py-3 sticky top-0 z-50">
+  <div class="max-w-5xl mx-auto flex items-center justify-between">
+
+    <%# Logo %>
+    <a href="/" class="flex items-center gap-2">
+      <%= image_tag "lotys_logo.png", height: 32, alt: "Lotys", class: "h-8 w-auto" %>
+      <span class="text-xl font-bold text-emerald-600">Lotys</span>
+      <span class="hidden sm:inline text-sm font-medium text-gray-600 border-l border-gray-200 pl-3">L'immobilier, enfin lisible.</span>
+    </a>
+
+    <%# Desktop %>
+    <div class="hidden md:flex items-center gap-6 text-sm">
+      <%= link_to "Enchères", offers_path,
+          class: "font-medium text-gray-600 hover:text-emerald-600 transition",
+          data: { turbo: false } %>
+      <%= link_to "Comment ça marche", about_path,
+          class: "font-medium text-gray-600 hover:text-emerald-600 transition" %>
+      <% if user_signed_in? %>
+        <%= link_to "Mes biens", properties_path,
+            class: "font-medium text-gray-600 hover:text-emerald-600 transition" %>
+        <div class="flex items-center gap-3 border-l border-gray-200 pl-4">
+          <span class="text-xs text-gray-400"><%= current_user.email.split("@").first %></span>
+          <%= link_to "Déconnexion", destroy_user_session_path,
+              data: { turbo_method: :delete },
+              class: "text-xs text-gray-400 hover:text-red-500 transition" %>
+        </div>
+      <% else %>
+        <%= link_to "Connexion", new_user_session_path,
+            class: "font-medium text-gray-600 hover:text-emerald-600 transition" %>
+        <%= link_to "Analyser mon bien", new_property_path,
+            class: "bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition font-semibold" %>
+      <% end %>
+    </div>
+
+    <%# Mobile : burger %>
+    <button id="burger-btn"
+            class="md:hidden flex flex-col gap-1.5 p-2 rounded-xl hover:bg-gray-50 transition"
+            onclick="toggleMenu()"
+            aria-label="Menu">
+      <span class="block w-6 h-0.5 bg-gray-700 transition-all duration-300 rounded-full" id="b1"></span>
+      <span class="block w-6 h-0.5 bg-gray-700 transition-all duration-300 rounded-full" id="b2"></span>
+      <span class="block w-6 h-0.5 bg-gray-700 transition-all duration-300 rounded-full" id="b3"></span>
+    </button>
+  </div>
+
+  <%# Menu mobile déroulant %>
+  <div id="mobile-menu" class="md:hidden hidden mt-3 border-t border-gray-100 pt-3 pb-2">
+
+    <%# Liens principaux — alignés à gauche, taille lisible %>
+    <div class="space-y-0.5 mb-3">
+      <%= link_to "Enchères", offers_path,
+          data: { turbo: false },
+          class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition" %>
+      <%= link_to "Comment ça marche", about_path,
+          class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition" %>
+      <% if user_signed_in? %>
+        <%= link_to "Mes biens", properties_path,
+            class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition" %>
+      <% end %>
+    </div>
+
+    <%# Séparateur + compte %>
+    <div class="border-t border-gray-100 pt-3 space-y-0.5">
+      <% if user_signed_in? %>
+        <div class="px-4 py-2">
+          <p class="text-xs text-gray-400"><%= current_user.email %></p>
+        </div>
+        <%= link_to "Déconnexion", destroy_user_session_path,
+            data: { turbo_method: :delete },
+            class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-red-500 hover:bg-red-50 rounded-xl transition" %>
+      <% else %>
+        <%= link_to "Connexion", new_user_session_path,
+            class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition" %>
+        <%= link_to "Analyser mon bien gratuitement →", new_property_path,
+            class: "block mx-4 mt-2 py-3 text-sm text-center bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition" %>
+      <% end %>
+    </div>
+
+  </div>
+</nav>
+
+<script>
+function toggleMenu() {
+  const menu = document.getElementById('mobile-menu');
+  const b1 = document.getElementById('b1');
+  const b2 = document.getElementById('b2');
+  const b3 = document.getElementById('b3');
+  const open = !menu.classList.contains('hidden');
+  menu.classList.toggle('hidden');
+  if (!open) {
+    b1.style.transform = 'translateY(8px) rotate(45deg)';
+    b2.style.opacity   = '0';
+    b3.style.transform = 'translateY(-8px) rotate(-45deg)';
+  } else {
+    b1.style.transform = '';
+    b2.style.opacity   = '1';
+    b3.style.transform = '';
+  }
+}
+</script>
