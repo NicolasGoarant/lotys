@@ -1,34 +1,32 @@
+require 'csv'
+require 'open-uri'
+require 'zlib'
+
 class DvfEstimationService
-  BASE_URL = "https://apidf.cerema.fr/dvf_opendata/geomutations/"
+  DVF_URL = "https://files.data.gouv.fr/geo-dvf/latest/csv/2023/departements/54.csv.gz"
+  CODE_INSEE = "54395"
 
   def initialize(property)
     @property = property
   end
 
   def call
-    response = HTTParty.get(BASE_URL, query: {
-      code_insee: "54395",
-      date_mutation_min: 3.years.ago.strftime("%Y-%m-%d"),
-      nb_resultats: 50
-    }, timeout: 10)
+    mutations = load_mutations
+    return fallback("CSV vide ou inaccessible") if mutations.empty?
 
-    return fallback unless response.success?
+    type = @property.property_type == "maison" ? "Maison" : "Appartement"
 
-    mutations = JSON.parse(response.body)["results"] rescue []
     comparable = mutations.select do |m|
-      m["type_local"] == type_local_label &&
-      m["surface_reelle_bati"].to_f.between?(
-        @property.surface * 0.75, @property.surface * 1.25
-      ) &&
-      m["valeur_fonciere"].to_f > 0
+      m[:code_commune] == CODE_INSEE &&
+      m[:type_local] == type &&
+      m[:surface].between?(@property.surface * 0.75, @property.surface * 1.25) &&
+      m[:valeur] > 0
     end
 
-    return fallback if comparable.empty?
+    return fallback("Aucune mutation comparable (#{type}, ~#{@property.surface}m², Nancy)") if comparable.empty?
 
-    prix_m2_values = comparable.map { |m|
-      m["valeur_fonciere"].to_f / m["surface_reelle_bati"].to_f
-    }.sort
-    prix_m2 = prix_m2_values[prix_m2_values.size / 2]
+    prix_m2_list = comparable.map { |m| m[:valeur] / m[:surface] }.sort
+    prix_m2 = prix_m2_list[prix_m2_list.size / 2]
 
     estimated = (prix_m2 * @property.surface).round(-3)
 
@@ -37,23 +35,49 @@ class DvfEstimationService
       estimated_value: estimated,
       min_value:       (estimated * 0.90).round(-3),
       max_value:       (estimated * 1.10).round(-3),
-      methodology:     "CEREMA DVF — #{comparable.size} mutations comparables",
+      methodology:     "DVF data.gouv 2023 — #{comparable.size} mutations comparables (#{type}, Nancy)",
       dvf_raw:         { prix_m2: prix_m2.round(0), nb_mutations: comparable.size }
     )
 
-    Rails.logger.info("DvfEstimationService: #{estimated} € estimés (#{comparable.size} mutations)")
+    Rails.logger.info("DvfEstimationService: #{estimated}€ (#{comparable.size} mutations, prix/m² médian: #{prix_m2.round(0)}€)")
   rescue => e
     Rails.logger.error("DvfEstimationService failed: #{e.message}")
-    fallback
+    fallback(e.message)
   end
 
   private
 
-  def type_local_label
-    @property.property_type == "maison" ? "Maison" : "Appartement"
+  def load_mutations
+    mutations = []
+    Zlib::GzipReader.open(download_csv) do |gz|
+      CSV.new(gz, headers: true).each do |row|
+        next if row["valeur_fonciere"].blank? || row["surface_reelle_bati"].blank?
+        next if row["type_local"].blank?
+        next unless %w[Appartement Maison].include?(row["type_local"])
+
+        mutations << {
+          code_commune: row["code_commune"],
+          type_local:   row["type_local"],
+          valeur:       row["valeur_fonciere"].to_f,
+          surface:      row["surface_reelle_bati"].to_f
+        }
+      end
+    end
+    mutations
+  rescue => e
+    Rails.logger.error("DvfEstimationService#load_mutations: #{e.message}")
+    []
   end
 
-  def fallback
-    Rails.logger.warn("DvfEstimationService: fallback — aucune donnée CEREMA exploitable")
+  def download_csv
+    tmp = Tempfile.new(["dvf54", ".csv.gz"])
+    tmp.binmode
+    URI.open(DVF_URL) { |f| tmp.write(f.read) }
+    tmp.rewind
+    tmp.path
+  end
+
+  def fallback(reason)
+    Rails.logger.warn("DvfEstimationService fallback: #{reason}")
   end
 end
