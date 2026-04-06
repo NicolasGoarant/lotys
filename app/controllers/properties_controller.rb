@@ -89,6 +89,7 @@ class PropertiesController < ApplicationController
 
   def run_analysis(property)
     property.update(status: :analyzing)
+    GeocodingService.new(property).call
     property.documents.each do |doc|
       DocumentAnalysisService.new(doc).call if doc.file.attached?
     end
