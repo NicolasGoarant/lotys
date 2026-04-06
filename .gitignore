@@ -36,3 +36,4 @@
 
 /app/assets/builds/*
 !/app/assets/builds/.keep
+tmp/dvf54_cache.csv.gz
