@@ -1,6 +1,6 @@
 class PropertiesController < ApplicationController
   before_action :authenticate_user!, except: [:index, :new, :create, :show]
-  before_action :set_property, only: [:show, :edit, :update, :destroy, :analyze, :publish, :unpublish, :preview, :update_income_bracket]
+  before_action :set_property, only: [:show, :edit, :update, :destroy, :analyze, :publish, :unpublish, :preview, :update_income_bracket, :update_dpe_target]
 
   def index
     if user_signed_in?
