@@ -6,6 +6,7 @@ class PropertyAnalysisJob < ApplicationJob
 
     property.update(status: :analyzing)
     GeocodingService.new(property).call
+    PhotoAnalysisService.new(property).call if property.photos.attached?
 
     property.documents.each do |doc|
       DocumentAnalysisService.new(doc).call if doc.file.attached?

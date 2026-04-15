@@ -6,6 +6,7 @@ class Property < ApplicationRecord
   has_one :device_simulation, dependent: :destroy
   has_many :offers, dependent: :destroy
   has_many :local_aid_results, dependent: :destroy
+  has_many_attached :photos
 
   enum :status, { draft: 0, analyzing: 1, analyzed: 2, published: 3 }
   enum :property_type, { appartement: "appartement", maison: "maison" }, prefix: :kind

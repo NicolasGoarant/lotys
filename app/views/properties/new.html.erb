@@ -280,6 +280,16 @@ function setIncomeBracket(val, el) {
 }
 </script>
 <script>
+function checkPhotoLimit(input) {
+  const warning = document.getElementById("photo-limit-warning");
+  if (input.files.length > 10) {
+    warning.classList.remove("hidden");
+    input.value = "";
+  } else {
+    warning.classList.add("hidden");
+  }
+}
+
 document.querySelector("form").addEventListener("submit", function() {
   window.scrollTo(0,0); document.getElementById("loading-overlay").style.display = "flex";
   document.body.style.overflow = "hidden";

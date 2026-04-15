@@ -133,6 +133,13 @@ class PropertiesController < ApplicationController
     Rails.logger.error("sync_analysis_fields failed: #{e.message}")
   end
 
+  def attach_photos
+    photos = params.dig(:property, :photos)
+    return unless photos.present?
+    valid = Array(photos).select { |f| f.content_type.start_with?("image/") rescue false }.first(10)
+    @property.photos.attach(valid) if valid.any?
+  end
+
   def attach_uploaded_documents
     uploaded = params.dig(:property, :uploaded_files)
     return unless uploaded.present?
@@ -172,7 +179,8 @@ class PropertiesController < ApplicationController
       :address, :city, :zipcode, :surface, :property_type,
       :construction_year, :dpe_class, :nb_rooms, :nb_lots,
       :is_copropriete, :description, :vacant, :source,
-      :vacancy_duration, :vacancy_reason, :dpe_target, :income_bracket
+      :vacancy_duration, :vacancy_reason, :dpe_target, :income_bracket,
+      photos: []
     )
   end
 end
