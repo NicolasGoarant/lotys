@@ -163,7 +163,7 @@ class PropertiesController < ApplicationController
     if user_signed_in? && current_user.properties.exists?(params[:id])
       @property = current_user.properties.find(params[:id])
     else
-      @property = Property.published.find(params[:id])
+      @property = Property.where(status: [:analyzed, :published]).find(params[:id])
     end
   end
 
