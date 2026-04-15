@@ -72,3 +72,7 @@ end
 
 gem "httparty"
 gem "redcarpet"
+
+gem "good_job"
+
+gem "aws-sdk-s3", "~> 1.219"
