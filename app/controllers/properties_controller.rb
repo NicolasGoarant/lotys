@@ -15,6 +15,10 @@ class PropertiesController < ApplicationController
     if user_signed_in? && current_user == @property.user
       @aid_result = AidCalculatorService.new(@property).call
     end
+    respond_to do |format|
+      format.html
+      format.json { render json: { status: @property.status } }
+    end
   end
 
   def new
@@ -27,7 +31,7 @@ class PropertiesController < ApplicationController
       @property.status = :analyzing
       if @property.save
         attach_uploaded_documents
-        run_analysis(@property)
+        PropertyAnalysisJob.perform_later(@property.id)
         redirect_to @property, notice: "Analyse complète générée."
       else
         render :new, status: :unprocessable_entity
@@ -55,8 +59,8 @@ class PropertiesController < ApplicationController
   end
 
   def analyze
-    run_analysis(@property)
-    redirect_to @property, notice: "Analyse relancée avec succès."
+    PropertyAnalysisJob.perform_later(@property.id)
+    redirect_to @property, notice: "Analyse lancée — la page se mettra à jour automatiquement."
   end
 
   def publish

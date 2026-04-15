@@ -7,8 +7,8 @@ class Property < ApplicationRecord
   has_many :offers, dependent: :destroy
   has_many :local_aid_results, dependent: :destroy
 
-  enum status: { draft: 0, analyzing: 1, analyzed: 2, published: 3 }
-  enum property_type: { appartement: "appartement", maison: "maison" }, _prefix: :kind
+  enum :status, { draft: 0, analyzing: 1, analyzed: 2, published: 3 }
+  enum :property_type, { appartement: "appartement", maison: "maison" }, prefix: :kind
   def local_aids_total_max
     local_aid_results.eligible.sum { |r| r.total_max_amount.to_i }
   end

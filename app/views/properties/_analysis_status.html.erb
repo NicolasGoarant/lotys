@@ -1,0 +1,14 @@
+<% if property.analyzing? %>
+  <div id="analysis-status"
+       data-controller="poll"
+       data-poll-url-value="<%= property_path(property, format: :json) %>"
+       data-poll-interval-value="3000"
+       style="background:#fefce8;border:1.5px solid #fde68a;border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+    <div style="width:20px;height:20px;border:3px solid #f59e0b;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0;"></div>
+    <div>
+      <p style="font-weight:800;font-size:.9rem;color:#92400e;margin:0 0 2px;">Analyse en cours…</p>
+      <p style="font-size:.78rem;color:#b45309;margin:0;">Lecture des documents, estimation DVF, calcul des aides. Prêt dans ~30 secondes.</p>
+    </div>
+  </div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<% end %>
