@@ -39,6 +39,7 @@ module Lotys
     # Don't generate system test files.
     config.generators.system_tests = nil
     config.middleware.use Rack::Attack
+    config.i18n.default_locale = :fr
     config.active_job.queue_adapter = :good_job
 
   end

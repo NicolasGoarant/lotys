@@ -1,0 +1,15 @@
+fr:
+  devise:
+    mailer:
+      confirmation_instructions:
+        subject: "Confirmez votre adresse email — Lotys"
+      reset_password_instructions:
+        subject: "Instructions pour réinitialiser votre mot de passe"
+      unlock_instructions:
+        subject: "Déblocage de votre compte Lotys"
+    confirmations:
+      confirmed: "Votre compte a bien été confirmé."
+      send_instructions: "Un email de confirmation vous a été envoyé."
+      send_paranoid_instructions: "Si votre email est dans notre base, vous recevrez un email de confirmation."
+    registrations:
+      signed_up_but_unconfirmed: "Compte créé ! Consultez votre boîte mail pour confirmer votre adresse."
