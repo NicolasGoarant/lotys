@@ -461,9 +461,11 @@ function calcPret(){
   else{var r=(T/100)/12,m=M*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1),tot=m*n;ms.textContent=fmt(m)+'/mois';st.textContent=fmt(tot);sc.textContent=fmt(tot-M);}
 }
 
-document.addEventListener('DOMContentLoaded',function(){
+function initShow(){
   var sl=document.getElementById('dpe-slider');
   if(sl) slideTgt(<%= tgt_idx %>);
   calcPret();
-});
+}
+document.addEventListener('DOMContentLoaded', initShow);
+document.addEventListener('turbo:load', initShow);
 </script>
