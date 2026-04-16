@@ -3,7 +3,7 @@
 <div class="relative w-full overflow-hidden" style="height:520px;">
   <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1600&q=85" alt="Immeuble" class="w-full h-full object-cover">
   <div class="absolute inset-0" style="background:linear-gradient(135deg,rgba(15,23,42,0.92) 0%,rgba(15,23,42,0.5) 60%,rgba(15,23,42,0.1) 100%);"></div>
-  <div class="absolute inset-0 flex flex-col justify-center" style="padding-left:clamp(24px,8vw,120px);padding-right:clamp(24px,8vw,120px);max-width:860px;">
+  <div class="absolute inset-0 flex items-center"><div class="w-full max-w-5xl mx-auto px-6">
     <span class="inline-block text-emerald-400 text-sm font-black uppercase tracking-widest mb-4">Comment ça marche</span>
     <h1 class="text-white font-black leading-none mb-6" style="font-size:clamp(2.8rem,6vw,4.5rem);letter-spacing:-0.03em;">
       L'immobilier,<br><span class="text-emerald-400">enfin lisible.</span>
@@ -14,7 +14,7 @@
     <%= link_to "Analyser mon bien gratuitement →", new_property_path,
         class: "inline-block bg-emerald-500 text-white font-bold px-10 py-4 rounded-2xl hover:bg-emerald-400 transition-colors",
         style: "font-size:1.05rem;width:fit-content;" %>
-  </div>
+  </div></div>
 </div>
 
 <div class="max-w-5xl mx-auto px-6 py-20 space-y-28">
