@@ -25,7 +25,7 @@
 </div>
 
 <%# Layout 2 colonnes desktop %>
-<div style="display:flex;min-height:calc(100vh - 120px);">
+<div style="display:flex;min-height:calc(100vh - 60px);" class="auth-wrapper">
 
   <%# Colonne verte desktop %>
   <div class="lg-show" style="display:none;width:50%;background:linear-gradient(135deg,#059669,#065f46);flex-direction:column;justify-content:center;padding:4rem;position:relative;overflow:hidden;">
@@ -108,6 +108,10 @@
 </div>
 
 <style>
+  @media (max-width: 1023px) {
+    .auth-wrapper { min-height: auto !important; }
+  }
+
   @media (min-width: 1024px) {
     .lg-show { display: flex !important; }
     .lg-hide { display: none !important; }
