@@ -11,6 +11,10 @@ Rails.application.routes.draw do
   get "/espace-exterieur",    to: "pages#espace_exterieur",   as: :espace_exterieur
   get "/box-stockage",        to: "pages#box_stockage",        as: :box_stockage
 
+  get "/mentions-legales",    to: "pages#mentions_legales",   as: :mentions_legales
+  get "/confidentialite",     to: "pages#confidentialite",    as: :confidentialite
+  get "/contact",             to: "pages#contact",            as: :contact
+
   resources :properties do
     member do
       post :analyze

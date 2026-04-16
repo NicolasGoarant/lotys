@@ -12,4 +12,13 @@ class PagesController < ApplicationController
 
   def about
   end
+
+  def mentions_legales
+  end
+
+  def confidentialite
+  end
+
+  def contact
+  end
 end
