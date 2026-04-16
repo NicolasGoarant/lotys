@@ -27,6 +27,10 @@ class PropertiesController < ApplicationController
 
   def create
     if user_signed_in?
+      if current_user.properties.count >= 3
+        redirect_to properties_path, alert: "Vous avez atteint la limite de 3 biens par compte."
+        return
+      end
       @property = current_user.properties.build(property_params)
       @property.status = :analyzing
       if @property.save
@@ -59,6 +63,10 @@ class PropertiesController < ApplicationController
   end
 
   def analyze
+    if @property.analyses.count >= 2
+      redirect_to @property, alert: "Nombre maximum d'analyses atteint pour ce bien."
+      return
+    end
     PropertyAnalysisJob.perform_later(@property.id)
     redirect_to @property, notice: "Analyse lancée — la page se mettra à jour automatiquement."
   end
