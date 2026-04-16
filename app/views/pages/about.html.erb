@@ -1,101 +1,133 @@
 <%# about.html.erb — Comment ça marche %>
-<div class="max-w-4xl mx-auto px-6 py-16 space-y-24">
 
-  <div class="text-center space-y-6">
-    <span class="inline-block bg-emerald-50 text-emerald-700 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full border border-emerald-200">Comment ça marche</span>
-    <h1 class="text-4xl md:text-5xl font-black text-gray-900 leading-tight" style="letter-spacing:-0.03em;">
-      L'immobilier,<br>
-      <span class="text-emerald-600">enfin lisible.</span>
+<div class="relative w-full overflow-hidden" style="height:520px;">
+  <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1600&q=85" alt="Immeuble" class="w-full h-full object-cover">
+  <div class="absolute inset-0" style="background:linear-gradient(135deg,rgba(15,23,42,0.92) 0%,rgba(15,23,42,0.5) 60%,rgba(15,23,42,0.1) 100%);"></div>
+  <div class="absolute inset-0 flex flex-col justify-center px-8 md:px-20 max-w-3xl">
+    <span class="inline-block text-emerald-400 text-sm font-black uppercase tracking-widest mb-4">Comment ça marche</span>
+    <h1 class="text-white font-black leading-none mb-6" style="font-size:clamp(2.8rem,6vw,4.5rem);letter-spacing:-0.03em;">
+      L'immobilier,<br><span class="text-emerald-400">enfin lisible.</span>
     </h1>
-    <p class="text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
-      Lotys rassemble en quelques minutes tout ce qu'il faut pour comprendre votre bien, connaître vos droits aux aides, et décider sereinement.
+    <p class="text-gray-200 leading-relaxed mb-8" style="font-size:1.2rem;max-width:540px;">
+      Lotys rassemble tout ce qu'il faut pour comprendre votre bien, connaître vos droits aux aides, et décider sereinement.
     </p>
-    <%= link_to "Analyser mon bien gratuitement →", new_property_path, class: "inline-block bg-emerald-600 text-white font-bold px-8 py-4 rounded-2xl hover:bg-emerald-700 transition-colors" %>
+    <%= link_to "Analyser mon bien gratuitement →", new_property_path,
+        class: "inline-block bg-emerald-500 text-white font-bold px-10 py-4 rounded-2xl hover:bg-emerald-400 transition-colors",
+        style: "font-size:1.05rem;width:fit-content;" %>
   </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-6 py-20 space-y-28">
 
   <div>
-    <h2 class="text-2xl font-black text-gray-900 mb-10 text-center">Pourquoi Lotys ?</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="rounded-2xl p-8 border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow">
-        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-5" style="background:#fef2f2">🏚️</div>
-        <h3 class="text-lg font-black text-gray-900 mb-3">Un parc qui vieillit</h3>
-        <p class="text-gray-500 leading-relaxed text-sm">Des millions de logements construits avant 1975 sont énergivores. Leurs propriétaires font face à des choix patrimoniaux importants, souvent sans accompagnement adapté.</p>
+    <h2 class="font-black text-gray-900 mb-3 text-center" style="font-size:2rem;">Pourquoi Lotys ?</h2>
+    <p class="text-gray-400 text-center mb-12" style="font-size:1.05rem;">Être propriétaire d'un logement énergivore, c'est faire face à trois problèmes à la fois.</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
+        <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80" alt="Immeuble ancien" class="w-full h-44 object-cover">
+        <div class="p-7">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-4" style="background:#fef2f2;">🏚️</div>
+          <h3 class="font-black text-gray-900 mb-3" style="font-size:1.15rem;">Un parc qui vieillit</h3>
+          <p class="text-gray-500 leading-relaxed" style="font-size:.95rem;">Des millions de logements construits avant 1975 sont énergivores. Leurs propriétaires font face à des choix patrimoniaux importants, souvent sans accompagnement adapté.</p>
+        </div>
       </div>
-      <div class="rounded-2xl p-8 border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow">
-        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-5" style="background:#fffbeb">🧩</div>
-        <h3 class="text-lg font-black text-gray-900 mb-3">Une multitude d'intervenants</h3>
-        <p class="text-gray-500 leading-relaxed text-sm">Artisans, banques, conseillers Maison de l'Habitat… Chaque acteur apporte sa part — mais personne ne donne une vision d'ensemble.</p>
+      <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
+        <img src="https://images.unsplash.com/photo-1521791136064-7986c2920216?w=600&q=80" alt="Intervenants" class="w-full h-44 object-cover">
+        <div class="p-7">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-4" style="background:#fffbeb;">🧩</div>
+          <h3 class="font-black text-gray-900 mb-3" style="font-size:1.15rem;">Une multitude d'intervenants</h3>
+          <p class="text-gray-500 leading-relaxed" style="font-size:.95rem;">Artisans, banques, conseillers Maison de l'Habitat… Chaque acteur apporte sa part — mais personne ne donne une vision d'ensemble.</p>
+        </div>
       </div>
-      <div class="rounded-2xl p-8 border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow">
-        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-5" style="background:#f0fdf4">💡</div>
-        <h3 class="text-lg font-black text-gray-900 mb-3">Des aides méconnues</h3>
-        <p class="text-gray-500 leading-relaxed text-sm">Éco-PTZ, MaPrimeRénov', CEE… Les dispositifs existent et sont puissants. Ils restent difficiles à articuler sans un accompagnement dédié.</p>
+      <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
+        <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&q=80" alt="Aides" class="w-full h-44 object-cover">
+        <div class="p-7">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-4" style="background:#f0fdf4;">💡</div>
+          <h3 class="font-black text-gray-900 mb-3" style="font-size:1.15rem;">Des aides méconnues</h3>
+          <p class="text-gray-500 leading-relaxed" style="font-size:.95rem;">Éco-PTZ, MaPrimeRénov', CEE… Les dispositifs existent et sont puissants. Ils restent difficiles à articuler sans accompagnement dédié.</p>
+        </div>
       </div>
     </div>
   </div>
 
   <div>
-    <h2 class="text-2xl font-black text-gray-900 mb-10 text-center">4 étapes pour une décision éclairée</h2>
-    <div class="space-y-4">
-      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex gap-6 p-6 items-start">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-lg shrink-0" style="background:#059669">1</div>
-        <div class="flex-1">
-          <h3 class="text-lg font-black text-gray-900 mb-2">Vous décrivez votre bien</h3>
-          <p class="text-gray-500 text-sm leading-relaxed">Adresse, surface, DPE, copropriété ou non. Vous pouvez aussi télécharger vos documents — DPE, titre de propriété, PV d'AG, devis. L'IA les analyse en quelques secondes.</p>
+    <h2 class="font-black text-gray-900 mb-3 text-center" style="font-size:2rem;">4 étapes pour une décision éclairée</h2>
+    <p class="text-gray-400 text-center mb-12" style="font-size:1.05rem;">De votre première description à la proposition d'un prestataire — en quelques minutes.</p>
+    <div class="space-y-6">
+      <div class="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex overflow-hidden">
+        <div class="w-2 shrink-0" style="background:#059669;"></div>
+        <img src="https://images.unsplash.com/photo-1560185007-c5ca9d2c014d?w=400&q=80" alt="" class="w-40 h-40 object-cover shrink-0 hidden md:block">
+        <div class="flex-1 p-8 flex items-start gap-5">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shrink-0" style="background:#059669;">1</div>
+          <div>
+            <h3 class="font-black text-gray-900 mb-2" style="font-size:1.2rem;">Vous décrivez votre bien</h3>
+            <p class="text-gray-500 leading-relaxed" style="font-size:.95rem;">Adresse, surface, DPE, copropriété ou non. Vous pouvez aussi télécharger vos documents — DPE, titre de propriété, PV d'AG, devis. L'IA les analyse en quelques secondes et en extrait l'essentiel.</p>
+          </div>
         </div>
-        <img src="https://images.unsplash.com/photo-1560185007-c5ca9d2c014d?w=300&q=80" alt="" class="w-24 h-24 rounded-xl object-cover shrink-0 hidden md:block">
       </div>
-      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex gap-6 p-6 items-start">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-lg shrink-0" style="background:#1d4ed8">2</div>
-        <div class="flex-1">
-          <h3 class="text-lg font-black text-gray-900 mb-2">Lotys analyse votre situation</h3>
-          <p class="text-gray-500 text-sm leading-relaxed">Estimation de valeur basée sur les ventes réelles du secteur (données DVF officielles). Calcul automatique de vos droits aux aides nationales.</p>
+      <div class="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex overflow-hidden">
+        <div class="w-2 shrink-0" style="background:#1d4ed8;"></div>
+        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&q=80" alt="" class="w-40 h-40 object-cover shrink-0 hidden md:block">
+        <div class="flex-1 p-8 flex items-start gap-5">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shrink-0" style="background:#1d4ed8;">2</div>
+          <div>
+            <h3 class="font-black text-gray-900 mb-2" style="font-size:1.2rem;">Lotys analyse votre situation</h3>
+            <p class="text-gray-500 leading-relaxed" style="font-size:.95rem;">Estimation de valeur basée sur les ventes réelles du secteur (données DVF officielles). Calcul automatique de vos droits aux aides nationales. Pour les copropriétés, estimation du potentiel en cas de vente groupée à un promoteur.</p>
+          </div>
         </div>
-        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=300&q=80" alt="" class="w-24 h-24 rounded-xl object-cover shrink-0 hidden md:block">
       </div>
-      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex gap-6 p-6 items-start">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-lg shrink-0" style="background:#7c3aed">3</div>
-        <div class="flex-1">
-          <h3 class="text-lg font-black text-gray-900 mb-2">Vous comparez plusieurs scénarios</h3>
-          <p class="text-gray-500 text-sm leading-relaxed">Rénover : travaux prioritaires, aides mobilisables, reste à charge. Vendre : estimation actuelle. Vendre en bloc : pour les copropriétés avec potentiel de densification.</p>
+      <div class="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex overflow-hidden">
+        <div class="w-2 shrink-0" style="background:#7c3aed;"></div>
+        <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400&q=80" alt="" class="w-40 h-40 object-cover shrink-0 hidden md:block">
+        <div class="flex-1 p-8 flex items-start gap-5">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shrink-0" style="background:#7c3aed;">3</div>
+          <div>
+            <h3 class="font-black text-gray-900 mb-2" style="font-size:1.2rem;">Vous comparez plusieurs scénarios</h3>
+            <p class="text-gray-500 leading-relaxed" style="font-size:.95rem;">Rénover : travaux prioritaires, aides mobilisables, reste à charge, valeur après travaux. Vendre : estimation actuelle et conditions optimales. Vendre en bloc : pour les copropriétés avec potentiel de densification urbaine.</p>
+          </div>
         </div>
-        <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=300&q=80" alt="" class="w-24 h-24 rounded-xl object-cover shrink-0 hidden md:block">
       </div>
-      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex gap-6 p-6 items-start">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-lg shrink-0" style="background:#b45309">4</div>
-        <div class="flex-1">
-          <h3 class="text-lg font-black text-gray-900 mb-2">Les prestataires viennent à vous</h3>
-          <p class="text-gray-500 text-sm leading-relaxed">Publiez votre dossier. Les artisans RGE, courtiers et promoteurs de votre secteur peuvent vous faire une proposition directement. Vous gardez le contrôle.</p>
+      <div class="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex overflow-hidden">
+        <div class="w-2 shrink-0" style="background:#b45309;"></div>
+        <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=400&q=80" alt="" class="w-40 h-40 object-cover shrink-0 hidden md:block">
+        <div class="flex-1 p-8 flex items-start gap-5">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shrink-0" style="background:#b45309;">4</div>
+          <div>
+            <h3 class="font-black text-gray-900 mb-2" style="font-size:1.2rem;">Les prestataires viennent à vous</h3>
+            <p class="text-gray-500 leading-relaxed" style="font-size:.95rem;">Si vous le souhaitez, publiez votre dossier. Les artisans RGE, courtiers et promoteurs de votre secteur peuvent vous faire une proposition directement. Vous gardez le contrôle, vous choisissez.</p>
+          </div>
         </div>
-        <img src="https://images.unsplash.com/photo-1521791136064-7986c2920216?w=300&q=80" alt="" class="w-24 h-24 rounded-xl object-cover shrink-0 hidden md:block">
       </div>
     </div>
   </div>
 
-  <div class="bg-slate-900 rounded-3xl p-10 md:p-14 text-white relative overflow-hidden">
-    <div class="absolute inset-0 opacity-10" style="background:radial-gradient(ellipse at 70% 50%, #059669 0%, transparent 60%);"></div>
-    <div class="relative grid md:grid-cols-2 gap-10 items-center">
+  <div class="relative rounded-3xl overflow-hidden" style="min-height:420px;">
+    <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80" alt="Nancy" class="absolute inset-0 w-full h-full object-cover">
+    <div class="absolute inset-0" style="background:linear-gradient(135deg,rgba(15,23,42,0.95) 0%,rgba(15,23,42,0.75) 60%,rgba(15,23,42,0.35) 100%);"></div>
+    <div class="relative grid md:grid-cols-2 gap-10 items-center p-10 md:p-14">
       <div>
-        <span class="inline-block bg-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full border border-emerald-500/30 mb-4">Terrain d'expérimentation</span>
-        <h2 class="text-2xl font-black mb-4">Pourquoi commencer à Nancy ?</h2>
-        <p class="text-slate-300 leading-relaxed text-sm mb-4">Nancy concentre exactement les enjeux que Lotys adresse : un parc immobilier ancien avec une forte proportion de logements énergivores, de petites copropriétés de centre-ville avec un potentiel de densification.</p>
-        <p class="text-slate-400 text-sm">C'est ici que nous testons et affinons la plateforme — avant de l'étendre à d'autres villes françaises.</p>
+        <span class="inline-block bg-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full border border-emerald-500/30 mb-5">Terrain d'expérimentation</span>
+        <h2 class="text-white font-black mb-5" style="font-size:1.8rem;">Pourquoi commencer à Nancy ?</h2>
+        <p class="text-slate-300 leading-relaxed mb-4" style="font-size:.95rem;">Nancy concentre exactement les enjeux que Lotys adresse : un parc immobilier ancien avec une forte proportion de logements énergivores, de petites copropriétés de centre-ville avec un potentiel de densification, et une métropole engagée dans des transformations urbaines profondes d'ici 2030.</p>
+        <p class="text-slate-400" style="font-size:.9rem;">C'est ici que nous testons et affinons la plateforme — avant de l'étendre à d'autres villes françaises.</p>
       </div>
-      <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
-        <p class="text-emerald-400 text-xs font-black uppercase tracking-widest mb-3">Accompagnement local</p>
-        <p class="text-white text-sm leading-relaxed mb-4">Au-delà des aides nationales, Nancy dispose d'un accompagnement local dédié aux propriétaires.</p>
-        <div class="bg-emerald-900/40 border border-emerald-700/30 rounded-xl p-4">
-          <p class="text-emerald-300 text-sm font-semibold">Éco-PTZ, MaPrimeRénov', CEE, aides de la Métropole du Grand Nancy</p>
-          <p class="text-slate-400 text-xs mt-1">Lotys calcule automatiquement vos droits selon votre situation réelle.</p>
+      <div class="rounded-2xl p-7" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);">
+        <p class="text-emerald-400 text-xs font-black uppercase tracking-widest mb-4">Accompagnement local</p>
+        <p class="text-white leading-relaxed mb-5" style="font-size:.95rem;">Au-delà des aides nationales, Nancy dispose d'un accompagnement local dédié aux propriétaires. Lotys s'appuie sur ces ressources pour affiner ses recommandations.</p>
+        <div class="rounded-xl p-5" style="background:rgba(6,78,59,0.4);border:1px solid rgba(16,185,129,0.25);">
+          <p class="text-emerald-300 font-bold mb-2" style="font-size:.95rem;">Éco-PTZ, MaPrimeRénov', CEE, aides de la Métropole du Grand Nancy</p>
+          <p class="text-slate-400" style="font-size:.85rem;">Lotys calcule automatiquement vos droits et vous guide dans les démarches, en tenant compte de votre situation réelle.</p>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="text-center space-y-4">
-    <h2 class="text-2xl font-black text-gray-900">Prêt à analyser votre bien ?</h2>
-    <p class="text-gray-500">Gratuit, sans engagement, résultat en quelques minutes.</p>
-    <%= link_to "Commencer maintenant →", new_property_path, class: "inline-block bg-emerald-600 text-white font-bold px-10 py-4 rounded-2xl hover:bg-emerald-700 transition-colors text-lg" %>
+  <div class="text-center space-y-5">
+    <h2 class="font-black text-gray-900" style="font-size:2rem;">Prêt à analyser votre bien ?</h2>
+    <p class="text-gray-400" style="font-size:1.05rem;">Gratuit, sans engagement, résultat en quelques minutes.</p>
+    <%= link_to "Commencer maintenant →", new_property_path,
+        class: "inline-block bg-emerald-600 text-white font-bold rounded-2xl hover:bg-emerald-700 transition-colors",
+        style: "font-size:1.1rem;padding:16px 40px;" %>
   </div>
 
 </div>
