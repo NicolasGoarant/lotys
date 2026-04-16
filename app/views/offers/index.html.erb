@@ -370,7 +370,9 @@ function initMap() {
       value: p.valuation&.estimated_value,
       offers: p.offers.count,
       photo: pool[i % pool.size],
-      id: p.id
+      id: p.id,
+      lat: p.lat,
+      lng: p.lng
     }
   }.to_json %>;
 
@@ -387,7 +389,7 @@ function initMap() {
   const dpeColor = { A:'#22c55e', B:'#84cc16', C:'#a3e635', D:'#facc15', E:'#fb923c', F:'#f97316', G:'#ef4444' };
 
   properties.forEach(p => {
-    const latlng = coords[p.address] || [48.6921 + (Math.random()-0.5)*0.02, 6.1844 + (Math.random()-0.5)*0.03];
+    const latlng = (p.lat && p.lng) ? [p.lat, p.lng] : [48.6921 + (Math.random()-0.5)*0.02, 6.1844 + (Math.random()-0.5)*0.03];
     const color = dpeColor[p.dpe] || '#6b7280';
     const marker = L.circleMarker(latlng, {
       radius: 14, fillColor: color, color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.9
@@ -414,7 +416,7 @@ function initMap() {
           ${p.value ? `<p style="font-weight:800;color:#059669;font-size:14px;margin:0;">${new Intl.NumberFormat("fr-FR").format(p.value)} €</p>` : '<span></span>'}
           <p style="font-size:10px;color:${p.offers > 0 ? "#059669" : "#9ca3af"};margin:0;font-weight:600;">${offerLabel}</p>
         </div>
-        <a href="/properties/${p.id}/offers/new" style="display:block;margin-top:10px;background:#059669;color:white;text-align:center;padding:8px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">Faire une proposition →</a>
+        <a href="/properties/${p.id}" style="display:block;margin-top:10px;background:#059669;color:white;text-align:center;padding:8px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">Faire une proposition →</a>
       </div>
     `, { maxWidth: 270 });
   });
