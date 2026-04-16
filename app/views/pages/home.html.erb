@@ -85,7 +85,7 @@
 
       <%# Carte Leaflet avec biens publiés %>
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-      <div id="home-map" style="height:380px;border-radius:20px;overflow:hidden;border:2px solid rgba(255,255,255,.15);box-shadow:0 8px 40px rgba(0,0,0,.5);background:#e5e7eb;"></div>
+      <div id="home-map" style="height:480px;border-radius:20px;overflow:hidden;border:2px solid rgba(255,255,255,.15);box-shadow:0 8px 40px rgba(0,0,0,.5);background:#e5e7eb;"></div>
 
       <%# Légende %>
       <div style="display:flex;gap:24px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
@@ -101,7 +101,15 @@
   </section>
 
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+  @media (max-width: 768px) {
+    #home-map {
+      height: 300px !important;
+      border-radius: 12px !important;
+    }
+  }
+</style>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
   // Init immédiate avec retry si L pas encore dispo
   (function tryMap(attempts){
