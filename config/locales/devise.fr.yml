@@ -7,6 +7,10 @@ fr:
         subject: "Instructions pour réinitialiser votre mot de passe"
       unlock_instructions:
         subject: "Déblocage de votre compte Lotys"
+    sessions:
+      signed_out: "Vous avez été déconnecté avec succès."
+      signed_in: "Vous êtes connecté avec succès."
+      already_signed_in: "Vous êtes déjà connecté."
     confirmations:
       confirmed: "Votre compte a bien été confirmé."
       send_instructions: "Un email de confirmation vous a été envoyé."
