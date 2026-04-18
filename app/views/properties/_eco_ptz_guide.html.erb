@@ -1,5 +1,5 @@
 <%# _eco_ptz_guide.html.erb — Guide Éco-PTZ basé sur les travaux recommandés %>
-<% analysis = property.analyses.order(:created_at).last %>
+<% analysis = property.analysis %>
 <% return unless analysis&.content.present? %>
 <% data = JSON.parse(analysis.content) rescue nil %>
 <% return unless data %>
