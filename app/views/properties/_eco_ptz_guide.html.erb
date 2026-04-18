@@ -7,7 +7,7 @@
 <% return if travaux.empty? %>
 
 <%
-ECO_PTZ_MAP = {
+eco_ptz_map = {
   /combles|toiture|sarking|terrasse/i => {
     action: "a",
     label: "Isolation thermique de la toiture",
@@ -55,7 +55,7 @@ ECO_PTZ_MAP = {
 matched = []
 travaux.each do |t|
   poste = t["poste"].to_s
-  ECO_PTZ_MAP.each do |pattern, info|
+  eco_ptz_map.each do |pattern, info|
     if poste.match?(pattern) && matched.none? { |m| m[:action] == info[:action] }
       matched << info.merge(poste: poste, cout_min: t["cout_min"], cout_max: t["cout_max"], priorite: t["priorite"])
     end
