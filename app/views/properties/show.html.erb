@@ -274,6 +274,7 @@
       <p style="font-size:1.1rem;font-weight:900;color:#5b21b6;" id="reste-val"><%= reste > 0 ? "#{reste.to_s.reverse.gsub(/(\d{3})(?=\d)/,'\\1 ').reverse} €" : budget_max > 0 ? "0 €" : "—" %></p>
     </div>
     <%= render "local_aids", property: @property %>
+    <%= render "eco_ptz_guide", property: @property %>
   </div>
 </div>
 

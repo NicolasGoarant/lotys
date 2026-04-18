@@ -1,0 +1,142 @@
+<%# _eco_ptz_guide.html.erb — Guide Éco-PTZ basé sur les travaux recommandés %>
+<% analysis = property.analyses.order(:created_at).last %>
+<% return unless analysis&.content.present? %>
+<% data = JSON.parse(analysis.content) rescue nil %>
+<% return unless data %>
+<% travaux = data.dig("energie", "travaux") || [] %>
+<% return if travaux.empty? %>
+
+<%
+ECO_PTZ_MAP = {
+  /combles|toiture|sarking|terrasse/i => {
+    action: "a",
+    label: "Isolation thermique de la toiture",
+    critere: "R ≥ 5 m².K/W (combles perdus) · R ≥ 4 m².K/W (rampants) · R ≥ 3 m².K/W (toiture terrasse)",
+    emoji: "🏠",
+    color: "#059669"
+  },
+  /murs|facades|façades/i => {
+    action: "b",
+    label: "Isolation thermique des murs",
+    critere: "R ≥ 2,8 m².K/W (arrêté 2009) · R ≥ 3,7 m².K/W (barème Métropole)",
+    emoji: "🧱",
+    color: "#1d4ed8"
+  },
+  /fenetres|fenêtres|vitrage|parois vitrées|menuiseries/i => {
+    action: "c",
+    label: "Isolation des parois vitrées",
+    critere: "Uw ≤ 1,8 W/m².K · Artisan RGE obligatoire",
+    emoji: "🪟",
+    color: "#7c3aed"
+  },
+  /chauffage|chaudiere|chaudière|pac|pompe à chaleur|poele|poêle/i => {
+    action: "d",
+    label: "Chauffage / ECS performant",
+    critere: "PAC air-eau COP ≥ 3,3 · Chaudière condensation Etas ≥ 92%",
+    emoji: "🔥",
+    color: "#dc2626"
+  },
+  /bois|solaire|renouvelable|biomasse/i => {
+    action: "e",
+    label: "Chauffage énergie renouvelable",
+    critere: "Chaudière bois classe 3 · Poêle rendement ≥ 70%",
+    emoji: "🌿",
+    color: "#16a34a"
+  },
+  /plancher|sous-sol|vide sanitaire/i => {
+    action: "g",
+    label: "Isolation des planchers bas",
+    critere: "R ≥ 3 m².K/W",
+    emoji: "⬛",
+    color: "#92400e"
+  }
+}
+
+matched = []
+travaux.each do |t|
+  poste = t["poste"].to_s
+  ECO_PTZ_MAP.each do |pattern, info|
+    if poste.match?(pattern) && matched.none? { |m| m[:action] == info[:action] }
+      matched << info.merge(poste: poste, cout_min: t["cout_min"], cout_max: t["cout_max"], priorite: t["priorite"])
+    end
+  end
+end
+%>
+
+<% return if matched.empty? %>
+
+<div class="cd" style="margin-top:16px;">
+  <div class="cd-hd" style="background:#0f172a;">📋 Votre Éco-PTZ — Actions éligibles</div>
+  <div style="padding:16px 20px;">
+    <p style="font-size:.82rem;color:#64748b;margin-bottom:14px;line-height:1.5;">
+      Basé sur vos travaux recommandés, voici les formulaires à faire signer par vos artisans RGE pour débloquer l'Éco-PTZ Action Métropole (jusqu'à 50 000 € à 0%).
+    </p>
+
+    <% matched.sort_by { |m| m[:priorite].to_i }.each do |m| %>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <span style="background:<%= m[:color] %>;color:white;font-size:.7rem;font-weight:800;padding:2px 8px;border-radius:20px;">Action <%= m[:action].upcase %></span>
+              <span style="font-size:.85rem;font-weight:700;color:#0f172a;"><%= m[:emoji] %> <%= m[:label] %></span>
+            </div>
+            <p style="font-size:.75rem;color:#64748b;margin-top:4px;">
+              📐 Critère technique : <strong><%= m[:critere] %></strong>
+            </p>
+            <% if m[:cout_min] && m[:cout_max] %>
+              <p style="font-size:.75rem;color:#64748b;margin-top:2px;">
+                💶 Budget estimé : <strong><%= number_to_currency(m[:cout_min], unit:"€", format:"%n %u", precision:0, delimiter:" ") %> – <%= number_to_currency(m[:cout_max], unit:"€", format:"%n %u", precision:0, delimiter:" ") %></strong>
+              </p>
+            <% end %>
+          </div>
+          <a href="https://www.grand-nancy.eu/fileadmin/user_upload/Grands_Projets/Renovation_energetique/Eco-PTZ/Formulaire_type_entreprise_Eco-PTZ_Action_Metropole.pdf"
+             target="_blank" rel="noopener"
+             style="flex-shrink:0;display:inline-flex;align-items:center;gap:5px;background:#0f172a;color:white;font-size:.75rem;font-weight:700;padding:7px 12px;border-radius:8px;text-decoration:none;white-space:nowrap;">
+            📄 Formulaire artisan
+          </a>
+        </div>
+      </div>
+    <% end %>
+
+    <%# Éco-PTZ individuel vs collectif %>
+    <% nb_actions = matched.size %>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px 16px;margin-top:6px;">
+      <p style="font-size:.82rem;font-weight:700;color:#1e3a8a;margin-bottom:6px;">
+        💡 <%= nb_actions >= 2 ? "#{nb_actions} actions identifiées — bouquet éligible" : "1 action identifiée" %>
+      </p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="background:white;border-radius:8px;padding:10px 12px;border:1px solid #dbeafe;">
+          <p style="font-size:.75rem;font-weight:700;color:#1d4ed8;margin-bottom:2px;">Éco-PTZ individuel</p>
+          <p style="font-size:.78rem;font-weight:900;color:#0f172a;">jusqu'à <%= nb_actions >= 3 ? "50 000 €" : nb_actions == 2 ? "25 000 €" : "15 000 €" %></p>
+          <p style="font-size:.72rem;color:#64748b;margin-top:2px;">Via votre banque</p>
+        </div>
+        <% if property.is_copropriete? %>
+          <div style="background:white;border-radius:8px;padding:10px 12px;border:1px solid #dbeafe;">
+            <p style="font-size:.75rem;font-weight:700;color:#7c3aed;margin-bottom:2px;">Éco-PTZ collectif</p>
+            <p style="font-size:.78rem;font-weight:900;color:#0f172a;">jusqu'à 30 000 €/lot</p>
+            <p style="font-size:.72rem;color:#64748b;margin-top:2px;">Via le syndicat</p>
+          </div>
+        <% else %>
+          <div style="background:white;border-radius:8px;padding:10px 12px;border:1px solid #dbeafe;">
+            <p style="font-size:.75rem;font-weight:700;color:#059669;margin-bottom:2px;">Maison individuelle</p>
+            <p style="font-size:.78rem;font-weight:900;color:#0f172a;">Éco-PTZ direct</p>
+            <p style="font-size:.72rem;color:#64748b;margin-top:2px;">Sans condition de ressources</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Prérequis ALEC %>
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;margin-top:10px;display:flex;gap:10px;align-items:flex-start;">
+      <span style="font-size:1rem;flex-shrink:0;">⚠️</span>
+      <div>
+        <p style="font-size:.78rem;font-weight:700;color:#92400e;margin-bottom:2px;">Prérequis obligatoire</p>
+        <p style="font-size:.75rem;color:#78350f;line-height:1.5;">
+          Contactez d'abord un conseiller
+          <a href="https://alec-nancy.fr" target="_blank" rel="noopener" style="color:#b45309;font-weight:700;">France Rénov' / ALEC Nancy</a>
+          avant de démarrer les travaux. Sans cette étape, votre dossier d'aide Métropole ne sera pas recevable.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
