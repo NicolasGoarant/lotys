@@ -23,6 +23,7 @@ Rails.application.routes.draw do
       get  :preview
       patch :update_dpe_target
       patch :update_income_bracket
+      patch :update_travaux
     end
     resources :documents, only: [:new, :create, :destroy]
     resources :offers, only: [:new, :create]

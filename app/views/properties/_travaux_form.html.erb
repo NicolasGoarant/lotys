@@ -1,0 +1,98 @@
+<%# app/views/properties/_travaux_form.html.erb
+     Formulaire de correction des quantités de travaux.
+     Claude pré-remplit ces valeurs via PropertyAnalysisJob#sync_analysis_fields ;
+     l'utilisateur peut les ajuster avant que les aides définitives soient calculées.
+     Affiché uniquement au propriétaire. -%>
+
+<div class="cd">
+  <div class="cd-hd" style="background:#0891b2;">🔧 Ajuster mes travaux</div>
+  <div style="padding:20px;">
+    <p class="bod" style="color:#6b7280;font-size:.85rem;margin-bottom:18px;">
+      Les valeurs ci-dessous ont été pré-remplies par l'analyse IA.
+      Corrigez-les si besoin — les aides seront recalculées automatiquement.
+    </p>
+
+    <%= form_with model: property,
+                  url: update_travaux_property_path(property),
+                  method: :patch,
+                  local: true,
+                  html: { autocomplete: "off" } do |f| %>
+
+      <%# ── Surfaces d'isolation ──────────────────────────── %>
+      <p class="lbl" style="margin-bottom:10px;">Surfaces à isoler (m²)</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-bottom:22px;">
+        <% [
+          [:surface_ite,              "Murs extérieur (ITE)"],
+          [:surface_iti,              "Murs intérieur (ITI)"],
+          [:surface_combles_perdus,   "Combles perdus"],
+          [:surface_sarking,          "Sarking (toiture ext.)"],
+          [:surface_toiture_terrasse, "Toiture terrasse"],
+          [:surface_plancher_bas,     "Plancher bas"]
+        ].each do |attr, label| %>
+          <label style="display:flex;flex-direction:column;gap:4px;">
+            <span style="font-size:.72rem;font-weight:600;color:#4b5563;"><%= label %></span>
+            <%= f.number_field attr,
+                  step: 0.5, min: 0,
+                  value: property.send(attr).to_f.zero? ? "" : property.send(attr).to_f,
+                  placeholder: "0",
+                  style: "padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:.88rem;width:100%;box-sizing:border-box;" %>
+          </label>
+        <% end %>
+      </div>
+
+      <%# ── Fenêtres ──────────────────────────────────────── %>
+      <p class="lbl" style="margin-bottom:6px;">Fenêtres</p>
+      <label style="display:flex;align-items:center;gap:10px;margin-bottom:22px;">
+        <span class="bod" style="font-weight:600;flex:1;">Remplacement simple → double vitrage</span>
+        <%= f.number_field :nb_parois_vitrees,
+              step: 1, min: 0,
+              value: property.nb_parois_vitrees.to_i,
+              style: "padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:.88rem;width:70px;text-align:right;" %>
+        <span class="bod" style="color:#9ca3af;font-size:.82rem;">fenêtres</span>
+      </label>
+
+      <%# ── Équipements ─────────────────────────────────── %>
+      <% equipements_groupes = {
+        "Chauffage" => [
+          [:pac_air_eau,                 "PAC air/eau"],
+          [:pac_geothermique,            "PAC géothermique"],
+          [:poele_granules,              "Poêle à granulés"],
+          [:poele_buches,                "Poêle à bûches"],
+          [:insert_foyer,                "Insert / foyer fermé"],
+          [:raccordement_reseau_chaleur, "Raccordement réseau chaleur"]
+        ],
+        "Eau chaude sanitaire" => [
+          [:chauffe_eau_thermo,       "Chauffe-eau thermodynamique"],
+          [:chauffe_eau_solaire,      "Chauffe-eau solaire"],
+          [:systeme_solaire_combine,  "Système solaire combiné"],
+          [:pvt_eau,                  "PVT eau (panneau hybride)"]
+        ],
+        "Compléments" => [
+          [:vmc_double_flux,   "VMC double flux"],
+          [:audit_energetique, "Audit énergétique"],
+          [:depose_fioul,      "Dépose cuve à fioul"]
+        ]
+      } %>
+
+      <% equipements_groupes.each do |titre, items| %>
+        <p class="lbl" style="margin:14px 0 6px;"><%= titre %></p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;margin-bottom:4px;">
+          <% items.each do |attr, label| %>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 4px;border-radius:6px;transition:background .15s;"
+                   onmouseover="this.style.background='#f9fafb';"
+                   onmouseout="this.style.background='transparent';">
+              <%= f.check_box attr, style: "accent-color:#0891b2;width:16px;height:16px;cursor:pointer;" %>
+              <span class="bod" style="font-size:.85rem;"><%= label %></span>
+            </label>
+          <% end %>
+        </div>
+      <% end %>
+
+      <%# ── Submit ─────────────────────────────────────── %>
+      <div style="margin-top:22px;padding-top:16px;border-top:1px solid #f3f4f6;">
+        <%= f.submit "💾 Enregistrer et recalculer mes aides",
+              style: "width:100%;padding:13px;border-radius:10px;background:#0891b2;color:#fff;font-weight:700;border:none;cursor:pointer;font-size:.92rem;letter-spacing:.01em;" %>
+      </div>
+    <% end %>
+  </div>
+</div>

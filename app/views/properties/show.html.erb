@@ -15,15 +15,26 @@
 <% cur_idx    = dpe_all.index(dpe_cur) || 5 %>
 <% tgt_idx    = dpe_cib ? [dpe_all.index(dpe_cib) || (cur_idx-2), 0].max : [cur_idx-2, 0].max %>
 
-<% mpr_taux = case @property.income_bracket&.to_s
-     when "tres_modeste" then 0.70; when "modeste" then 0.50
-     when "intermediaire" then 0.35; else 0.15; end %>
+<%# ── Aides : valeurs issues d'AidCalculatorService (source unique de vérité) ─
+     @aid_result est chargé par PropertiesController#show pour le propriétaire.
+     Extraction ciblée des champs utilisés dans la vue et dans le JS ci-dessous.
+     Remplace l'ancien calcul inline qui utilisait des taux faux (70/50/35/15 %). -%>
+<% mpr_entry   = (@aid_result && @aid_result[:subventions]&.find { |s| s[:type] == "mpr" }) %>
+<% mpr_montant = mpr_entry ? mpr_entry[:amount].to_i : 0 %>
+<% mpr_taux    = AidCalculatorService::MPR_TAUX_2026[@property.income_bracket.to_s] || 0 %>
+
+<% ptz_entry   = (@aid_result && @aid_result[:financement]&.find { |f| f[:type] == "eco_ptz" }) %>
+<% eco_ptz     = ptz_entry ? ptz_entry[:amount].to_i : 30_000 %>
+
 <% budget_max  = travaux.sum{|t| t["cout_max"].to_i} %>
 <% budget_min  = travaux.sum{|t| t["cout_min"].to_i} %>
-<% mpr_montant = budget_max > 0 ? [( budget_max * mpr_taux).round(-2), 20000].min : 0 %>
-<% cee_montant = budget_max > 0 ? [(budget_max * 0.08).round(-2), 4000].min : 0 %>
 <% sauts       = dpe_cur && dpe_cib ? (dpe_all.index(dpe_cur).to_i - dpe_all.index(dpe_cib).to_i) : 2 %>
-<% eco_ptz     = sauts >= 3 ? 50000 : 30000 %>
+
+<%# CEE : estimation provisoire (8 % TTC, plafond 4 k€).
+     Sera remplacée à l'étape 2 par un calcul officiel par équipement
+     (forfaits selon Fiches MPR n°01/03/05/07 — cumul cap 90/75/60/50 %). -%>
+<% cee_montant = budget_max > 0 ? [(budget_max * 0.08).round(-2), 4000].min : 0 %>
+
 <% total_aides = mpr_montant + cee_montant %>
 <% reste       = [budget_max - total_aides, 0].max %>
 
@@ -249,6 +260,11 @@
 <%# ── AIDES + FINANCEMENT (propriétaire uniquement) ───────── %>
 <% if is_owner && e %>
 
+<%# Formulaire de correction des quantités de travaux (étape 2b).
+     Rendu au-dessus du bloc Aides pour que l'utilisateur voie ce que Claude
+     a détecté, corrige si besoin, puis voie les aides recalculées en bas. -%>
+<%= render "travaux_form", property: @property %>
+
 <div class="cd">
   <div class="cd-hd" style="background:#5b21b6;">💶 Aides</div>
   <div style="padding:20px;">
@@ -431,7 +447,11 @@ function calcTravaux(tgtIdx){
 }
 
 var _p=<%= {"tres_modeste"=>0,"modeste"=>1,"intermediaire"=>2,"superieur"=>3}[@property.income_bracket.to_s] || 3 %>;
-var _mT=[.70,.50,.35,.15];
+// Taux MPR Parcours accompagné 2026 — source : AidCalculatorService::MPR_TAUX_2026
+// Ordre : tres_modeste, modeste, intermediaire, superieur
+var _mT=[0.80,0.60,0.45,0.10];
+// Base HT plafonnée : budget TTC/1.10 borné au plafond MPR (30 k€ saut 2 classes, 40 k€ saut 3+)
+var _mBaseHT=<%= budget_max > 0 ? [(budget_max / 1.10).round, (sauts >= 3 ? 40_000 : 30_000)].min : 0 %>;
 function setProfil(p,k){
   _p=p;
   document.querySelectorAll('.sv-prof').forEach(function(b,i){b.classList.toggle('on',i===p);});
@@ -439,7 +459,7 @@ function setProfil(p,k){
 }
 function calcAides(){
   var mx=<%= budget_max %>;
-  var mpr=Math.min(Math.round(mx*_mT[_p]),20000);
+  var mpr=Math.round(_mBaseHT*_mT[_p]);
   var cee=Math.min(Math.round(mx*.08),4000);
   var reste=Math.max(0,mx-mpr-cee);
   var fmt=function(x){return x.toLocaleString('fr-FR')+' €';};
@@ -470,3 +490,4 @@ function initShow(){
 document.addEventListener('DOMContentLoaded', initShow);
 document.addEventListener('turbo:load', initShow);
 </script>
+

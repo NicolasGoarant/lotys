@@ -10,7 +10,6 @@ class PropertyAnalysisService
       "**#{doc.document_type.humanize}** : #{doc.ai_summary}"
     end.join("\n\n")
 
-    # Données DVF si disponibles
     dvf_context = if @property.valuation&.dvf_raw.present?
       dvf = @property.valuation.dvf_raw
       "Données DVF réelles (ventes passées dans le secteur) : prix moyen #{dvf['avg_price_sqm']} €/m² sur #{dvf['sample_size']} transactions comparables."
@@ -58,6 +57,30 @@ class PropertyAnalysisService
           "budget_total_min": 26000,
           "budget_total_max": 55000,
           "aides": ["MaPrimeRénov'", "Éco-PTZ", "CEE"]
+        },
+        "quantites_mpr": {
+          "surface_ite": 0,
+          "surface_iti": 0,
+          "surface_sarking": 0,
+          "surface_combles_perdus": 0,
+          "surface_toiture_terrasse": 0,
+          "surface_plancher_bas": 0,
+          "nb_parois_vitrees": 0,
+          "equipements": {
+            "pac_air_eau": false,
+            "pac_geothermique": false,
+            "chauffe_eau_thermo": false,
+            "chauffe_eau_solaire": false,
+            "systeme_solaire_combine": false,
+            "pvt_eau": false,
+            "poele_buches": false,
+            "poele_granules": false,
+            "insert_foyer": false,
+            "raccordement_reseau_chaleur": false,
+            "depose_fioul": false,
+            "vmc_double_flux": false,
+            "audit_energetique": false
+          }
         },
         "idees": {
           "titre": "Y avez-vous pensé ?",
@@ -173,6 +196,51 @@ class PropertyAnalysisService
          - Valeur état actuel (fourchette basse/haute)
          - Valeur potentielle après travaux de rénovation
          - Les deux sont utiles au propriétaire pour décider
+
+      RÈGLES IMPÉRATIVES POUR quantites_mpr :
+
+      Cette section est CRITIQUE : elle détermine les montants d'aides réels
+      (MaPrimeRénov' Par geste et Certificats d'Économies d'Énergie).
+      Elle doit être cohérente avec la liste "travaux" ci-dessus.
+
+      1. SURFACES (en m², entiers ou décimales) :
+         - surface_ite : isolation des murs par l'extérieur uniquement
+         - surface_iti : isolation des murs par l'intérieur uniquement
+         - surface_sarking : isolation de toiture par l'extérieur (combles aménagés)
+         - surface_combles_perdus : plancher des combles non habités
+         - surface_toiture_terrasse : toiture plate (≠ rampants)
+         - surface_plancher_bas : dalle sur vide sanitaire / sous-sol / passage
+         - nb_parois_vitrees : NOMBRE de fenêtres simple → double vitrage (entier, pas m²)
+         - Un même bien a rarement ITE + ITI : choisir le plus probable selon le contexte
+         - Si surface inconnue, estime à partir de la surface habitable et du type de bien
+           (maison 100 m² → murs ≈ 120 m², combles ≈ 70 m², toit ≈ 100 m²)
+         - 0 si le geste n'est PAS recommandé pour ce bien
+
+      2. ÉQUIPEMENTS (booléens true/false) :
+         - true UNIQUEMENT si le geste figure dans la liste travaux ci-dessus
+           OU s'il est un prolongement logique et fortement recommandé
+         - Un seul mode de chauffage principal (pac_air_eau OU pac_geothermique
+           OU poele_granules OU poele_buches OU insert_foyer), pas plusieurs
+         - Un seul ECS (chauffe_eau_thermo OU chauffe_eau_solaire OU systeme_solaire_combine)
+         - vmc_double_flux = true pour toute rénovation d'ampleur
+         - audit_energetique = true si DPE actuel F ou G (obligatoire pour parcours accompagné)
+         - depose_fioul = true si chauffage fioul actuel détecté dans les documents
+         - raccordement_reseau_chaleur = true uniquement si le bien est dans une zone
+           desservie par un réseau de chaleur urbain (rare hors Nancy centre / Haut-du-Lièvre)
+         - pvt_eau : panneau hybride photovoltaïque + thermique, rare, false par défaut
+
+      3. COHÉRENCE avec la liste "travaux" :
+         - Si "Isolation des combles" est dans travaux → surface_combles_perdus OU
+           surface_sarking > 0 (pas les deux)
+         - Si "Remplacement chauffage" et que le bien est F/G → pac_air_eau=true en priorité,
+           sinon poele_granules=true si rural
+         - Si "Isolation des murs" → surface_ite ou surface_iti > 0
+         - Si "Changement fenêtres" → nb_parois_vitrees > 0
+
+      4. NE PAS FAIRE :
+         - Ne pas mettre TOUS les booléens à true (ça produit un plan irréaliste)
+         - Ne pas inventer des surfaces sans rapport avec la surface habitable du bien
+         - Ne pas mettre depose_fioul=true sans preuve de chauffage fioul
     PROMPT
 
     response = call_claude(prompt)

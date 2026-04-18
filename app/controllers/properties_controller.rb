@@ -1,6 +1,9 @@
 class PropertiesController < ApplicationController
   before_action :authenticate_user!, except: [:index, :new, :create, :show]
-  before_action :set_property, only: [:show, :edit, :update, :destroy, :analyze, :publish, :unpublish, :preview, :update_income_bracket, :update_dpe_target]
+  before_action :set_property, only: [
+    :show, :edit, :update, :destroy, :analyze, :publish, :unpublish,
+    :preview, :update_income_bracket, :update_dpe_target, :update_travaux
+  ]
 
   def index
     if user_signed_in?
@@ -92,10 +95,19 @@ class PropertiesController < ApplicationController
   def update_income_bracket
     @property.update(income_bracket: params[:income_bracket])
     @aid_result = AidCalculatorService.new(@property).call
-    # Turbo Frame redessine uniquement l'étape 3
     render partial: "properties/aid_result", locals: { property: @property, aid_result: @aid_result }
   end
 
+  # Met à jour les quantités de travaux corrigées par le propriétaire
+  # (surfaces d'isolation + équipements choisis) puis redirige vers la fiche.
+  # La fiche recalculera automatiquement les aides via AidCalculatorService.
+  def update_travaux
+    if @property.update(travaux_params)
+      redirect_to @property, notice: "Travaux mis à jour — aides recalculées."
+    else
+      redirect_to @property, alert: "Erreur : #{@property.errors.full_messages.to_sentence}"
+    end
+  end
 
   private
 
@@ -189,6 +201,24 @@ class PropertiesController < ApplicationController
       :is_copropriete, :description, :vacant, :source,
       :vacancy_duration, :vacancy_reason, :dpe_target, :income_bracket,
       photos: []
+    )
+  end
+
+  # Paramètres acceptés par update_travaux : les 6 surfaces d'isolation
+  # (colonnes decimal) et tous les équipements (stockés dans le jsonb
+  # equipements_selection via store_accessor, castés via attribute :boolean
+  # déclarés dans Property).
+  def travaux_params
+    params.require(:property).permit(
+      :surface_ite, :surface_iti, :surface_sarking,
+      :surface_combles_perdus, :surface_toiture_terrasse, :surface_plancher_bas,
+      :nb_parois_vitrees,
+      :pac_air_eau, :pac_geothermique,
+      :chauffe_eau_thermo, :chauffe_eau_solaire,
+      :systeme_solaire_combine, :pvt_eau,
+      :poele_buches, :poele_granules, :insert_foyer,
+      :raccordement_reseau_chaleur, :depose_fioul,
+      :vmc_double_flux, :audit_energetique
     )
   end
 end
