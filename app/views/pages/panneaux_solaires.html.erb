@@ -5,140 +5,322 @@
   <div class="mb-8">
     <a href="javascript:history.back()" class="text-sm text-gray-400 hover:text-emerald-600 transition">← Retour</a>
     <h1 class="text-3xl font-black text-gray-900 mt-4 mb-2">☀️ Installer des panneaux solaires</h1>
-    <p class="text-gray-500 text-lg">Produire sa propre électricité, réduire sa facture et valoriser son bien.</p>
+    <p class="text-gray-500 text-lg">L'équation a changé : désormais, c'est ce que vous <em>consommez</em> qui compte, plus ce que vous vendez.</p>
   </div>
 
-  <%# Ce que ça rapporte %>
+  <%# ── Le nouveau paradigme ──────────────────────────────── %>
+  <div class="bg-orange-50 border-l-4 border-orange-400 rounded-r-2xl p-6 mb-6">
+    <p class="text-xs font-bold text-orange-700 uppercase tracking-wide mb-2">Mise à jour mars 2025</p>
+    <h2 class="text-xl font-bold text-orange-900 mb-3">⚠️ L'État veut que vous autoconsommiez</h2>
+    <p class="text-orange-900 text-sm leading-relaxed mb-3">
+      Depuis le 27 mars 2025, le tarif de rachat du surplus par EDF OA est passé de
+      <strong>12,7 c€/kWh à 4 c€/kWh</strong> (division par 3). La prime à l'autoconsommation
+      a aussi été divisée par deux (80 €/kWc, contre ~210 € auparavant).
+    </p>
+    <p class="text-orange-900 text-sm leading-relaxed mb-3">
+      Pourquoi ? Parce que le gouvernement ne veut plus acheter votre électricité à un prix subventionné.
+      Il veut que vous consommiez ce que vous produisez chez vous, au moment où vous le produisez.
+    </p>
+    <p class="text-orange-900 text-sm leading-relaxed">
+      <strong>Conséquence directe :</strong> chaque kWh autoconsommé vous économise environ
+      19 c€ (prix du tarif bleu EDF). Chaque kWh revendu ne vous rapporte que 4 c€.
+      <strong>Autoconsommer est aujourd'hui ~5× plus rentable que revendre.</strong>
+    </p>
+  </div>
+
+  <%# ── Comment vraiment autoconsommer ────────────────────── %>
   <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-6">
-    <h2 class="text-xl font-bold text-amber-900 mb-3">⚡ Ce que ça change concrètement</h2>
-    <ul class="space-y-2 text-amber-800 text-sm">
-      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Économies sur la facture :</strong> 250 à 600 €/an selon l'installation et la consommation, dès la première année.</span></li>
-      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Revente du surplus :</strong> EDF OA rachète le surplus à 0,13 €/kWh (tarif réglementé 2024).</span></li>
-      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Valorisation du bien :</strong> +3 à 5% à la revente selon les études notariales 2023.</span></li>
-      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>DPE amélioré :</strong> une installation photovoltaïque peut améliorer d'une demi-classe à une classe votre étiquette énergie.</span></li>
+    <h2 class="text-xl font-bold text-amber-900 mb-3">🔑 Le bon geste : décaler ses usages aux heures solaires</h2>
+    <p class="text-amber-900 text-sm mb-4 leading-relaxed">
+      Décaler la machine à laver à midi ne suffit pas. Pour vraiment rentabiliser une installation,
+      il faut <strong>adapter ses habitudes aux heures de production</strong> (10h-16h en général).
+    </p>
+    <ul class="space-y-3 text-amber-900 text-sm">
+      <li class="flex items-start gap-3">
+        <span class="text-lg shrink-0">💧</span>
+        <div>
+          <strong class="text-amber-900">Ballon d'eau chaude :</strong> caler la période de chauffe sur les heures solaires.
+          C'est le poste le plus facile à piloter — un simple contacteur suffit.
+        </div>
+      </li>
+      <li class="flex items-start gap-3">
+        <span class="text-lg shrink-0">🚗</span>
+        <div>
+          <strong class="text-amber-900">Voiture électrique :</strong> la recharger la journée plutôt que la nuit.
+          Pour 500 km/semaine, la dépense passe de ~276 €/mois en carburant à ~48 €/mois
+          en heure creuse — et peut tendre vers zéro avec du solaire autoconsommé.
+        </div>
+      </li>
+      <li class="flex items-start gap-3">
+        <span class="text-lg shrink-0">🌀</span>
+        <div>
+          <strong class="text-amber-900">Pompe à chaleur pilotée :</strong> couplée à une installation PV,
+          une PAC intelligente qui chauffe davantage quand l'électricité est abondante peut réduire
+          la facture de chauffage d'environ 30 % (source Mylight150 citée par Le Figaro).
+        </div>
+      </li>
+      <li class="flex items-start gap-3">
+        <span class="text-lg shrink-0">🏊</span>
+        <div>
+          <strong class="text-amber-900">Climatisation & filtration piscine :</strong> usages qui tombent pile
+          sur les heures solaires. Gain caché sur la piscine : plus de filtration = moins de produits chimiques.
+        </div>
+      </li>
+      <li class="flex items-start gap-3">
+        <span class="text-lg shrink-0">🧺</span>
+        <div>
+          <strong class="text-amber-900">Électroménager :</strong> lave-linge, lave-vaisselle, sèche-linge
+          programmés en journée, surtout l'été. Utiliser les programmes ECO en priorité.
+        </div>
+      </li>
     </ul>
   </div>
 
-  <%# Conditions %>
+  <%# ── Batterie stationnaire ─────────────────────────────── %>
+  <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-3">🔋 Ajouter une batterie ?</h2>
+    <p class="text-gray-700 text-sm mb-4 leading-relaxed">
+      Avec la baisse du tarif de rachat, de plus en plus de foyers choisissent d'ajouter une
+      batterie stationnaire à leurs panneaux. Elle stocke l'excédent produit en journée
+      pour le restituer le soir et le matin, quand les panneaux ne produisent plus.
+    </p>
+    <div class="space-y-3 text-sm">
+      <div class="bg-gray-50 rounded-xl p-4">
+        <p class="font-bold text-gray-900 mb-1">💳 Achat direct : 4 000 à 6 000 €</p>
+        <p class="text-gray-600 leading-relaxed">
+          Pour une batterie lithium de 5 à 10 kWh, installation comprise. Rentabilité
+          dépend fortement de votre profil de consommation soir/matin.
+        </p>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-4">
+        <p class="font-bold text-gray-900 mb-1">🤝 Location ou batterie virtuelle</p>
+        <p class="text-gray-600 leading-relaxed">
+          Des opérateurs comme <strong>Ensol</strong> ou <strong>Octopus Energy</strong> proposent
+          de mettre à disposition leur batterie ou la vôtre contre un bonus mensuel.
+          Octopus verse par exemple environ <strong>30 €/mois pour 10 kWh de capacité</strong>
+          de stockage partagée avec le réseau.
+        </p>
+      </div>
+    </div>
+    <p class="text-xs text-gray-500 mt-4 italic">
+      À évaluer au cas par cas : une batterie n'est pas rentable pour tous les profils.
+      Un conseiller <a href="https://france-renov.gouv.fr" target="_blank" class="text-emerald-600 hover:underline">France Rénov'</a>
+      peut faire le calcul avec vous.
+    </p>
+  </div>
+
+  <%# ── Conditions ────────────────────────────────────────── %>
   <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
     <h2 class="text-xl font-bold text-gray-900 mb-4">🏠 Conditions d'installation</h2>
     <div class="space-y-4 text-sm text-gray-700">
       <div>
         <p class="font-bold text-gray-800 mb-1">Orientation et inclinaison</p>
-        <p>Une toiture orientée sud (±45°) avec une inclinaison de 30 à 35° est idéale. Est et ouest restent rentables. Nord seul est déconseillé.</p>
+        <p>Toiture orientée sud (±45°), inclinaison 30 à 35° : idéal. Est ou ouest restent rentables avec une production réduite de 15-20 %. Nord seul : déconseillé.</p>
       </div>
       <div>
         <p class="font-bold text-gray-800 mb-1">Surface minimale</p>
-        <p>Comptez environ 7 m² par kWc installé. Une installation standard de 3 kWc (suffisant pour un foyer de 2-3 personnes) nécessite ~21 m² dégagés.</p>
+        <p>Comptez ~7 m² par kWc installé. Installation standard de 3 kWc (foyer de 2-3 personnes) : ~21 m² de toiture dégagée.</p>
       </div>
       <div>
         <p class="font-bold text-gray-800 mb-1">Copropriété</p>
-        <p>En copropriété, un vote en AG est nécessaire (majorité simple article 24). En maison individuelle, aucune autorisation requise sauf ABF (bâtiments classés).</p>
+        <p>Vote en AG nécessaire (majorité simple article 24). En maison individuelle, aucune autorisation requise sauf zone ABF (bâtiments classés).</p>
       </div>
       <div>
         <p class="font-bold text-gray-800 mb-1">Déclaration préalable</p>
-        <p>Obligatoire au-delà de 3 kWc ou si le bâtiment est en zone protégée. En dessous, simple déclaration auprès d'Enedis.</p>
+        <p>Obligatoire au-delà de 3 kWc ou en zone protégée. En dessous : simple déclaration de raccordement à Enedis.</p>
       </div>
     </div>
   </div>
 
-  <%# Aides %>
-  <h2 class="text-xl font-bold text-gray-900 mb-4">💰 Les aides disponibles</h2>
+  <%# ── Les aides actualisées ─────────────────────────────── %>
+  <h2 class="text-xl font-bold text-gray-900 mb-4">💰 Les aides en 2026</h2>
   <div class="space-y-4 mb-8">
 
     <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
       <div class="flex items-start justify-between mb-2">
         <div>
-          <p class="font-bold text-gray-900">Prime à l'autoconsommation (État)</p>
-          <p class="text-xs text-gray-500">Versée sur 5 ans par EDF OA</p>
+          <p class="font-bold text-gray-900">Prime à l'autoconsommation</p>
+          <p class="text-xs text-gray-500">Versée en une fois, ~1 an après installation</p>
         </div>
-        <span class="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full shrink-0">jusqu'à 2 160 €</span>
+        <span class="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full shrink-0">80 €/kWc</span>
       </div>
-      <p class="text-sm text-gray-600 leading-relaxed">Pour une installation ≤ 9 kWc en autoconsommation avec vente du surplus. Montant 2024 : 370 €/kWc pour ≤ 3 kWc, 280 €/kWc entre 3 et 9 kWc. Versée en 5 fois par EDF.</p>
-      <a href="https://www.edf-oa.fr" target="_blank" class="inline-block mt-3 text-xs text-emerald-600 hover:underline">edf-oa.fr →</a>
+      <p class="text-sm text-gray-600 leading-relaxed">
+        Forfait 2026 pour les installations ≤ 9 kWc en autoconsommation avec vente du surplus.
+        Exemples : 240 € pour 3 kWc, 480 € pour 6 kWc, 720 € pour 9 kWc.
+      </p>
+      <p class="text-xs text-amber-700 mt-2">
+        ⚠️ Divisée par 2 depuis le 27 mars 2025. Versée par EDF OA.
+      </p>
     </div>
 
     <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
       <div class="flex items-start justify-between mb-2">
         <div>
-          <p class="font-bold text-gray-900">TVA réduite à 10%</p>
+          <p class="font-bold text-gray-900">Tarif de rachat du surplus</p>
+          <p class="text-xs text-gray-500">Contrat sur 20 ans avec EDF OA</p>
+        </div>
+        <span class="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full shrink-0">4 c€/kWh</span>
+      </div>
+      <p class="text-sm text-gray-600 leading-relaxed">
+        Pour les installations ≤ 9 kWc. Entre 9 et 100 kWc : 4,73 c€/kWh.
+        À comparer aux 19,4 c€/kWh du tarif bleu EDF que vous économisez par chaque kWh autoconsommé.
+      </p>
+    </div>
+
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <p class="font-bold text-gray-900">TVA réduite à 10 %</p>
           <p class="text-xs text-gray-500">Logement de plus de 2 ans</p>
         </div>
         <span class="text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full shrink-0">−10 %</span>
       </div>
-      <p class="text-sm text-gray-600 leading-relaxed">Au lieu de 20%. S'applique pour les installations ≤ 3 kWc. Au-delà, TVA à 20%.</p>
+      <p class="text-sm text-gray-600 leading-relaxed">
+        Au lieu de 20 %. S'applique pour les installations ≤ 3 kWc. Au-delà : TVA à 20 % sur la totalité.
+      </p>
     </div>
 
     <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
       <div class="flex items-start justify-between mb-2">
         <div>
           <p class="font-bold text-gray-900">Exonération de taxe foncière</p>
-          <p class="text-xs text-gray-500">Selon les communes — à vérifier</p>
+          <p class="text-xs text-gray-500">Selon les communes — à vérifier en mairie</p>
         </div>
         <span class="text-sm font-bold text-green-700 bg-green-50 px-3 py-1 rounded-full shrink-0">variable</span>
       </div>
-      <p class="text-sm text-gray-600 leading-relaxed">Certaines communes accordent une exonération temporaire de taxe foncière pour les installations utilisant des énergies renouvelables. Renseignez-vous auprès de votre mairie.</p>
+      <p class="text-sm text-gray-600 leading-relaxed">
+        Certaines communes accordent une exonération temporaire pour les installations en énergies renouvelables.
+      </p>
     </div>
 
   </div>
 
-  <%# Budget et rentabilité %>
+  <%# ── Budget et ROI actualisés ──────────────────────────── %>
   <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
-    <h2 class="text-base font-bold text-gray-800 mb-3">📊 Budget et retour sur investissement</h2>
+    <h2 class="text-base font-bold text-gray-800 mb-3">📊 Budget et retour sur investissement (2026)</h2>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-gray-200">
             <th class="text-left py-2 text-gray-500 font-semibold">Puissance</th>
             <th class="text-right py-2 text-gray-500 font-semibold">Coût installé</th>
-            <th class="text-right py-2 text-gray-500 font-semibold">Économies/an</th>
-            <th class="text-right py-2 text-gray-500 font-semibold">Retour sur invest.</th>
+            <th class="text-right py-2 text-gray-500 font-semibold">Économies/an*</th>
+            <th class="text-right py-2 text-gray-500 font-semibold">ROI</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
-          <tr><td class="py-2">3 kWc</td><td class="text-right">6 000 – 9 000 €</td><td class="text-right">300 – 500 €</td><td class="text-right">12 – 18 ans</td></tr>
-          <tr><td class="py-2">6 kWc</td><td class="text-right">10 000 – 15 000 €</td><td class="text-right">500 – 800 €</td><td class="text-right">12 – 18 ans</td></tr>
-          <tr><td class="py-2">9 kWc</td><td class="text-right">14 000 – 20 000 €</td><td class="text-right">700 – 1 100 €</td><td class="text-right">13 – 20 ans</td></tr>
+          <tr><td class="py-2">3 kWc</td><td class="text-right">6 000 – 9 000 €</td><td class="text-right">350 – 500 €</td><td class="text-right">13 – 18 ans</td></tr>
+          <tr><td class="py-2">6 kWc</td><td class="text-right">10 000 – 15 000 €</td><td class="text-right">550 – 900 €</td><td class="text-right">12 – 17 ans</td></tr>
+          <tr><td class="py-2">9 kWc</td><td class="text-right">14 000 – 20 000 €</td><td class="text-right">800 – 1 300 €</td><td class="text-right">13 – 18 ans</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="text-xs text-gray-400 mt-3">⚠️ Estimations 2024 incluant pose et raccordement. Varie selon ensoleillement, consommation et offres installateurs.</p>
+    <p class="text-xs text-gray-500 mt-3 leading-relaxed">
+      * Hypothèse : 50 % d'autoconsommation (19,4 c€/kWh économisés) + 50 % de surplus revendu à 4 c€/kWh.
+      Les chiffres grimpent significativement si vous dépassez 50 % d'autoconsommation grâce à une batterie
+      ou au pilotage de vos usages.
+    </p>
   </div>
 
-  <%# Par où commencer %>
+  <%# ── Couplage avec d'autres équipements ──────────────── %>
+  <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-emerald-900 mb-3">⚡ Coupler pour amplifier</h2>
+    <p class="text-emerald-900 text-sm mb-4 leading-relaxed">
+      Les panneaux solaires prennent toute leur valeur quand ils alimentent d'autres équipements du logement.
+      Deux couplages particulièrement pertinents :
+    </p>
+    <div class="space-y-3 text-sm">
+      <div class="bg-white rounded-xl p-4 border border-emerald-100">
+        <p class="font-bold text-emerald-900 mb-1">🌀 PAC + PV piloté = −30 % de facture chauffage</p>
+        <p class="text-gray-700 leading-relaxed mb-2">
+          Une pompe à chaleur pilotée intelligemment — qui chauffe davantage quand l'électricité est
+          abondante et peu chère — peut réduire d'environ 30 % la facture de chauffage par rapport
+          à une PAC classique (source Mylight150 citée par Le Figaro).
+        </p>
+        <p class="text-xs text-emerald-700">
+          💡 La PAC air/eau est éligible à MaPrimeRénov' (jusqu'à 5 000 € selon profil). Elle constitue
+          souvent le meilleur premier investissement avant les panneaux.
+        </p>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-emerald-100">
+        <p class="font-bold text-emerald-900 mb-1">🚗 VE + PV = carburant quasi-gratuit</p>
+        <p class="text-gray-700 leading-relaxed mb-2">
+          Pour un trajet hebdomadaire de 500 km, on passe de ~276 €/mois en carburant
+          (voiture thermique) à ~48 €/mois en heure creuse (VE). Avec des panneaux solaires
+          et une recharge en journée, on tend vers zéro.
+        </p>
+        <p class="text-xs text-emerald-700">
+          <%= link_to "→ Voir la page Borne de recharge électrique", borne_electrique_path,
+              class: "hover:underline" %>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Par où commencer ──────────────────────────────────── %>
   <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
     <h2 class="text-base font-bold text-gray-800 mb-3">🔧 Par où commencer ?</h2>
     <ol class="space-y-2 text-sm text-gray-700">
       <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span><span>Vérifiez l'orientation et l'état de votre toiture — une toiture à refaire avant 10 ans doit être rénovée avant installation.</span></li>
-      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span><span>Demandez 3 devis à des installateurs certifiés <strong>QualiPV</strong> — les écarts de prix peuvent atteindre 30%.</span></li>
-      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span><span>Choisissez le mode : autoconsommation avec surplus (le plus courant) ou vente totale (intéressant si vous êtes peu présent).</span></li>
-      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">4</span><span>Déposez la déclaration préalable si nécessaire, et signalez l'installation à Enedis (raccordement sous 3 mois).</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span><span>Évaluez votre profil de consommation : quelles heures, quels usages ? C'est ça qui détermine la rentabilité, plus que la surface de toit.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span><span>Demandez 3 devis à des installateurs certifiés <strong>QualiPV</strong> — les écarts de prix peuvent atteindre 30 %.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">4</span><span>Choisissez le mode : autoconsommation avec vente du surplus (le plus courant aujourd'hui) et éventuellement ajoutez une batterie selon votre profil.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">5</span><span>Déposez la déclaration préalable en mairie si nécessaire, puis la demande de raccordement à Enedis (délai ~3 mois).</span></li>
     </ol>
   </div>
 
+  <%# ── Exemples concrets ─────────────────────────────────── %>
   <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
-    <h2 class="text-xl font-bold text-gray-900 mb-5">💡 Trois exemples concrets</h2>
+    <h2 class="text-xl font-bold text-gray-900 mb-5">💡 Trois exemples concrets (après réforme 2025)</h2>
     <div class="space-y-5">
       <div class="border-l-4 border-amber-400 pl-4">
-        <p class="font-bold text-gray-900 mb-1">Maison 90 m² à Laxou, toiture plein sud</p>
-        <p class="text-base text-gray-600 leading-relaxed">Installation de 6 kWc en 2023. Coût total après prime : 8 200 €. Économies annuelles : 680 €. Surplus revendu : 210 €/an. Retour sur investissement estimé à 11 ans. Amélioration DPE : de D à C.</p>
+        <p class="font-bold text-gray-900 mb-1">Maison 90 m² à Laxou, couple avec voiture électrique</p>
+        <p class="text-base text-gray-600 leading-relaxed">
+          Installation 6 kWc + pilotage ballon ECS + recharge VE en journée. Coût : ~11 500 € après prime
+          (480 €). Autoconsommation à 65 % (ballon + VE + électroménager décalé). Économies annuelles :
+          ~820 € sur l'électricité + ~1 800 € sur le carburant. ROI accéléré à ~9 ans grâce au couplage VE.
+        </p>
       </div>
       <div class="border-l-4 border-amber-400 pl-4">
-        <p class="font-bold text-gray-900 mb-1">Appartement en copropriété, rue de la République Nancy</p>
-        <p class="text-base text-gray-600 leading-relaxed">Résolution AG votée en 2024 pour une installation collective de 18 kWc sur toiture-terrasse. Coût par copropriétaire : 2 400 € (10 lots). Économies sur les charges communes : −180 €/an/lot. Financement via éco-PTZ copropriété.</p>
+        <p class="font-bold text-gray-900 mb-1">Retraité seul en appartement T3, copropriété moderne de Nancy</p>
+        <p class="text-base text-gray-600 leading-relaxed">
+          Installation collective votée en AG : 18 kWc sur toiture-terrasse. Coût par copropriétaire :
+          ~2 400 € (10 lots). Économies sur charges communes : ~180 €/an/lot. L'intérêt porte plus sur
+          la valorisation du bien (+3 à 5 % à la revente selon études notariales) que sur le ROI strict.
+        </p>
       </div>
       <div class="border-l-4 border-amber-400 pl-4">
-        <p class="font-bold text-gray-900 mb-1">Petite maison de 46 m², orientation est-ouest</p>
-        <p class="text-base text-gray-600 leading-relaxed">Configuration sous-optimale mais viable : 3 kWc installés, production réduite de 20% vs plein sud. Coût : 5 800 € après prime. Économies : 280 €/an. L'installation reste rentable en 14 ans.</p>
+        <p class="font-bold text-gray-900 mb-1">Famille avec PAC air/eau, orientation est-ouest</p>
+        <p class="text-base text-gray-600 leading-relaxed">
+          Installation 3 kWc pour alimenter prioritairement la PAC pilotée en journée. Coût :
+          5 800 € après prime. Économies : ~400 €/an sur la facture chauffage + ~180 €/an sur
+          l'électricité domestique. Retour sur investissement estimé à 11-13 ans malgré l'orientation
+          non idéale, grâce au couplage PAC.
+        </p>
       </div>
     </div>
   </div>
 
+  <%# ── Pour Lotys / les DPE F-G ──────────────────────────── %>
+  <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-lg font-bold text-blue-900 mb-2">🏠 Et pour un logement DPE F ou G ?</h2>
+    <p class="text-sm text-blue-900 leading-relaxed">
+      Si votre bien est classé F ou G, <strong>ne commencez pas par les panneaux solaires</strong>.
+      L'isolation et le changement de chauffage offrent un gain DPE et un confort bien supérieurs
+      pour chaque euro investi. Les panneaux arriveront en bout de parcours, une fois l'enveloppe
+      thermique correcte et les équipements électrifiés (PAC, VE) en place — c'est là qu'ils
+      donnent leur plein potentiel.
+    </p>
+  </div>
+
+  <%# ── Sources ───────────────────────────────────────────── %>
   <div class="text-xs text-gray-400 space-y-1">
     <p class="font-semibold text-gray-500 mb-2">Sources</p>
+    <p>• <strong>Le Figaro</strong>, Elsa Bembaron — <em>« Électricité : est-il encore intéressant d'installer des panneaux solaires sur sa maison ? »</em> (avril 2026)</p>
+    <p>• <a href="https://www.service-public.fr/particuliers/actualites/A18205" target="_blank" class="underline">service-public.gouv.fr</a> — arrêté tarifaire du 27 mars 2025</p>
+    <p>• <a href="https://www.quechoisir.org/actualite-panneaux-photovoltaiques-les-consequences-de-la-diminution-des-tarifs-de-rachat-et-des-aides-n165344/" target="_blank" class="underline">UFC-Que Choisir</a> — analyse des nouveaux barèmes</p>
+    <p>• <a href="https://www.edf-oa.fr" target="_blank" class="underline">edf-oa.fr</a> — contrat d'obligation d'achat</p>
     <p>• ADEME — <em>Photovoltaïque : éclairage sur l'autoconsommation</em> (2024)</p>
-    <p>• <a href="https://www.edf-oa.fr" target="_blank" class="underline">edf-oa.fr</a> — tarifs d'achat et prime autoconsommation</p>
-    <p>• <a href="https://www.service-public.fr/particuliers/vosdroits/F34381" target="_blank" class="underline">service-public.fr</a></p>
   </div>
 
 </div>
