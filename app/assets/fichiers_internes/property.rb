@@ -64,15 +64,10 @@ class Property < ApplicationRecord
 
   # Retourne la liste des codes de travaux cochés (true uniquement).
   # Utilisé par la vue pour calculer budget, DPE cible estimé, etc.
-  # Lit directement depuis le hash jsonb pour éviter un conflit entre
-  # store_accessor et ActiveModel::Type::Value.accessor (erreur silencieuse
-  # sur certaines versions de Rails 7.2 avec des colonnes jsonb+default).
   def travaux_actifs
-    selection = travaux_selection || {}
-    TRAVAUX_BOOL_KEYS.each_with_object([]) do |key, arr|
-      val = selection[key.to_s]
-      arr << key.to_s if ActiveModel::Type::Boolean.new.cast(val)
-    end
+    TRAVAUX_BOOL_KEYS.select do |key|
+      ActiveModel::Type::Boolean.new.cast(send(key))
+    end.map(&:to_s)
   end
 
   def local_aids_total_max
