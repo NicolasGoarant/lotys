@@ -80,3 +80,4 @@ gem "aws-sdk-s3", "~> 1.219"
 
 gem "mini_magick", "~> 5.3"
 gem "rack-attack"
+gem "rails-i18n", "~> 7.0"

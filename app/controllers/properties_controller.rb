@@ -1,8 +1,16 @@
 class PropertiesController < ApplicationController
   before_action :authenticate_user!, except: [:index, :new, :create, :show]
-  before_action :set_property, only: [
-    :show, :edit, :update, :destroy, :analyze, :publish, :unpublish,
-    :preview, :update_income_bracket, :update_dpe_target,
+
+  # Lecture : propriétaire toujours, prestataire uniquement si le bien est publié.
+  before_action :set_property_for_read, only: [:show, :preview]
+
+  # Écriture : uniquement le propriétaire. Toute tentative par un autre user
+  # (même connecté) renvoie vers /properties avec alerte. Protège contre la
+  # suppression, modification, publication, dépublication d'un bien
+  # qui n'appartient pas à l'utilisateur courant.
+  before_action :set_property_for_write, only: [
+    :edit, :update, :destroy, :analyze, :publish, :unpublish,
+    :update_income_bracket, :update_dpe_target,
     :update_travaux, :update_travaux_selection
   ]
 
@@ -111,8 +119,9 @@ class PropertiesController < ApplicationController
   end
 
   # Persiste la sélection des 7 cases à cocher macro dans travaux_selection,
-  # puis redirige vers la fiche avec ancre #travaux pour que l'utilisateur
-  # reste scrollé sur la card Rénovation énergétique.
+  # plus la cible DPE choisie via le slider (dpe_target). Redirige vers la
+  # fiche avec ancre #travaux pour que l'utilisateur reste scrollé sur la
+  # card Rénovation énergétique.
   def update_travaux_selection
     # On construit le hash à persister EN CONSTRUISANT EXPLICITEMENT
     # chaque clé depuis les params, pour éviter que :
@@ -125,7 +134,6 @@ class PropertiesController < ApplicationController
 
     new_selection = Property::TRAVAUX_BOOL_KEYS.each_with_object({}) do |key, h|
       raw = params_permis[key]
-      # Si absent du form, on garde la valeur existante (sinon on écraserait avec false)
       if raw.nil?
         existing = (@property.travaux_selection || {})[key.to_s]
         h[key.to_s] = bool_cast.cast(existing) unless existing.nil?
@@ -135,6 +143,15 @@ class PropertiesController < ApplicationController
     end
 
     @property.update_column(:travaux_selection, new_selection)
+
+    # Persistance de la cible DPE (positionnée via le slider JS).
+    # Nécessaire pour que Grand Nancy rénovation globale bascule en actif
+    # si l'utilisateur vise A ou B.
+    dpe_target_raw = params_permis[:dpe_target].to_s.upcase
+    if %w[A B C D E F G].include?(dpe_target_raw) && dpe_target_raw != @property.dpe_target
+      @property.update_column(:dpe_target, dpe_target_raw)
+    end
+
     redirect_to property_path(@property, anchor: "travaux")
   end
 
@@ -211,12 +228,28 @@ class PropertiesController < ApplicationController
     :autre
   end
 
-  def set_property
-    if user_signed_in? && current_user.properties.exists?(params[:id])
+  # Lecture :
+  #   - propriétaire : accès à son bien quel que soit le status (draft inclus)
+  #   - autres utilisateurs (y compris non connectés) : uniquement biens publiés
+  # Ne fait PAS crasher sur user non connecté (bug précédent : current_user nil).
+  def set_property_for_read
+    if user_signed_in? && current_user.properties.exists?(id: params[:id])
       @property = current_user.properties.find(params[:id])
     else
-      @property = Property.where(status: [:analyzed, :published]).find(params[:id])
+      @property = Property.published.find(params[:id])
     end
+  rescue ActiveRecord::RecordNotFound
+    redirect_to root_path, alert: "Ce bien n'existe pas ou n'est plus disponible."
+  end
+
+  # Écriture : accès strict au propriétaire. N'importe quelle autre demande
+  # (prestataire, autre propriétaire, etc.) est bloquée.
+  # Corrige le bug où un user connecté pouvait supprimer/modifier le bien
+  # d'un autre user simplement parce qu'il était publié.
+  def set_property_for_write
+    @property = current_user.properties.find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    redirect_to properties_path, alert: "Vous n'avez pas accès à ce bien."
   end
 
   def property_params
@@ -244,11 +277,13 @@ class PropertiesController < ApplicationController
     )
   end
 
-  # Form simple : 7 macro-postes à cocher (card Rénovation énergétique).
+  # Form simple : 7 macro-postes à cocher (card Rénovation énergétique)
+  # + dpe_target (cible DPE positionnée via le slider JS).
   def travaux_selection_params
     params.require(:property).permit(
       :isolation_toiture, :isolation_murs, :isolation_plancher_bas,
-      :chauffage, :chauffe_eau, :vmc, :menuiseries
+      :chauffage, :chauffe_eau, :vmc, :menuiseries,
+      :dpe_target
     )
   end
 end

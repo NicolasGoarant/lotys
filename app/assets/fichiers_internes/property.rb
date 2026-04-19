@@ -14,6 +14,49 @@ class Property < ApplicationRecord
   enum :status, { draft: 0, analyzing: 1, analyzed: 2, published: 3 }
   enum :property_type, { appartement: "appartement", maison: "maison" }, prefix: :kind
 
+  # ─── Constantes partagées (inclusions de validations) ────────────────
+  DPE_CLASSES      = %w[A B C D E F G].freeze
+  INCOME_BRACKETS  = %w[tres_modeste modeste intermediaire superieur].freeze
+
+  # ─── Validations ─────────────────────────────────────────────────────
+  # Champs strictement requis : sans eux, impossible d'analyser ou de publier.
+  validates :address, :city, :zipcode, presence: true
+  validates :zipcode, format: {
+    with: /\A\d{5}\z/,
+    message: "doit être un code postal à 5 chiffres"
+  }
+
+  # Surface : obligatoire, strictement positive, plafond à 10 000 m²
+  # (au-delà c'est probablement une saisie erronée).
+  validates :surface,
+            presence: true,
+            numericality: { greater_than: 0, less_than: 10_000 }
+
+  # Année de construction : optionnelle (certains DPE anciens n'en ont pas),
+  # mais si fournie, doit être entre 1500 et l'année courante.
+  validates :construction_year,
+            numericality: {
+              only_integer: true,
+              greater_than_or_equal_to: 1500,
+              less_than_or_equal_to: ->(_p) { Date.current.year }
+            },
+            allow_nil: true
+
+  # DPE : classe actuelle obligatoire (A→G), classe cible optionnelle.
+  validates :dpe_class,  inclusion: { in: DPE_CLASSES }
+  validates :dpe_target, inclusion: { in: DPE_CLASSES }, allow_nil: true
+
+  # Nombre de pièces : optionnel mais > 0 si fourni.
+  validates :nb_rooms,
+            numericality: { only_integer: true, greater_than: 0 },
+            allow_nil: true
+
+  # Revenus : doit correspondre à un des brackets connus (utilisé par
+  # AidCalculatorService pour calculer MPR/CEE).
+  validates :income_bracket,
+            inclusion: { in: INCOME_BRACKETS },
+            allow_nil: true
+
   # ─── equipements_selection : détail MPR Par geste (13 booléens + nb_parois_vitrees) ───
   EQUIPEMENT_BOOL_KEYS = %i[
     pac_air_eau pac_geothermique
@@ -64,10 +107,15 @@ class Property < ApplicationRecord
 
   # Retourne la liste des codes de travaux cochés (true uniquement).
   # Utilisé par la vue pour calculer budget, DPE cible estimé, etc.
+  # Lit directement depuis le hash jsonb pour éviter un conflit entre
+  # store_accessor et ActiveModel::Type::Value.accessor (erreur silencieuse
+  # sur certaines versions de Rails 7.2 avec des colonnes jsonb+default).
   def travaux_actifs
-    TRAVAUX_BOOL_KEYS.select do |key|
-      ActiveModel::Type::Boolean.new.cast(send(key))
-    end.map(&:to_s)
+    selection = travaux_selection || {}
+    TRAVAUX_BOOL_KEYS.each_with_object([]) do |key, arr|
+      val = selection[key.to_s]
+      arr << key.to_s if ActiveModel::Type::Boolean.new.cast(val)
+    end
   end
 
   def local_aids_total_max
