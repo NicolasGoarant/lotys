@@ -1,31 +1,33 @@
 <%# about.html.erb — Comment ça marche %>
 
-<%# ── Hero simplifié : juste la promesse en une phrase ── %>
+<%# ── Hero ──
+     Dégradé renforcé pour éviter que le texte blanc soit illisible sur la
+     partie claire de l'image (angle de la toiture). Utilise un dégradé
+     gauche → droite avec ancres très opaques côté texte. %>
 <div class="relative w-full overflow-hidden" style="height:520px;margin-top:-1px;">
   <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1600&q=85" alt="Immeuble" class="w-full h-full object-cover">
   <div class="absolute inset-0" style="background:linear-gradient(90deg,rgba(15,23,42,0.96) 0%,rgba(15,23,42,0.88) 45%,rgba(15,23,42,0.55) 75%,rgba(15,23,42,0.25) 100%);"></div>
   <div class="absolute inset-0 flex items-center"><div class="w-full max-w-5xl mx-auto px-6">
-    <h1 class="text-white font-black leading-none mb-8" style="font-size:clamp(2.8rem,6vw,4.5rem);letter-spacing:-0.03em;">
-      Simplifier la<br><span class="text-emerald-400">rénovation thermique.</span>
+    <span class="inline-block text-emerald-400 text-sm font-black uppercase tracking-widest mb-4">Comment ça marche</span>
+    <h1 class="text-white font-black leading-none mb-6" style="font-size:clamp(2.8rem,6vw,4.5rem);letter-spacing:-0.03em;">
+      Rénover,<br><span class="text-emerald-400">sans se perdre.</span>
     </h1>
+    <p class="text-gray-100 leading-relaxed mb-8" style="font-size:1.2rem;max-width:540px;text-shadow:0 2px 8px rgba(0,0,0,0.4);">
+      Déposez votre DPE. Lotys analyse vos documents, calcule vos aides à l'euro près, et vous connecte aux bons prestataires.
+    </p>
     <%= link_to "Analyser mon bien gratuitement →", new_property_path,
         class: "inline-block bg-emerald-500 text-white font-bold px-10 py-4 rounded-2xl hover:bg-emerald-400 transition-colors",
         style: "font-size:1.05rem;width:fit-content;" %>
   </div></div>
 </div>
 
-<%# IMPORTANT : Tailwind v4 JIT ne compile que les classes présentes dans le code.
-    gap-14, space-y-10, space-y-28, mt-28… n'existent pas dans le CSS.
-    On utilise donc des styles inline pour garantir les espacements sans rebuild. %>
-<div class="max-w-5xl mx-auto px-6 py-20">
+<div class="max-w-5xl mx-auto px-6 py-20 space-y-28">
 
-  <%# ── Pourquoi Lotys ? ──
-       mb-10 sous le H2 pour resserrer titre/cards.
-       gap:5rem (80px) inline entre les cards pour que les 3 images ne se
-       lisent plus comme un bandeau continu. %>
-  <div class="px-4 md:px-12">
-    <h2 class="font-black text-gray-900 mb-10 text-center" style="font-size:2rem;">Pourquoi Lotys ?</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3" style="gap:5rem;">
+  <%# ── Pourquoi Lotys ? — 3 cards avec images, titres courts, textes calibrés ── %>
+  <div>
+    <h2 class="font-black text-gray-900 mb-3 text-center" style="font-size:2rem;">Pourquoi Lotys ?</h2>
+    <p class="text-gray-500 text-center mb-12" style="font-size:1.05rem;">Rénover énergétiquement, c'est naviguer entre trois complexités.</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
       <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
         <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80" alt="Logement énergivore" class="w-full h-44 object-cover">
         <div class="p-7">
@@ -53,14 +55,11 @@
     </div>
   </div>
 
-  <%# ── 3 étapes pour un plan de rénovation ──
-       margin-top:7rem (112px) inline pour séparer des cards précédentes.
-       mb-10 sous le H2 pour coller le titre à son bloc.
-       flex-col + gap:2.5rem (40px) pour espacer correctement les 3 étapes
-       (remplace un space-y-10 qui n'existe pas dans le CSS compilé). %>
-  <div style="margin-top:7rem;">
-    <h2 class="font-black text-gray-900 mb-10 text-center" style="font-size:2rem;">3 étapes, quelques minutes.</h2>
-    <div class="flex flex-col" style="gap:2.5rem;">
+  <%# ── 3 étapes pour un plan de rénovation ── %>
+  <div>
+    <h2 class="font-black text-gray-900 mb-3 text-center" style="font-size:2rem;">3 étapes, quelques minutes.</h2>
+    <p class="text-gray-500 text-center mb-12" style="font-size:1.05rem;">De votre DPE à la proposition d'un artisan RGE — sans avoir à chercher vous-même.</p>
+    <div class="space-y-6">
 
       <%# Étape 1 — Dépôt documents %>
       <div class="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex overflow-hidden">
@@ -104,11 +103,32 @@
     </div>
   </div>
 
-  <%# ── CTA final ──
-       margin-top:9rem (144px) inline, volontairement plus grand que les
-       7rem entre les autres sections, pour bien détacher l'appel à l'action
-       de la dernière étape. space-y-6 est compilé, on le garde. %>
-  <div class="text-center space-y-6" style="margin-top:9rem;">
+  <%# ── Terrain d'expérimentation Nancy — fond opaque pour lisibilité ── %>
+  <div class="relative rounded-3xl overflow-hidden" style="min-height:420px;">
+    <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80" alt="Nancy" class="absolute inset-0 w-full h-full object-cover">
+    <%# Dégradé très opaque partout pour que le texte blanc reste lisible
+         quelle que soit la colonne (gauche ou droite). %>
+    <div class="absolute inset-0" style="background:linear-gradient(135deg,rgba(15,23,42,0.96) 0%,rgba(15,23,42,0.88) 50%,rgba(15,23,42,0.80) 100%);"></div>
+    <div class="relative grid md:grid-cols-2 gap-10 items-center p-10 md:p-14">
+      <div>
+        <span class="inline-block bg-emerald-500/20 text-emerald-300 text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full border border-emerald-500/40 mb-5">Terrain d'expérimentation</span>
+        <h2 class="text-white font-black mb-5" style="font-size:1.8rem;">Pourquoi commencer à Nancy ?</h2>
+        <p class="text-gray-100 leading-relaxed mb-4" style="font-size:.95rem;">Nancy concentre les enjeux que Lotys adresse : un parc ancien avec de nombreux logements énergivores, des copropriétés de centre-ville avec fort potentiel d'amélioration, et une métropole engagée dans la transition énergétique.</p>
+        <p class="text-gray-200" style="font-size:.9rem;">C'est ici que nous affinons la plateforme avant de l'étendre à d'autres territoires.</p>
+      </div>
+      <div class="rounded-2xl p-7" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);">
+        <p class="text-emerald-300 text-xs font-black uppercase tracking-widest mb-4">Accompagnement local</p>
+        <p class="text-white leading-relaxed mb-5" style="font-size:.95rem;">Au-delà des aides nationales, la Métropole du Grand Nancy propose ses propres dispositifs. Lotys les calcule automatiquement pour votre bien.</p>
+        <div class="rounded-xl p-5" style="background:rgba(6,78,59,0.55);border:1px solid rgba(16,185,129,0.35);">
+          <p class="text-emerald-200 font-bold mb-2" style="font-size:.95rem;">MaPrimeRénov' · CEE · éco-PTZ · aides du Grand Nancy</p>
+          <p class="text-gray-100" style="font-size:.85rem;">Lotys calcule vos droits automatiquement et vous guide dans les démarches, en tenant compte de votre situation réelle.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# ── CTA final ── %>
+  <div class="text-center space-y-5">
     <h2 class="font-black text-gray-900" style="font-size:2rem;">Prêt à analyser votre bien ?</h2>
     <p class="text-gray-500" style="font-size:1.05rem;">Gratuit, sans engagement, résultat en quelques minutes.</p>
     <%= link_to "Commencer maintenant →", new_property_path,

@@ -11,8 +11,8 @@
 
     <div class="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-6 pt-14 md:pt-2 pb-16 md:pb-16 text-center">
       <h1 class="max-w-5xl font-serif text-5xl font-bold leading-tight text-white md:text-7xl">
-        <span class="block">L'immobilier,</span>
-        <span class="text-emerald-400">lisible en quelques clics</span>
+        <span class="block">Votre plan de rénovation</span>
+        <span class="text-emerald-400">thermique, en quelques clics</span>
       </h1>
 
       <div class="mt-10 flex flex-col gap-4 sm:flex-row">
@@ -20,12 +20,16 @@
         <%= link_to "Comment ça marche ?", about_path, class: "rounded-2xl border border-white/20 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-sm transition hover:bg-white/15" %>
       </div>
 
+      <%# Les 3 cards ont la même hauteur fixe et le texte y est délibérément
+           calibré à une longueur très similaire pour que visuellement les
+           trois blocs aient le même poids. Pas de sur-remplissage ni de
+           blancs disgracieux entre les cards. %>
       <div class="mt-16 flex w-full flex-col items-center justify-center gap-5 md:flex-row md:items-start md:gap-4">
 
         <div class="rounded-3xl border border-white/15 bg-black/25 p-8 text-left shadow-2xl backdrop-blur-md transition hover:bg-black/30" style="width:320px; height:320px; flex-shrink:0; overflow:hidden;">
           <div class="mb-4 flex justify-center text-5xl">🤯</div>
-          <h3 class="text-center text-2xl font-bold leading-tight text-white">Que de paperasse !</h3>
-          <p class="mt-3 text-lg leading-8 text-white/80">DPE, PV d'AG, devis, factures d'énergie, aides publiques multiples, produits bancaires foisonnants : c'est complexe d'être propriétaire.</p>
+          <h3 class="text-center text-2xl font-bold leading-tight text-white">Des aides éparpillées</h3>
+          <p class="mt-3 text-lg leading-8 text-white/80">MaPrimeRénov', CEE, éco-PTZ, aides locales… Chaque dispositif a ses règles, ses plafonds, ses pièges.</p>
         </div>
 
         <div class="flex justify-center py-2 md:hidden">
@@ -44,8 +48,8 @@
 
         <div class="rounded-3xl border border-emerald-400/35 bg-emerald-500/20 p-8 text-left shadow-2xl backdrop-blur-md transition hover:bg-emerald-500/25" style="width:320px; height:320px; flex-shrink:0; overflow:hidden;">
           <div class="mb-4 flex justify-center text-5xl">🔍</div>
-          <h3 class="text-center text-2xl font-bold leading-tight text-white">Lotys clarifie tout</h3>
-          <p class="mt-3 text-lg leading-8 text-white/85">Lotys lit vos documents, analyse vos photos, repère les aides et propose plusieurs scénarios : rénover, louer, vendre, s'agrandir, etc.</p>
+          <h3 class="text-center text-2xl font-bold leading-tight text-white">Lotys calcule tout</h3>
+          <p class="mt-3 text-lg leading-8 text-white/85">Déposez votre DPE. Lotys identifie vos travaux, chiffre votre budget et calcule vos aides à l'euro près.</p>
         </div>
 
         <div class="flex justify-center py-2 md:hidden">
@@ -64,8 +68,8 @@
 
         <div class="rounded-3xl border border-white/15 bg-black/25 p-8 text-left shadow-2xl backdrop-blur-md transition hover:bg-black/30" style="width:320px; height:320px; flex-shrink:0; overflow:hidden;">
           <div class="mb-4 flex justify-center text-5xl">🤝</div>
-          <h3 class="text-center text-2xl font-bold leading-tight text-white">Biens à rénover</h3>
-          <p class="mt-3 text-lg leading-8 text-white/80">Vous pouvez publier anonymement vos besoins et artisans, banquiers, promoteurs viennent vers vous, avec des propositions.</p>
+          <h3 class="text-center text-2xl font-bold leading-tight text-white">Les pros viennent à vous</h3>
+          <p class="mt-3 text-lg leading-8 text-white/80">Publiez anonymement votre dossier. Artisans RGE et banques partenaires vous font des propositions.</p>
         </div>
 
       </div>
@@ -79,8 +83,8 @@
       <%# Accroche %>
       <div style="text-align:center;margin-bottom:36px;">
         <p style="font-size:.75rem;font-weight:800;color:#34d399;text-transform:uppercase;letter-spacing:.12em;margin:0 0 10px;">Ancré dans votre territoire</p>
-        <h2 style="font-size:clamp(1.6rem,4vw,2.4rem);font-weight:900;color:#fff;margin:0 0 12px;line-height:1.2;">Votre bien, sur la carte.</h2>
-        <p style="font-size:1rem;color:#94a3b8;max-width:500px;margin:0 auto;">Chaque dossier est géolocalisé. Les prestataires voient vos besoins dans leur secteur — et viennent à vous.</p>
+        <h2 style="font-size:clamp(1.6rem,4vw,2.4rem);font-weight:900;color:#fff;margin:0 0 12px;line-height:1.2;">Aides locales incluses.</h2>
+        <p style="font-size:1rem;color:#94a3b8;max-width:560px;margin:0 auto;">Chaque territoire a ses propres dispositifs d'aide. Lotys les intègre — commune par commune, métropole par métropole.</p>
       </div>
 
       <%# Carte Leaflet avec biens publiés %>
@@ -160,4 +164,3 @@
 
   <%= render "shared/footer", variant: :overlay %>
 </div>
-
