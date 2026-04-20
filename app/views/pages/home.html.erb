@@ -10,9 +10,15 @@
     </div>
 
     <div class="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-6 pt-14 md:pt-2 pb-16 md:pb-16 text-center">
-      <h1 class="max-w-5xl font-serif text-5xl font-bold leading-tight text-white md:text-7xl">
-        <span class="block">Votre plan de rénovation</span>
-        <span class="text-emerald-400">thermique, en quelques clics</span>
+      <%# H1 aligné sur le style de la page /a-propos :
+           - police système sans-serif (pas font-serif)
+           - font-black (900) au lieu de font-bold
+           - leading-none et letter-spacing négatif
+           - taille responsive via clamp() %>
+      <h1 class="max-w-5xl text-white font-black leading-none"
+          style="font-size:clamp(2.8rem,6vw,4.5rem);letter-spacing:-0.03em;">
+        <span class="block">Votre plan de rénovation thermique,</span>
+        <span class="text-emerald-400">en quelques clics</span>
       </h1>
 
       <div class="mt-10 flex flex-col gap-4 sm:flex-row">
@@ -123,7 +129,7 @@
       if(attempts>0)setTimeout(function(){tryMap(attempts-1);},200);
       return;
     }
-    var map=L.map(el,{zoomControl:true,scrollWheelZoom:false}).setView([48.6921,6.1844],13);
+    var map=L.map(el,{zoomControl:true,scrollWheelZoom:true}).setView([48.6921,6.1844],13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       attribution:'&copy; OpenStreetMap contributors',maxZoom:19
     }).addTo(map);
