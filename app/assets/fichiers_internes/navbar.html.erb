@@ -1,15 +1,28 @@
 <nav class="bg-white border-b border-gray-100 px-6 py-3 sticky top-0 z-50">
-  <div class="max-w-5xl mx-auto flex items-center justify-between">
+  <div class="max-w-7xl mx-auto flex items-center justify-between">
 
     <%# Logo %>
     <a href="/" class="flex items-center gap-2">
       <%= image_tag "lotys_logo.png", height: 32, alt: "Lotys", class: "h-8 w-auto" %>
       <span class="text-xl font-bold text-emerald-600">Lotys</span>
-      <span class="hidden sm:inline text-sm font-medium text-gray-600 border-l border-gray-200 pl-3">Simplifier la rénovation thermique.</span>
+      <span class="hidden sm:inline text-sm font-medium text-gray-600 border-l border-gray-200 pl-3">Simplifier la rénovation thermique</span>
     </a>
 
     <%# Desktop %>
-    <div class="hidden md:flex items-center gap-6 text-sm">
+    <div class="hidden md:flex items-center gap-5 text-sm">
+
+      <%# Liens personas — adresse ciblée. En tête car ils sont le point
+          d'entrée principal pour les nouveaux visiteurs. %>
+      <%= link_to "Propriétaires", proprietaires_path,
+          class: "font-medium text-gray-600 hover:text-emerald-600 transition" %>
+      <%= link_to "Artisans", artisans_path,
+          class: "font-medium text-gray-600 hover:text-emerald-600 transition" %>
+      <%= link_to "Collectivités", collectivites_path,
+          class: "font-medium text-gray-600 hover:text-emerald-600 transition" %>
+
+      <%# Séparateur visuel entre liens personas et liens produit %>
+      <span class="h-4 w-px bg-gray-200" aria-hidden="true"></span>
+
       <%= link_to "Biens à rénover", offers_path,
           class: "font-medium text-gray-600 hover:text-emerald-600 transition",
           data: { turbo: false } %>
@@ -46,8 +59,25 @@
   <%# Menu mobile déroulant %>
   <div id="mobile-menu" class="md:hidden hidden mt-3 border-t border-gray-100 pt-3 pb-2">
 
-    <%# Liens principaux — alignés à gauche, taille lisible %>
-    <div class="space-y-0.5 mb-3">
+    <%# Slogan — affiché uniquement en mobile, car l'espace est suffisant
+        dans le menu déroulant contrairement à la barre horizontale. %>
+    <p class="px-4 pb-3 text-sm font-medium text-gray-600 border-b border-gray-100 mb-3">
+      Simplifier la rénovation thermique
+    </p>
+
+    <%# Groupe 1 : liens personas — point d'entrée principal %>
+    <p class="px-4 pt-1 pb-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Je suis</p>
+    <div class="space-y-0.5 mb-2">
+      <%= link_to "🏠 Propriétaire", proprietaires_path,
+          class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition" %>
+      <%= link_to "🔧 Artisan ou banquier", artisans_path,
+          class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition" %>
+      <%= link_to "🏛️ Collectivité", collectivites_path,
+          class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition" %>
+    </div>
+
+    <%# Groupe 2 : liens produit %>
+    <div class="border-t border-gray-100 pt-3 space-y-0.5 mb-3">
       <%= link_to "Biens à rénover", offers_path,
           data: { turbo: false },
           class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition" %>
@@ -59,7 +89,7 @@
       <% end %>
     </div>
 
-    <%# Séparateur + compte %>
+    <%# Groupe 3 : compte %>
     <div class="border-t border-gray-100 pt-3 space-y-0.5">
       <% if user_signed_in? %>
         <div class="px-4 py-2">

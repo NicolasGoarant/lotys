@@ -24,6 +24,27 @@
 #   result[:subventions]         # => [{ name: "MaPrimeRénov'...", amount: 16000, ... }, ...]
 #   result[:financement]         # => [{ name: "Éco-PTZ", amount: 30000, nature: :pret, ... }]
 #   result[:errors]              # => [...]
+#
+# Filtrage par cases cochées (travaux_selection sur Property) :
+#   Par défaut, le service lit tous les équipements/surfaces présents sur
+#   la propriété. Pour que le calcul reflète uniquement les macro-postes
+#   cochés par le propriétaire dans la card "Rénovation énergétique" :
+#
+#     AidCalculatorService.new(property, travaux_actifs: property.travaux_actifs).call
+#
+#   Sémantique :
+#     travaux_actifs: nil   → aucun filtre (lit tout, comportement historique).
+#     travaux_actifs: []    → filtre strict, zéro équipement autorisé.
+#                             Utile quand l'utilisateur a tout décoché.
+#     travaux_actifs: [...] → seuls les équipements et surfaces rattachés à
+#                             ces macro-postes (via TravauxMapperService::MACRO_TO_*)
+#                             entrent dans le calcul MPR Par geste, CEE et
+#                             Grand Nancy Isolation.
+#
+#   Pour les biens fraîchement créés dont travaux_selection jsonb est encore
+#   vide ({}), le controller doit passer nil plutôt que [] pour ne pas
+#   ramener les aides à zéro avant que l'utilisateur ait pu interagir
+#   avec l'UI.
 
 class AidCalculatorService
 
@@ -270,12 +291,19 @@ class AidCalculatorService
     "superieur"     => { taux_ab: 0.15, taux_ab_passoire: 0.05, plafond:  2_500 }
   }.freeze
 
-  def initialize(property)
-    @p                  = property
-    @subventions        = []
-    @aides_potentielles = []   # aides non éligibles actuellement mais qui pourraient l'être
-    @financement        = []
-    @errors             = []
+  def initialize(property, travaux_actifs: nil)
+    @p                   = property
+    # Sémantique :
+    #   nil  (défaut) → aucun filtre, lit tous les équipements/surfaces
+    #                   présents sur la propriété (comportement historique).
+    #   []            → filtre strict, zéro macro-poste autorisé.
+    #                   Utile pour le cas "utilisateur a tout décoché".
+    #   [...]         → seuls les macro-postes listés entrent dans le calcul.
+    @travaux_actifs      = travaux_actifs
+    @subventions         = []
+    @aides_potentielles  = []   # aides non éligibles actuellement mais qui pourraient l'être
+    @financement         = []
+    @errors              = []
   end
 
   def call
@@ -725,6 +753,17 @@ class AidCalculatorService
       travaux = ["ite", "vmc"]
     end
 
+    # Filtre final : si un filtre macro est actif, ne garder que les
+    # postes dont le macro parent est coché. Cela affecte notamment
+    # Grand Nancy Isolation (nb_gestes) et le calcul du forfait rénovation
+    # globale local.
+    if @travaux_actifs
+      travaux = travaux.select do |poste|
+        macro = TravauxMapperService::POSTE_TO_MACRO[poste]
+        macro && @travaux_actifs.include?(macro)
+      end
+    end
+
     travaux.uniq
   end
 
@@ -740,17 +779,20 @@ class AidCalculatorService
     # mais pour MPR Par geste on les mappe sur les 2 forfaits MPR :
     #   - surface_rampants  (= rampants + combles aménagés + sarking)
     #   - surface_toiture_terrasse
+    #
+    # On passe par surface_poste() pour que le filtre travaux_actifs
+    # (via surface_active?) s'applique automatiquement aux 6 postes.
     surface_rampants = [
-      @p.surface_sarking.to_f,        # sarking = isolation toiture par l'extérieur
-      @p.surface_combles_perdus.to_f  # plancher des combles perdus
+      surface_poste("sarking"),        # sarking = isolation toiture par l'extérieur
+      surface_poste("combles_perdus")  # plancher des combles perdus
     ].sum
 
     if surface_rampants > 0
       travaux["surface_rampants"] = { quantite: surface_rampants, unite: "m²" }
     end
 
-    if @p.surface_toiture_terrasse.to_f > 0
-      travaux["surface_toiture_terrasse"] = { quantite: @p.surface_toiture_terrasse.to_f, unite: "m²" }
+    if surface_poste("toiture_terrasse") > 0
+      travaux["surface_toiture_terrasse"] = { quantite: surface_poste("toiture_terrasse"), unite: "m²" }
     end
 
     # ITE / ITI / plancher bas : pas directement dans la grille MPR Par geste
@@ -758,6 +800,8 @@ class AidCalculatorService
     # pour les aides locales. Pour MPR Par geste, on n'ajoute rien ici.
 
     # ---- Équipements (booléens / compteurs dans equipements_selection jsonb) ----
+    # Si @travaux_actifs est défini, seuls les équipements rattachés à un
+    # macro-poste coché sont inclus. Voir TravauxMapperService::MACRO_TO_EQUIPEMENTS.
     %w[
       pac_air_eau pac_geothermique
       chauffe_eau_thermo chauffe_eau_solaire
@@ -767,12 +811,14 @@ class AidCalculatorService
       vmc_double_flux audit_energetique
     ].each do |code|
       next unless truthy?(@p.send(code))
+      next unless equipement_actif?(code)
       travaux[code] = { quantite: 1, unite: "unité" }
     end
 
     # Nombre de fenêtres simple → double vitrage
+    # Filtré par la macro "menuiseries" via equipement_actif?.
     nb = @p.nb_parois_vitrees.to_i
-    if nb > 0
+    if nb > 0 && equipement_actif?("nb_parois_vitrees")
       travaux["nb_parois_vitrees"] = { quantite: nb, unite: "équip." }
     end
 
@@ -802,9 +848,35 @@ class AidCalculatorService
     (@p.surface.to_f * 600).round
   end
 
+  # Surface d'un poste d'isolation (ite, iti, sarking, combles_perdus,
+  # toiture_terrasse, plancher_bas). Lit la colonne decimal correspondante
+  # sur Property.
+  #
+  # Si un filtre macro-postes est actif (@travaux_actifs non nil), la
+  # surface est retournée comme 0.0 quand son macro-poste parent n'est
+  # pas dans la liste des cases cochées — ce qui neutralise la surface
+  # dans les calculs MPR Par geste et Grand Nancy Isolation.
   def surface_poste(poste)
+    return 0.0 unless surface_active?(poste.to_s)
     col = "surface_#{poste}"
     @p.respond_to?(col) ? @p.send(col).to_f : 0.0
+  end
+
+  # Un poste de surface (ite, sarking, etc.) est-il autorisé par le
+  # filtre travaux_actifs ? Renvoie true sans filtre actif.
+  def surface_active?(poste)
+    return true if @travaux_actifs.nil?
+    macro = TravauxMapperService::POSTE_TO_MACRO[poste]
+    macro && @travaux_actifs.include?(macro)
+  end
+
+  # Un équipement booléen (pac_air_eau, chauffe_eau_thermo, etc.)
+  # est-il autorisé par le filtre travaux_actifs ? Renvoie true
+  # sans filtre actif.
+  def equipement_actif?(code)
+    return true if @travaux_actifs.nil?
+    @equipements_autorises ||= TravauxMapperService.equipements_for(@travaux_actifs)
+    @equipements_autorises.include?(code.to_s)
   end
 
   # store_accessor retourne "true" / "false" / true / false / nil selon les cas
@@ -822,3 +894,4 @@ class AidCalculatorService
     end
   end
 end
+

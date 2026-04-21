@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+/*
+  Force la prise en compte de la safelist. En pratique, tailwindcss-rails
+  scanne déjà app/** par défaut, donc cette directive est surtout là pour
+  expliciter l'intention et rendre le comportement robuste si la config
+  par défaut venait à changer.
+*/
+@source "./safelist.html";

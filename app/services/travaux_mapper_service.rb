@@ -5,13 +5,17 @@
 #   - un libellé affichable court
 #   - un impact DPE indicatif (nombre de classes gagnées)
 #
+# Expose aussi un mapping macro-poste ↔ équipements détaillés / surfaces,
+# utilisé par AidCalculatorService pour filtrer les aides selon les
+# cases cochées par l'utilisateur dans travaux_selection.
+#
 # Exemples :
-#   TravauxMapperService.canonical("Isolation des rampants (sarking ou ITI)")
-#     # => "isolation_toiture"
 #   TravauxMapperService.code_for_poste("Remplacement du chauffage électrique par PAC air/eau")
 #     # => "chauffage"
 #   TravauxMapperService::DPE_IMPACT["chauffage"]
 #     # => 1.5
+#   TravauxMapperService.equipements_for(["chauffage"])
+#     # => ["pac_air_eau", "pac_geothermique", "poele_buches", ...]
 #
 # Le barème DPE est une heuristique inspirée des guides ADEME.
 # Il n'est pas précis (le vrai DPE dépend d'un calcul 3CL complet), mais il
@@ -68,6 +72,63 @@ class TravauxMapperService
     "menuiseries"            => 0.5
   }.freeze
 
+  # ─── Mapping macro-poste → équipements détaillés ───────────────────
+  # Pour chaque case cochée dans travaux_selection, quels équipements
+  # booléens de equipements_selection doivent être pris en compte par
+  # MPR Par geste / CEE.
+  #
+  # Les 3 isolations n'ont aucun booléen associé : leur contribution
+  # passe exclusivement par les surfaces (voir MACRO_TO_SURFACES).
+  MACRO_TO_EQUIPEMENTS = {
+    "isolation_toiture"      => [],
+    "isolation_murs"         => [],
+    "isolation_plancher_bas" => [],
+    "chauffage"              => %w[
+      pac_air_eau pac_geothermique
+      poele_buches poele_granules insert_foyer
+      raccordement_reseau_chaleur depose_fioul
+    ],
+    "chauffe_eau"            => %w[
+      chauffe_eau_thermo chauffe_eau_solaire
+      systeme_solaire_combine pvt_eau
+    ],
+    "vmc"                    => %w[vmc_double_flux],
+    "menuiseries"            => %w[nb_parois_vitrees]
+  }.freeze
+
+  # ─── Mapping macro-poste → surfaces (colonnes decimal sur Property) ─
+  # Pour chaque case cochée, quelles surfaces entrent dans le calcul
+  # MPR Par geste et Grand Nancy Isolation.
+  MACRO_TO_SURFACES = {
+    "isolation_toiture"      => %w[sarking combles_perdus toiture_terrasse],
+    "isolation_murs"         => %w[ite iti],
+    "isolation_plancher_bas" => %w[plancher_bas],
+    "chauffage"              => [],
+    "chauffe_eau"            => [],
+    "vmc"                    => [],
+    "menuiseries"            => []
+  }.freeze
+
+  # ─── Mapping inverse : code travaux_prevus → macro-poste ────────────
+  # Utilisé par AidCalculatorService#travaux_prevus pour déterminer si
+  # un "poste" déduit de la description ou des surfaces doit être filtré.
+  POSTE_TO_MACRO = {
+    "ite"              => "isolation_murs",
+    "iti"              => "isolation_murs",
+    "sarking"          => "isolation_toiture",
+    "combles_perdus"   => "isolation_toiture",
+    "toiture_terrasse" => "isolation_toiture",
+    "plancher_bas"     => "isolation_plancher_bas",
+    "vmc"              => "vmc",
+    "menuiseries"      => "menuiseries"
+  }.freeze
+
+  # ─── Équipements qui restent actifs indépendamment des cases cochées ─
+  # audit_energetique est un acte d'accompagnement, pas un travail
+  # de rénovation : il est déclenché par l'inscription au Parcours
+  # accompagné, indépendamment de quels travaux sont choisis.
+  ALWAYS_ON_EQUIPEMENTS = %w[audit_energetique].freeze
+
   # Mappe un libellé Claude libre vers un code canonique.
   # Retourne nil si aucun match (le travail sera affiché sans checkbox).
   def self.code_for_poste(poste)
@@ -90,5 +151,38 @@ class TravauxMapperService
   def self.gain_dpe(codes_coches)
     total = codes_coches.to_a.sum { |code| DPE_IMPACT[code].to_f }
     [total.round, 5].min
+  end
+
+  # Retourne la liste des codes d'équipements autorisés par un ensemble
+  # de macro-postes actifs, en incluant les ALWAYS_ON_EQUIPEMENTS.
+  #
+  # Si macros_actifs est nil, retourne :all (pas de filtre = tout actif).
+  #
+  #   TravauxMapperService.equipements_for(nil)
+  #     # => :all
+  #   TravauxMapperService.equipements_for([])
+  #     # => ["audit_energetique"]  (seulement les always-on)
+  #   TravauxMapperService.equipements_for(["chauffage"])
+  #     # => ["pac_air_eau", "pac_geothermique", ..., "audit_energetique"]
+  def self.equipements_for(macros_actifs)
+    return :all if macros_actifs.nil?
+    codes = macros_actifs.to_a.map(&:to_s)
+    (codes.flat_map { |c| MACRO_TO_EQUIPEMENTS[c].to_a } + ALWAYS_ON_EQUIPEMENTS).uniq
+  end
+
+  # Retourne la liste des surfaces autorisées par un ensemble de
+  # macro-postes actifs.
+  #
+  # Si macros_actifs est nil, retourne :all.
+  def self.surfaces_for(macros_actifs)
+    return :all if macros_actifs.nil?
+    codes = macros_actifs.to_a.map(&:to_s)
+    codes.flat_map { |c| MACRO_TO_SURFACES[c].to_a }.uniq
+  end
+
+  # Retourne le macro-poste parent d'un poste déduit (ite, vmc, etc.)
+  # Utilisé par AidCalculatorService#travaux_prevus pour filtrage.
+  def self.macro_for_poste_prevus(poste)
+    POSTE_TO_MACRO[poste.to_s]
   end
 end

@@ -1,0 +1,145 @@
+<%# ═══════════════════════════════════════════════════════════════════════
+     /proprietaires v3
+     - Hero et CTA final en grandes cartes arrondies centrées
+       (max-width 1280px), pas en bandeaux pleine largeur.
+     - Photo : intérieur chaleureux (salon).
+     - Typo Fraunces (titres) + Inter (corps), polices grossies.
+     ═══════════════════════════════════════════════════════════════════════ %>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap">
+
+<style>
+  .lotys-page { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+  .lotys-page h1, .lotys-page h2, .lotys-page h3 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+  }
+</style>
+
+<div class="lotys-page">
+
+  <%# ── Hero en carte arrondie ────────────────────────────────── %>
+  <section style="position:relative; padding:0; overflow:hidden;">
+
+    <%# Photo intérieur chaleureux — salon lumineux %>
+    <div style="position:absolute; inset:0; z-index:0;">
+      <img src="<%= asset_path("personae/proprietaires-hero.jpg") %>"
+           alt="" style="width:100%; height:100%; object-fit:cover;">
+      <div style="position:absolute; inset:0;
+                  background:linear-gradient(135deg,rgba(15,23,42,.85) 0%,rgba(30,58,95,.78) 100%);"></div>
+    </div>
+
+    <div style="position:relative; z-index:1; padding:104px 32px 88px;">
+      <div style="max-width:880px; margin:0 auto; text-align:center; color:#fff;">
+        <p style="font-family:'Inter',sans-serif;
+                  font-size:.85rem; font-weight:700; color:#6ee7b7;
+                  text-transform:uppercase; letter-spacing:.14em;
+                  margin:0 0 20px;">
+          Pour les propriétaires
+        </p>
+        <h1 style="font-size:clamp(2.4rem,5vw,4rem); font-weight:900;
+                   line-height:1.1; letter-spacing:-0.02em; margin:0 0 28px;">
+          Votre rénovation, comprise et chiffrée en quelques minutes
+        </h1>
+        <p style="font-size:1.2rem; color:#cbd5e1; max-width:680px;
+                  margin:0 auto 40px; line-height:1.65; font-weight:400;">
+          Téléversez votre DPE. Lotys vous dit quoi faire, combien ça
+          coûte vraiment, et qui peut le faire près de chez vous.
+        </p>
+        <%= link_to "Analyser mon bien gratuitement", new_property_path,
+            style: "display:inline-block; background:#fff; color:#065f46;
+                    font-weight:700; font-size:1.1rem; padding:18px 42px;
+                    border-radius:16px; text-decoration:none;
+                    box-shadow:0 8px 32px rgba(0,0,0,.2);" %>
+      </div>
+    </div>
+  </section>
+
+  <%# ── Les 3 apports ──────────────────────────────────────────── %>
+  <section style="background:#ffffff; padding:96px 24px;">
+    <div style="max-width:1100px; margin:0 auto;">
+
+      <div style="display:grid;
+                  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+                  gap:48px;">
+
+        <div style="text-align:center;">
+          <div style="font-size:3.5rem; margin-bottom:24px;">📋</div>
+          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
+                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
+            Comprendre ce qu'il faut faire
+          </h2>
+          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
+            Lotys lit votre DPE et vous propose un plan de travaux clair :
+            quels postes, quel ordre, quel saut de classe énergétique
+            atteignable.
+          </p>
+        </div>
+
+        <div style="text-align:center;">
+          <div style="font-size:3.5rem; margin-bottom:24px;">💶</div>
+          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
+                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
+            Savoir combien ça coûte vraiment
+          </h2>
+          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
+            MaPrimeRénov', CEE, éco-PTZ, <strong>plus les aides de votre
+            métropole ou intercommunalité</strong>. Lotys calcule tout
+            et vous montre le reste à votre charge.
+          </p>
+        </div>
+
+        <div style="text-align:center;">
+          <div style="font-size:3.5rem; margin-bottom:24px;">🤝</div>
+          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
+                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
+            Trouver un artisan, sans démarchage
+          </h2>
+          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
+            Publiez votre dossier si vous le souhaitez. Les artisans RGE
+            de votre territoire <strong>vous contactent</strong> avec
+            leurs propositions. Vous choisissez.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <%# ── CTA final en carte arrondie ──────────────────────────── %>
+  <section style="position:relative; padding:0; overflow:hidden;">
+
+    <div style="position:absolute; inset:0; z-index:0;">
+      <img src="<%= asset_path("personae/proprietaires-cta.jpg") %>"
+           alt="" style="width:100%; height:100%; object-fit:cover;">
+      <div style="position:absolute; inset:0;
+                  background:linear-gradient(135deg,rgba(15,23,42,.92) 0%,rgba(30,58,95,.88) 100%);"></div>
+    </div>
+
+    <div style="position:relative; z-index:1; padding:88px 32px;">
+      <div style="max-width:760px; margin:0 auto; text-align:center; color:#fff;">
+
+        <h2 style="font-size:clamp(1.7rem,4vw,2.4rem); font-weight:900;
+                   margin:0 0 20px; letter-spacing:-0.02em; line-height:1.2;">
+          Gratuit, sans engagement, sans inscription préalable
+        </h2>
+        <p style="font-size:1.15rem; color:#cbd5e1; max-width:600px;
+                  margin:0 auto 36px; line-height:1.65;">
+          L'analyse DPE et le calcul d'aides sont libres d'accès. Vous créez
+          un compte uniquement si vous voulez sauvegarder votre plan ou
+          publier votre dossier.
+        </p>
+
+        <%= link_to "Analyser mon bien gratuitement", new_property_path,
+            style: "display:inline-block; background:#fff; color:#065f46;
+                    font-weight:700; font-size:1.1rem; padding:18px 42px;
+                    border-radius:16px; text-decoration:none;
+                    box-shadow:0 8px 32px rgba(0,0,0,.2);" %>
+      </div>
+    </div>
+  </section>
+
+</div>

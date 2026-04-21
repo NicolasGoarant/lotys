@@ -25,7 +25,24 @@ class PropertiesController < ApplicationController
 
   def show
     if user_signed_in? && current_user == @property.user
-      @aid_result = AidCalculatorService.new(@property).call
+      # On passe travaux_actifs pour que le calcul d'aides reflète les
+      # cases cochées par le propriétaire dans la card "Rénovation énergétique"
+      # (travaux_selection jsonb). Sans ce paramètre, le service lirait
+      # l'intégralité d'equipements_selection pré-rempli par l'analyse Claude,
+      # ce qui surestimerait les aides une fois que l'utilisateur a décoché
+      # un ou plusieurs travaux.
+      #
+      # Distinction importante :
+      #   - travaux_selection jsonb vide ({}) → le bien vient d'être créé,
+      #     l'utilisateur n'a rien vu encore : on passe nil (pas de filtre).
+      #   - travaux_selection rempli avec toutes les cases décochées
+      #     (ex. {"chauffage"=>false,...}) → on passe [] au service pour
+      #     refléter le choix explicite de l'utilisateur (aides = 0).
+      travaux_actifs_param = @property.travaux_selection.present? ? @property.travaux_actifs : nil
+      @aid_result = AidCalculatorService.new(
+        @property,
+        travaux_actifs: travaux_actifs_param
+      ).call
     end
     respond_to do |format|
       format.html
@@ -287,3 +304,4 @@ class PropertiesController < ApplicationController
     )
   end
 end
+
