@@ -76,7 +76,7 @@ gem "redcarpet"
 
 gem "good_job"
 
-gem "aws-sdk-s3", "~> 1.219"
+gem "aws-sdk-s3", "~> 1.220"
 
 gem "mini_magick", "~> 5.3"
 gem "rack-attack"
