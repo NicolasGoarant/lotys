@@ -29,8 +29,6 @@
     <%= yield %>
   </main>
 
-  <% unless controller_name == "pages" && action_name == "home" %>
-    <%= render "shared/footer", variant: :default %>
-  <% end %>
+  <%= render "shared/footer", variant: :default %>
 </body>
 </html>
