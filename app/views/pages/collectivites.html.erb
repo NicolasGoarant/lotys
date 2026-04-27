@@ -1,156 +1,153 @@
-<%# ═══════════════════════════════════════════════════════════════════════
-     /collectivites v3
-     - Photo : bâtiment institutionnel (mairie/hôtel d'agglo style français)
-     - Hero et CTA en cartes arrondies centrées
-     - Typo Fraunces + Inter, polices grossies
-     ═══════════════════════════════════════════════════════════════════════ %>
+<%# collectivites.html.erb — page B2G EPCI (v3 : pitch resserré, sans PDF) %>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap">
-
-<style>
-  .lotys-page { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-  .lotys-page h1, .lotys-page h2, .lotys-page h3 {
-    font-family: 'Fraunces', Georgia, serif;
-    font-optical-sizing: auto;
-  }
-</style>
-
-<div class="lotys-page">
-
-  <%# ── Hero — bâtiment institutionnel ──────────────────────── %>
-  <section style="position:relative; padding:0; overflow:hidden;">
-
-    <%# Photo : bâtiment institutionnel, façade pierre claire,
-        évoque sans ambiguïté l'institution publique. %>
-    <div style="position:absolute; inset:0; z-index:0;">
-      <img src="<%= asset_path("personae/collectivites-hero.jpg") %>"
-           alt="" style="width:100%; height:100%; object-fit:cover;">
-      <div style="position:absolute; inset:0;
-                  background:linear-gradient(135deg,rgba(15,23,42,.85) 0%,rgba(30,58,95,.78) 100%);"></div>
-    </div>
-
-    <div style="position:relative; z-index:1; padding:104px 32px 88px;">
-      <div style="max-width:880px; margin:0 auto; text-align:center; color:#fff;">
-        <p style="font-family:'Inter',sans-serif;
-                  font-size:.85rem; font-weight:700; color:#6ee7b7;
-                  text-transform:uppercase; letter-spacing:.14em;
-                  margin:0 0 20px;">
-          Pour les intercommunalités
-        </p>
-        <h1 style="font-size:clamp(2.4rem,5vw,4rem); font-weight:900;
-                   line-height:1.1; letter-spacing:-0.02em; margin:0 0 28px;">
-          Accélérer la rénovation thermique sur votre territoire
-        </h1>
-        <p style="font-size:1.2rem; color:#cbd5e1; max-width:680px;
-                  margin:0 auto 40px; line-height:1.65; font-weight:400;">
-          Lotys équipe votre EPCI d'un outil unique pour vos habitants,
-          vos artisans, et pour rendre visibles les dispositifs que
-          vous engagez.
-        </p>
-        <%= link_to "Prendre rendez-vous", contact_path,
-            style: "display:inline-block; background:#10b981; color:#fff;
-                    font-weight:700; font-size:1.1rem; padding:18px 42px;
-                    border-radius:16px; text-decoration:none;
-                    box-shadow:0 8px 32px rgba(0,0,0,.3);" %>
-      </div>
-    </div>
-  </section>
-
-  <%# ── Les 3 apports ──────────────────────────────────────────── %>
-  <section style="background:#ffffff; padding:96px 24px;">
-    <div style="max-width:1100px; margin:0 auto;">
-
-      <div style="display:grid;
-                  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-                  gap:48px;">
-
-        <div style="text-align:center;">
-          <div style="font-size:3.5rem; margin-bottom:24px;">🏠</div>
-          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
-                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
-            Les habitants y voient plus clair
-          </h2>
-          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
-            Un simulateur qui combine les aides nationales et
-            <strong>vos dispositifs locaux</strong>, commune par commune.
-            Le plan de rénovation, son coût réel, ses étapes — en quelques
-            minutes.
-          </p>
-        </div>
-
-        <div style="text-align:center;">
-          <div style="font-size:3.5rem; margin-bottom:24px;">🔧</div>
-          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
-                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
-            Les artisans accèdent aux projets
-          </h2>
-          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
-            Les artisans RGE de votre territoire consultent les dossiers
-            publiés par les habitants. <strong>Prospection qualifiée et
-            locale</strong>, sans démarchage à froid.
-          </p>
-        </div>
-
-        <div style="text-align:center;">
-          <div style="font-size:3.5rem; margin-bottom:24px;">📣</div>
-          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
-                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
-            Vos dispositifs sont davantage visibles
-          </h2>
-          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
-            Les aides que votre EPCI engage sont intégrées au simulateur,
-            chiffrées dans chaque plan, <strong>connues et activées</strong>
-            par les habitants qui y ont droit.
-          </p>
-        </div>
-
-      </div>
-    </div>
-  </section>
-
-  <%# ── CTA final en carte arrondie ──────────────────────────── %>
-  <section style="position:relative; padding:0; overflow:hidden;">
-
-    <%# Photo : autre bâtiment institutionnel ou place publique %>
-    <div style="position:absolute; inset:0; z-index:0;">
-      <img src="<%= asset_path("personae/collectivites-cta.jpg") %>"
-           alt="" style="width:100%; height:100%; object-fit:cover;">
-      <div style="position:absolute; inset:0;
-                  background:linear-gradient(135deg,rgba(15,23,42,.92) 0%,rgba(30,58,95,.88) 100%);"></div>
-    </div>
-
-    <div style="position:relative; z-index:1; padding:88px 32px;">
-      <div style="max-width:760px; margin:0 auto; text-align:center; color:#fff;">
-
-        <h2 style="font-size:clamp(1.7rem,4vw,2.4rem); font-weight:900;
-                   margin:0 0 20px; letter-spacing:-0.02em; line-height:1.2;">
-          Discutons de votre territoire
-        </h2>
-        <p style="font-size:1.15rem; color:#cbd5e1; max-width:600px;
-                  margin:0 auto 36px; line-height:1.65;">
-          Chaque intercommunalité est un cas particulier. La meilleure
-          façon de savoir ce que Lotys peut apporter au vôtre, c'est
-          d'en parler.
-        </p>
-
-        <%= link_to "Prendre rendez-vous", contact_path,
-            style: "display:inline-block; background:#10b981; color:#fff;
-                    font-weight:700; font-size:1.1rem; padding:18px 42px;
-                    border-radius:16px; text-decoration:none;
-                    box-shadow:0 8px 32px rgba(0,0,0,.3);
-                    margin-right:16px;" %>
-
-        <a href="mailto:contact@lotys.fr"
-           style="display:inline-block; color:#6ee7b7; font-weight:600;
-                  font-size:1.05rem; padding:18px 0; text-decoration:underline;">
-          contact@lotys.fr
-        </a>
-
-      </div>
-    </div>
-  </section>
-
+<%# ── Hero ── %>
+<div class="relative w-full overflow-hidden" style="min-height:480px;">
+  <img src="https://images.unsplash.com/photo-1577415124269-fc1140a69e91?w=1600&q=85"
+       alt="Hôtel de ville"
+       class="absolute inset-0 w-full h-full object-cover">
+  <div class="absolute inset-0"
+       style="background:linear-gradient(90deg,rgba(15,23,42,0.96) 0%,rgba(15,23,42,0.85) 50%,rgba(15,23,42,0.55) 100%);"></div>
+  <div class="relative max-w-5xl mx-auto px-6 py-20">
+    <span class="inline-block bg-emerald-500/20 text-emerald-300 text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full border border-emerald-500/40 mb-6">
+      Pour les EPCI
+    </span>
+    <h1 class="text-white font-black leading-tight mb-6"
+        style="font-size:clamp(2.4rem,5vw,3.8rem); letter-spacing:-0.03em;">
+      Vos aides locales,<br>
+      <span class="text-emerald-400">intégrées au parcours rénovation.</span>
+    </h1>
+    <p class="text-gray-100 leading-relaxed mb-8 max-w-2xl"
+       style="font-size:1.15rem; text-shadow:0 2px 8px rgba(0,0,0,0.4);">
+      Lotys est la plateforme qui articule MaPrimeRénov', CEE, éco-PTZ et
+      <strong>vos dispositifs locaux</strong> dans un seul parcours, pour les
+      propriétaires de votre territoire.
+    </p>
+    <%= link_to "Échangeons 30 minutes", "mailto:contact@lotys.fr",
+        class: "inline-flex items-center gap-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold px-8 py-4 rounded-2xl transition-colors",
+        style: "font-size:1.15rem;" %>
+  </div>
 </div>
+
+<%# ── 3 cards proposition de valeur ── %>
+<section class="py-14 px-6">
+  <div class="max-w-5xl mx-auto">
+    <h2 class="font-black text-gray-900 text-center mb-3" style="font-size:2rem;">Ce que Lotys fait pour votre territoire</h2>
+    <p class="text-gray-500 text-center mb-12" style="font-size:1.15rem;">Trois besoins métier, un seul outil branché à votre EPCI.</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12">
+
+      <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
+        <div class="p-8">
+          <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-5" style="background:#dcfce7;">🧮</div>
+          <h3 class="font-black text-gray-900 mb-3" style="font-size:1.35rem;">Vos aides, intégrées</h3>
+          <p class="text-gray-700 leading-relaxed" style="font-size:1.1rem;">
+            Vos dispositifs locaux apparaissent en cohérence avec MaPrimeRénov',
+            CEE et éco-PTZ. L'habitant voit le total à l'euro près, sans démarches multiples.
+          </p>
+        </div>
+      </div>
+
+      <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
+        <div class="p-8">
+          <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-5" style="background:#dbeafe;">🏠</div>
+          <h3 class="font-black text-gray-900 mb-3" style="font-size:1.35rem;">Un parcours clair</h3>
+          <p class="text-gray-700 leading-relaxed" style="font-size:1.1rem;">
+            Le propriétaire dépose son DPE, voit ses travaux prioritaires, ses aides
+            calculées et son reste à charge. Sans appel à votre service, sans formulaire
+            complexe.
+          </p>
+        </div>
+      </div>
+
+      <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
+        <div class="p-8">
+          <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-5" style="background:#fef3c7;">📊</div>
+          <h3 class="font-black text-gray-900 mb-3" style="font-size:1.35rem;">Piloter votre politique</h3>
+          <p class="text-gray-700 leading-relaxed" style="font-size:1.1rem;">
+            Tableau de bord : passoires thermiques sur votre territoire,
+            vitesse de rénovation, dispositifs les plus mobilisés. Pour ajuster
+            votre stratégie en continu.
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+    <%# ── Vignette "Et demain" : juste sous les cards, dans le même fil narratif ── %>
+    <div class="max-w-3xl mx-auto mt-14">
+      <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 flex items-start gap-4">
+        <div class="text-2xl shrink-0">📋</div>
+        <div>
+          <p class="text-sm font-black text-amber-900 uppercase tracking-wider mb-2">Et demain</p>
+          <p class="text-gray-700 leading-relaxed" style="font-size:1.08rem;">
+            Le projet de loi « relance logement » présenté en avril 2026 prévoit de confier
+            aux intercommunalités la gestion de MaPrimeRénov'. Lotys, déjà construit autour
+            de cette articulation national + local, sera prêt le jour où vous récupérerez
+            cette compétence.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<%# ── Cas pratique Grand Nancy ── %>
+<section class="py-14 px-6 bg-gray-50 border-y border-gray-100">
+  <div class="max-w-5xl mx-auto">
+    <div class="grid md:grid-cols-2 gap-12 items-center">
+      <div>
+        <span class="inline-block text-emerald-700 text-xs font-black uppercase tracking-widest mb-4">Cas pratique</span>
+        <h2 class="font-black text-gray-900 mb-5" style="font-size:1.8rem;">Métropole du Grand Nancy</h2>
+        <p class="text-gray-700 leading-relaxed mb-4" style="font-size:1.15rem;">
+          Lotys intègre déjà les dispositifs spécifiques de la Métropole du Grand Nancy :
+          <strong>Rénovation Globale</strong> (active sous condition selon le cumul avec MPR Parcours
+          Accompagné), <strong>CEE bonifiés territoriaux</strong>, et <strong>aides ciblées passoires thermiques</strong>.
+        </p>
+        <p class="text-gray-700 leading-relaxed" style="font-size:1.15rem;">
+          Quand un propriétaire de Nancy déclenche une simulation, il voit en temps réel
+          comment l'aide locale s'articule avec les dispositifs nationaux.
+          C'est ce niveau d'intégration territoriale que Lotys peut déployer pour votre EPCI.
+        </p>
+      </div>
+      <div class="rounded-3xl overflow-hidden border border-gray-200 bg-white shadow-md">
+        <div class="aspect-video bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center">
+          <div class="text-center p-6">
+            <div class="text-5xl mb-3">🗺️</div>
+            <p class="text-gray-600 font-semibold">Démonstration disponible<br>sur lotys.fr</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<%# ── CTA final + profil intégrés sur fond uni ── %>
+<section class="py-14 px-6">
+  <div class="max-w-3xl mx-auto text-center mb-10">
+    <h2 class="font-black text-gray-900 mb-4" style="font-size:1.8rem;">Discutons de votre territoire</h2>
+    <p class="text-gray-600 leading-relaxed mb-6" style="font-size:1.15rem;">
+      Présentation de l'outil, modèle économique, conditions de déploiement.
+      Un échange de 30 minutes pour voir si Lotys correspond à vos besoins.
+    </p>
+    <%= link_to "contact@lotys.fr", "mailto:contact@lotys.fr",
+        class: "inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-10 py-4 rounded-2xl transition-colors",
+        style: "font-size:1.15rem;" %>
+  </div>
+
+  <%# Profil discret %>
+  <div class="max-w-3xl mx-auto">
+    <div class="flex items-center gap-5 p-6 rounded-2xl border border-gray-100 bg-gray-50">
+      <%= image_tag "NG.png",
+          alt: "Nicolas Goarant",
+          class: "w-16 h-16 rounded-full object-cover shrink-0 border-2 border-white shadow-sm" %>
+      <div>
+        <p class="font-bold text-gray-900">Nicolas Goarant</p>
+        <p class="text-base text-gray-600 leading-relaxed">
+          Fondateur de Lotys. 15 ans en cabinet politique territorial
+          (Métropole du Grand Nancy, Assemblée nationale, Ville de Paris).
+          Formation data science (Le Wagon, 2026).
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
