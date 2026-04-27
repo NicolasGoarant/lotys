@@ -1,0 +1,2281 @@
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/layouts/devise.html.erb
+═══════════════════════════════════════════════════════════════
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lotys — L'immobilier, enfin lisible</title>
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+  <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+  <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+  <%= javascript_importmap_tags %>
+</head>
+<body class="bg-white text-gray-900 antialiased">
+  <%= render "shared/navbar" %>
+  <% if notice.present? %>
+    <div class="mx-auto mt-4 w-full max-w-5xl rounded-xl bg-green-50 px-4 py-3 text-green-700">
+      <%= notice %>
+    </div>
+  <% end %>
+  <% if alert.present? %>
+    <div class="mx-auto mt-4 w-full max-w-5xl rounded-xl bg-red-50 px-4 py-3 text-red-700">
+      <%= alert %>
+    </div>
+  <% end %>
+  <%= yield %>
+  <%= render "shared/footer" %>
+</body>
+</html>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/layouts/application.html.erb
+═══════════════════════════════════════════════════════════════
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lotys — L'immobilier, enfin lisible</title>
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+  <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+  <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+  <%= javascript_importmap_tags %>
+</head>
+<body class="min-h-screen bg-white text-gray-900">
+  <%= render "shared/navbar" %>
+
+  <% if notice.present? %>
+    <div class="mx-auto mt-4 w-full max-w-5xl rounded-xl bg-green-50 px-4 py-3 text-green-700">
+      <%= notice %>
+    </div>
+  <% end %>
+
+  <% if alert.present? %>
+    <div class="mx-auto mt-4 w-full max-w-5xl rounded-xl bg-red-50 px-4 py-3 text-red-700">
+      <%= alert %>
+    </div>
+  <% end %>
+
+  <main>
+    <%= yield %>
+  </main>
+
+  <% unless controller_name == "pages" && action_name == "home" %>
+    <%= render "shared/footer", variant: :default %>
+  <% end %>
+</body>
+</html>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/layouts/mailer.text.erb
+═══════════════════════════════════════════════════════════════
+<%= yield %>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/layouts/mailer.html.erb
+═══════════════════════════════════════════════════════════════
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <style>
+      /* Email styles need to be inline */
+    </style>
+  </head>
+
+  <body>
+    <%= yield %>
+  </body>
+</html>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/shared/_footer.html.erb
+═══════════════════════════════════════════════════════════════
+<% variant ||= :default %>
+
+<% if variant.to_sym == :overlay %>
+  <footer class="absolute bottom-0 left-0 right-0 z-20 border-t border-white/10 bg-black/20 backdrop-blur-sm">
+    <div class="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-4 text-sm text-white/80 md:flex-row md:items-center md:justify-between">
+      <div>
+        <span class="font-semibold text-white">Lotys</span>
+        <span class="ml-2">Rénover, sans se perdre.</span>
+      </div>
+
+      <div class="flex flex-wrap gap-4">
+        <%= link_to "Comment ça marche", about_path, class: "transition hover:text-white" %>
+        <%= link_to "Mentions légales", mentions_legales_path, class: "transition hover:text-white" %>
+        <%= link_to "Confidentialité", confidentialite_path, class: "transition hover:text-white" %>
+        <%= link_to "Contact", contact_path, class: "transition hover:text-white" %>
+      </div>
+    </div>
+  </footer>
+<% else %>
+  <footer class="border-t border-gray-200 bg-white">
+    <div class="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-8 text-sm text-gray-600 md:flex-row md:items-center md:justify-between">
+      <div>
+        <span class="font-semibold text-gray-900">Lotys</span>
+        <span class="ml-2">Rénover, sans se perdre.</span>
+      </div>
+
+      <div class="flex flex-wrap gap-4">
+        <%= link_to "Comment ça marche", about_path, class: "transition hover:text-gray-900" %>
+        <%= link_to "Mentions légales", mentions_legales_path, class: "transition hover:text-gray-900" %>
+        <%= link_to "Confidentialité", confidentialite_path, class: "transition hover:text-gray-900" %>
+        <%= link_to "Contact", contact_path, class: "transition hover:text-gray-900" %>
+      </div>
+    </div>
+  </footer>
+<% end %>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/shared/_navbar.html.erb
+═══════════════════════════════════════════════════════════════
+<nav class="bg-white border-b border-gray-100 px-6 py-3 sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto flex items-center justify-between">
+
+    <%# Logo %>
+    <a href="/" class="flex items-center gap-2">
+      <%= image_tag "lotys_logo.png", height: 32, alt: "Lotys", class: "h-8 w-auto" %>
+      <span class="text-xl font-bold text-emerald-600">Lotys</span>
+      <span class="hidden sm:inline text-sm font-medium text-gray-600 border-l border-gray-200 pl-3">Simplifier la rénovation thermique</span>
+    </a>
+
+    <%# Desktop %>
+    <div class="hidden md:flex items-center gap-5 text-sm">
+
+      <%# Liens personas — adresse ciblée. En tête car ils sont le point
+          d'entrée principal pour les nouveaux visiteurs. %>
+      <%= link_to "Propriétaires", proprietaires_path,
+          class: "font-medium text-gray-600 hover:text-emerald-600 transition" %>
+      <%= link_to "Artisans", artisans_path,
+          class: "font-medium text-gray-600 hover:text-emerald-600 transition" %>
+      <%= link_to "Collectivités", collectivites_path,
+          class: "font-medium text-gray-600 hover:text-emerald-600 transition" %>
+
+      <%# Séparateur visuel entre liens personas et liens produit %>
+      <span class="h-4 w-px bg-gray-200" aria-hidden="true"></span>
+
+      <%= link_to "Biens à rénover", offers_path,
+          class: "font-medium text-gray-600 hover:text-emerald-600 transition",
+          data: { turbo: false } %>
+      <%= link_to "Comment ça marche", about_path,
+          class: "font-medium text-gray-600 hover:text-emerald-600 transition" %>
+      <% if user_signed_in? %>
+        <%= link_to "Mes biens", properties_path,
+            class: "font-medium text-gray-600 hover:text-emerald-600 transition" %>
+        <div class="flex items-center gap-3 border-l border-gray-200 pl-4">
+          <span class="text-xs text-gray-400"><%= current_user.email.split("@").first %></span>
+          <%= link_to "Déconnexion", destroy_user_session_path,
+              data: { turbo_method: :delete },
+              class: "text-xs text-gray-400 hover:text-red-500 transition" %>
+        </div>
+      <% else %>
+        <%= link_to "Connexion", new_user_session_path,
+            class: "font-medium text-gray-600 hover:text-emerald-600 transition" %>
+        <%= link_to "Analyser mon bien", new_property_path,
+            class: "bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition font-semibold" %>
+      <% end %>
+    </div>
+
+    <%# Mobile : burger %>
+    <button id="burger-btn"
+            class="md:hidden flex flex-col gap-1.5 p-2 rounded-xl hover:bg-gray-50 transition"
+            onclick="toggleMenu()"
+            aria-label="Menu">
+      <span class="block w-6 h-0.5 bg-gray-700 transition-all duration-300 rounded-full" id="b1"></span>
+      <span class="block w-6 h-0.5 bg-gray-700 transition-all duration-300 rounded-full" id="b2"></span>
+      <span class="block w-6 h-0.5 bg-gray-700 transition-all duration-300 rounded-full" id="b3"></span>
+    </button>
+  </div>
+
+  <%# Menu mobile déroulant %>
+  <div id="mobile-menu" class="md:hidden hidden mt-3 border-t border-gray-100 pt-3 pb-2">
+
+    <%# Slogan — affiché uniquement en mobile, car l'espace est suffisant
+        dans le menu déroulant contrairement à la barre horizontale. %>
+    <p class="px-4 pb-3 text-sm font-medium text-gray-600 border-b border-gray-100 mb-3">
+      Simplifier la rénovation thermique
+    </p>
+
+    <%# Groupe 1 : liens personas — point d'entrée principal %>
+    <p class="px-4 pt-1 pb-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Je suis</p>
+    <div class="space-y-0.5 mb-2">
+      <%= link_to "🏠 Propriétaire", proprietaires_path,
+          class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition" %>
+      <%= link_to "🔧 Artisan ou banquier", artisans_path,
+          class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition" %>
+      <%= link_to "🏛️ Collectivité", collectivites_path,
+          class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition" %>
+    </div>
+
+    <%# Groupe 2 : liens produit %>
+    <div class="border-t border-gray-100 pt-3 space-y-0.5 mb-3">
+      <%= link_to "Biens à rénover", offers_path,
+          data: { turbo: false },
+          class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition" %>
+      <%= link_to "Comment ça marche", about_path,
+          class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition" %>
+      <% if user_signed_in? %>
+        <%= link_to "Mes biens", properties_path,
+            class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition" %>
+      <% end %>
+    </div>
+
+    <%# Groupe 3 : compte %>
+    <div class="border-t border-gray-100 pt-3 space-y-0.5">
+      <% if user_signed_in? %>
+        <div class="px-4 py-2">
+          <p class="text-xs text-gray-400"><%= current_user.email %></p>
+        </div>
+        <%= link_to "Déconnexion", destroy_user_session_path,
+            data: { turbo_method: :delete },
+            class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-red-500 hover:bg-red-50 rounded-xl transition" %>
+      <% else %>
+        <%= link_to "Connexion", new_user_session_path,
+            class: "flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition" %>
+        <%= link_to "Analyser mon bien gratuitement →", new_property_path,
+            class: "block mx-4 mt-2 py-3 text-sm text-center bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition" %>
+      <% end %>
+    </div>
+
+  </div>
+</nav>
+
+<script>
+function toggleMenu() {
+  const menu = document.getElementById('mobile-menu');
+  const b1 = document.getElementById('b1');
+  const b2 = document.getElementById('b2');
+  const b3 = document.getElementById('b3');
+  const open = !menu.classList.contains('hidden');
+  menu.classList.toggle('hidden');
+  if (!open) {
+    b1.style.transform = 'translateY(8px) rotate(45deg)';
+    b2.style.opacity   = '0';
+    b3.style.transform = 'translateY(-8px) rotate(-45deg)';
+  } else {
+    b1.style.transform = '';
+    b2.style.opacity   = '1';
+    b3.style.transform = '';
+  }
+}
+</script>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/pages/amenagement_combles.html.erb
+═══════════════════════════════════════════════════════════════
+<%# app/views/pages/amenagement_combles.html.erb %>
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+
+  <div class="mb-8">
+    <a href="javascript:history.back()" class="text-sm text-gray-400 hover:text-emerald-600 transition">← Retour</a>
+    <h1 class="text-3xl font-black text-gray-900 mt-4 mb-2">🏗️ Aménager ses combles</h1>
+    <p class="text-gray-500 text-lg">Créer de la surface habitable supplémentaire sans toucher à l'emprise au sol.</p>
+  </div>
+
+  <%# Potentiel %>
+  <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-blue-900 mb-3">📐 Êtes-vous concerné ?</h2>
+    <p class="text-blue-800 text-sm leading-relaxed mb-3">L'aménagement est possible si la <strong>hauteur sous faîtage est supérieure à 1,80 m</strong> sur au moins une partie des combles. En dessous, les travaux ne sont généralement pas rentables.</p>
+    <ul class="space-y-2 text-blue-800 text-sm">
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Maisons construites avant 1970 :</strong> souvent des combles perdus avec bon potentiel — charpentes traditionnelles avec espace suffisant.</span></li>
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Toiture à deux pans :</strong> plus favorable qu'une toiture plate ou à quatre pans très évasée.</span></li>
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✗</span><span><strong>Charpente industrielle (fermettes) :</strong> difficile et coûteux à aménager — renforcement structurel souvent nécessaire.</span></li>
+    </ul>
+  </div>
+
+  <%# Types de travaux %>
+  <h2 class="text-xl font-bold text-gray-900 mb-4">🔨 Les types de travaux</h2>
+  <div class="space-y-4 mb-6">
+
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-start justify-between mb-2">
+        <p class="font-bold text-gray-900">Aménagement de combles perdus</p>
+        <span class="text-sm font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full shrink-0">800 – 1 500 €/m²</span>
+      </div>
+      <p class="text-base text-gray-600 leading-relaxed">Isolation, plancher, escalier, fenêtres de toit (Velux). Le plus courant et le moins cher. Résultat : 1 à 2 pièces supplémentaires selon la surface.</p>
+    </div>
+
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-start justify-between mb-2">
+        <p class="font-bold text-gray-900">Surélévation partielle</p>
+        <span class="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full shrink-0">1 500 – 3 000 €/m²</span>
+      </div>
+      <p class="text-base text-gray-600 leading-relaxed">Rehaussement de la toiture pour gagner de la hauteur. Nécessite un permis de construire, une étude structurelle et souvent un architecte. Fort potentiel de valorisation.</p>
+    </div>
+
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-start justify-between mb-2">
+        <p class="font-bold text-gray-900">Conversion en appartement séparé</p>
+        <span class="text-sm font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-full shrink-0">2 000 – 4 000 €/m²</span>
+      </div>
+      <p class="text-base text-gray-600 leading-relaxed">Création d'un logement indépendant avec entrée, kitchenette et salle de bain. Nécessite un changement de destination, une déclaration préalable minimum, et parfois un permis.</p>
+    </div>
+
+  </div>
+
+  <%# Réglementation %>
+  <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-4">📋 Réglementation et autorisations</h2>
+    <div class="space-y-3 text-base text-gray-700">
+      <div>
+        <p class="font-bold text-gray-800 mb-1 text-base">Déclaration préalable de travaux</p>
+        <p>Suffisante si la surface créée est inférieure à 40 m² (20 m² en dehors des zones urbaines couvertes par un PLU). Délai d'instruction : 1 mois.</p>
+      </div>
+      <div>
+        <p class="font-bold text-gray-800 mb-1 text-base">Permis de construire</p>
+        <p>Obligatoire si la surface totale du logement dépasse 150 m² après travaux, ou si l'emprise au sol augmente de plus de 40 m² (20 m² hors PLU). Délai : 2 à 3 mois.</p>
+      </div>
+      <div>
+        <p class="font-bold text-gray-800 mb-1 text-base">PLU de Nancy</p>
+        <p>Vérifiez les règles de hauteur maximale et le coefficient d'emprise au sol applicables à votre parcelle. Certains secteurs du centre-ville ont des contraintes ABF (architectes des Bâtiments de France).</p>
+        <a href="https://www.grandnancy.eu/urbanisme" target="_blank" class="text-emerald-600 hover:underline text-xs mt-1 block">Plan local d'urbanisme Nancy →</a>
+      </div>
+    </div>
+  </div>
+
+  <%# Aides %>
+  <h2 class="text-xl font-bold text-gray-900 mb-4">💰 Aides mobilisables</h2>
+  <div class="space-y-3 mb-8">
+    <div class="flex items-start gap-4 bg-emerald-50 rounded-xl px-4 py-3">
+      <div class="flex-1">
+        <p class="font-semibold text-emerald-900 text-sm">MaPrimeRénov' (si isolation incluse)</p>
+        <p class="text-xs text-emerald-700">Si l'aménagement inclut une isolation thermique performante des combles, les travaux d'isolation peuvent être éligibles au parcours par geste.</p>
+      </div>
+    </div>
+    <div class="flex items-start gap-4 bg-blue-50 rounded-xl px-4 py-3">
+      <div class="flex-1">
+        <p class="font-semibold text-blue-900 text-sm">Éco-PTZ</p>
+        <p class="text-xs text-blue-700">Si l'isolation des combles fait partie d'un bouquet de travaux énergétiques, l'Éco-PTZ peut financer jusqu'à 30 000 €.</p>
+      </div>
+    </div>
+    <div class="flex items-start gap-4 bg-gray-50 rounded-xl px-4 py-3">
+      <div class="flex-1">
+        <p class="font-semibold text-gray-800 text-sm">TVA à 10%</p>
+        <p class="text-xs text-gray-600">Les travaux de rénovation dans un logement de plus de 2 ans bénéficient de la TVA réduite à 10% au lieu de 20%.</p>
+      </div>
+    </div>
+  </div>
+
+  <%# Par où commencer %>
+  <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-lg font-bold text-gray-800 mb-3">🔧 Par où commencer ?</h2>
+    <ol class="space-y-2 text-base text-gray-700">
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span><span>Mesurez la hauteur sous faîtage — si elle dépasse 1,80 m sur plus de 8 m², le projet est envisageable.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span><span>Identifiez le type de charpente (traditionnelle ou industrielle) — en cas de doute, faites appel à un charpentier ou un architecte pour un diagnostic.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span><span>Consultez les règles du PLU de Nancy en mairie ou sur le guichet en ligne du Grand Nancy.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">4</span><span>Demandez 2 à 3 devis à des entreprises spécialisées en aménagement de combles — les prix varient beaucoup.</span></li>
+    </ol>
+  </div>
+
+  <%# Exemples concrets %>
+  <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-5">💡 Trois exemples concrets</h2>
+    <div class="space-y-5">
+
+      <div class="border-l-4 border-blue-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Maison 80 m² à Nancy-Ville-Vieille, charpente traditionnelle</p>
+        <p class="text-base text-gray-600 leading-relaxed">Combles perdus de 40 m², hauteur sous faîtage 2,40 m. Aménagement en chambre + bureau : 32 m² habitables créés. Coût total : 38 000 € (isolation sarking incluse). Valeur du bien avant : 195 000 €. Après travaux estimée à 235 000 €. Plus-value nette : +42 000 € pour 38 000 € investis.</p>
+      </div>
+
+      <div class="border-l-4 border-blue-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Maison 1948, 46 m², impasse Canal Nancy</p>
+        <p class="text-base text-gray-600 leading-relaxed">Hauteur sous faîtage : 2,10 m sur 12 m². Projet limité mais faisable : création d'un espace bureau-mezzanine de 10 m² utiles. Coût estimé 12 000 – 18 000 € (escalier escamotable, velux, isolation). Gain DPE si isolation sarking incluse : passage de F à D possible en combinant avec d'autres travaux.</p>
+      </div>
+
+      <div class="border-l-4 border-blue-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Maison des années 60, Maxéville, conversion en T4</p>
+        <p class="text-base text-gray-600 leading-relaxed">Combles de 55 m² avec fermettes industrielles — diagnostic structurel nécessaire. Renforcement de charpente : 8 000 €. Aménagement 35 m² : 42 000 €. Total : 50 000 €. Résultat : passage de T3 à T4+, gain locatif de 180 €/mois (+2 160 €/an). Retour sur investissement : ~23 ans — pertinent surtout pour usage personnel ou revente.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="text-xs text-gray-400 space-y-1">
+    <p class="font-semibold text-gray-500 mb-2">Sources</p>
+    <p>• <a href="https://www.service-public.fr/particuliers/vosdroits/F1612" target="_blank" class="underline">service-public.fr — Déclaration préalable de travaux</a></p>
+    <p>• CAUE de Meurthe-et-Moselle — conseils gratuits aux propriétaires</p>
+  </div>
+
+</div>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/pages/contact.html.erb
+═══════════════════════════════════════════════════════════════
+<div class="max-w-xl mx-auto px-6 py-16">
+  <h1 class="text-3xl font-bold text-gray-900 mb-4">Contact</h1>
+  <p class="text-gray-500 mb-8">Une question, un partenariat, un retour sur l'application ?</p>
+
+  <div class="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm space-y-6">
+    <div class="flex items-center gap-4">
+      <span class="text-2xl">📧</span>
+      <div>
+        <p class="text-sm font-bold text-gray-700">Email</p>
+        <a href="mailto:contact@lotys.fr" class="text-emerald-600 hover:underline">contact@lotys.fr</a>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="text-2xl">📍</span>
+      <div>
+        <p class="text-sm font-bold text-gray-700">Basé à</p>
+        <p class="text-gray-600">Nancy, Grand Est</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="text-2xl">⚡</span>
+      <div>
+        <p class="text-sm font-bold text-gray-700">Temps de réponse</p>
+        <p class="text-gray-600">Sous 48h en jours ouvrés</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/pages/espace_exterieur.html.erb
+═══════════════════════════════════════════════════════════════
+<%# app/views/pages/espace_exterieur.html.erb %>
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+
+  <div class="mb-8">
+    <a href="javascript:history.back()" class="text-sm text-gray-400 hover:text-emerald-600 transition">← Retour</a>
+    <h1 class="text-3xl font-black text-gray-900 mt-4 mb-2">🌿 Valoriser son espace extérieur</h1>
+    <p class="text-gray-500 text-lg">Jardin, terrasse, cour ou potager : un espace extérieur bien aménagé booste attractivité et valeur.</p>
+  </div>
+
+  <div class="bg-green-50 border border-green-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-green-900 mb-3">✅ Ce que ça apporte</h2>
+    <ul class="space-y-2 text-green-800 text-sm">
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Attractivité locative :</strong> un extérieur privatif est un critère déterminant pour les familles et les télétravailleurs — forte demande post-COVID.</span></li>
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Valorisation à la revente :</strong> +5 à 15% selon la surface et l'aménagement, particulièrement recherché à Nancy pour les maisons de centre-ville.</span></li>
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Qualité de vie :</strong> potager, espace de détente, végétalisation — impact direct sur le confort thermique en été (rafraîchissement naturel).</span></li>
+    </ul>
+  </div>
+
+  <h2 class="text-xl font-bold text-gray-900 mb-4">🛠️ Idées d'aménagement selon le budget</h2>
+  <div class="space-y-4 mb-8">
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-start justify-between mb-2">
+        <p class="font-bold text-gray-900">Budget modeste (< 2 000 €)</p>
+        <span class="text-sm font-bold text-green-700 bg-green-50 px-3 py-1 rounded-full shrink-0">DIY possible</span>
+      </div>
+      <p class="text-base text-gray-600">Potager en carrés, mobilier de jardin, délimitation par des plantes hautes, récupérateur d'eau de pluie, éclairage solaire extérieur.</p>
+    </div>
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-start justify-between mb-2">
+        <p class="font-bold text-gray-900">Budget intermédiaire (2 000 – 8 000 €)</p>
+        <span class="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full shrink-0">Artisan</span>
+      </div>
+      <p class="text-base text-gray-600">Terrasse en bois ou dallage, pergola, clôture, arrosage automatique, abri de jardin (< 5 m², sans permis).</p>
+    </div>
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-start justify-between mb-2">
+        <p class="font-bold text-gray-900">Budget important (> 8 000 €)</p>
+        <span class="text-sm font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-full shrink-0">Paysagiste</span>
+      </div>
+      <p class="text-base text-gray-600">Piscine ou spa (déclaration obligatoire > 10 m²), jardin paysager avec noue d'infiltration, véranda ou extension bois.</p>
+    </div>
+  </div>
+
+  <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-lg font-bold text-gray-800 mb-3">🔧 Réglementations à connaître</h2>
+    <ul class="space-y-2 text-base text-gray-700">
+      <li class="flex items-start gap-2"><span class="text-gray-500 font-bold mt-0.5">→</span><span><strong>Abri de jardin < 5 m²</strong> : aucune formalité.</span></li>
+      <li class="flex items-start gap-2"><span class="text-gray-500 font-bold mt-0.5">→</span><span><strong>5 à 20 m²</strong> : déclaration préalable.</span></li>
+      <li class="flex items-start gap-2"><span class="text-gray-500 font-bold mt-0.5">→</span><span><strong>> 20 m²</strong> : permis de construire.</span></li>
+      <li class="flex items-start gap-2"><span class="text-gray-500 font-bold mt-0.5">→</span><span><strong>Piscine > 10 m²</strong> : déclaration préalable systématique.</span></li>
+      <li class="flex items-start gap-2"><span class="text-gray-500 font-bold mt-0.5">→</span><span><strong>Clôture</strong> : déclaration préalable si en bordure de voie publique.</span></li>
+    </ul>
+  </div>
+
+  <%# Exemples concrets %>
+  <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-5">💡 Trois exemples concrets</h2>
+    <div class="space-y-5">
+
+      <div class="border-l-4 border-green-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Cour pavée 25 m², impasse Nancy centre</p>
+        <p class="text-base text-gray-600 leading-relaxed">Aménagement en terrasse bois + jardinières haute densité + éclairage LED solaire. Budget : 3 200 €. Résultat : le bien loué 580 €/mois avant travaux part à 660 €/mois après — +80 €/mois, soit +960 €/an. Retour sur investissement : 3,3 ans.</p>
+      </div>
+
+      <div class="border-l-4 border-green-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Jardin 80 m², maison Jarville-la-Malgrange</p>
+        <p class="text-base text-gray-600 leading-relaxed">Potager structuré en carrés, abri bois 4 m² (sans permis), clôture végétale. Budget : 4 500 €. À la vente, deux estimateurs notariaux ont relevé la présence du jardin aménagé comme facteur de +8 000 € sur le prix de vente vs biens comparables sans extérieur soigné.</p>
+      </div>
+
+      <div class="border-l-4 border-green-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Parking extérieur 2 places, maison Vandœuvre</p>
+        <p class="text-base text-gray-600 leading-relaxed">Rénovation du revêtement bitumé + portail motorisé + borne de recharge 7 kW. Budget total : 6 800 €. La place de parking couverte se loue 80 €/mois à un voisin, soit 960 €/an. La borne de recharge est incluse dans la valeur perçue du bien et facilite la location à des télétravailleurs avec véhicule électrique.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="text-xs text-gray-400 space-y-1">
+    <p class="font-semibold text-gray-500 mb-2">Sources</p>
+    <p>• <a href="https://www.service-public.fr/particuliers/vosdroits/F1612" target="_blank" class="underline">service-public.fr — Autorisations d'urbanisme</a></p>
+  </div>
+
+</div>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/pages/location_meublee.html.erb
+═══════════════════════════════════════════════════════════════
+<%# app/views/pages/location_meublee.html.erb %>
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+
+  <div class="mb-8">
+    <a href="javascript:history.back()" class="text-sm text-gray-400 hover:text-emerald-600 transition">← Retour</a>
+    <h1 class="text-3xl font-black text-gray-900 mt-4 mb-2">🏠 Location meublée (LMNP)</h1>
+    <p class="text-gray-500 text-lg">Louer en meublé pour optimiser ses revenus locatifs et sa fiscalité.</p>
+  </div>
+
+  <%# Pourquoi le meublé %>
+  <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-emerald-900 mb-3">✅ Pourquoi c'est avantageux</h2>
+    <ul class="space-y-2 text-emerald-800 text-sm">
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Loyers plus élevés :</strong> +15 à 30% par rapport à un bien nu équivalent, surtout sur les petites surfaces.</span></li>
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Fiscalité allégée :</strong> le régime micro-BIC offre un abattement de 50% sur les revenus (71% en meublé de tourisme classé).</span></li>
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Amortissement du bien :</strong> en régime réel, vous pouvez amortir le bien et le mobilier, réduisant fortement votre base imposable.</span></li>
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Nancy, ville étudiante :</strong> forte demande locative toute l'année (université, école des Mines, CHU, IEP).</span></li>
+    </ul>
+  </div>
+
+  <%# Les deux régimes %>
+  <h2 class="text-xl font-bold text-gray-900 mb-4">⚖️ Micro-BIC ou régime réel ?</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+    <div class="bg-white border border-gray-200 rounded-2xl p-5">
+      <p class="font-bold text-gray-900 mb-2">Micro-BIC</p>
+      <p class="text-xs text-emerald-700 bg-emerald-50 rounded-lg px-2 py-1 mb-3 font-semibold">Si revenus locatifs < 77 700 €/an</p>
+      <ul class="text-sm text-gray-600 space-y-1">
+        <li>• Abattement forfaitaire de <strong>50%</strong></li>
+        <li>• Déclaration simplifiée</li>
+        <li>• Idéal si peu de charges réelles</li>
+      </ul>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-2xl p-5">
+      <p class="font-bold text-gray-900 mb-2">Régime réel</p>
+      <p class="text-xs text-blue-700 bg-blue-50 rounded-lg px-2 py-1 mb-3 font-semibold">Plus avantageux avec des travaux</p>
+      <ul class="text-sm text-gray-600 space-y-1">
+        <li>• Déduction des charges réelles</li>
+        <li>• <strong>Amortissement</strong> du bien et du mobilier</li>
+        <li>• Peut effacer toute imposition pendant 10-15 ans</li>
+      </ul>
+    </div>
+  </div>
+
+  <%# Obligations %>
+  <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-4">📋 Les obligations du meublé</h2>
+    <div class="space-y-3 text-sm text-gray-700">
+      <div>
+        <p class="font-bold text-gray-800 mb-1">Liste minimale de mobilier (décret 2015)</p>
+        <p>Literie avec couette, volets/rideaux, plaques de cuisson, four ou micro-ondes, réfrigérateur, vaisselle, ustensiles de cuisine, table, sièges, étagères, luminaires, matériel d'entretien. <strong>Manquer un élément rend le logement nu.</strong></p>
+      </div>
+      <div>
+        <p class="font-bold text-gray-800 mb-1">Durée de bail</p>
+        <p><strong>1 an</strong> (renouvelable) pour les baux classiques. <strong>9 mois</strong> pour les étudiants (non renouvelable automatiquement, très adapté à Nancy).</p>
+      </div>
+      <div>
+        <p class="font-bold text-gray-800 mb-1">Déclaration en mairie</p>
+        <p>Obligatoire dans les communes de plus de 200 000 habitants (dont Nancy) : déclaration en ligne via le formulaire Cerfa n°14004.</p>
+      </div>
+    </div>
+  </div>
+
+  <%# Simulation rapide %>
+  <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-base font-bold text-gray-800 mb-3">📊 Simulation rapide — Nancy, 46 m²</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-200">
+            <th class="text-left py-2 text-gray-500 font-semibold"></th>
+            <th class="text-right py-2 text-gray-500 font-semibold">Nu</th>
+            <th class="text-right py-2 text-gray-500 font-semibold">Meublé</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <tr><td class="py-2">Loyer mensuel</td><td class="text-right">480 – 550 €</td><td class="text-right font-semibold text-emerald-700">580 – 680 €</td></tr>
+          <tr><td class="py-2">Revenus annuels bruts</td><td class="text-right">5 760 – 6 600 €</td><td class="text-right font-semibold text-emerald-700">6 960 – 8 160 €</td></tr>
+          <tr><td class="py-2">Base imposable (micro)</td><td class="text-right text-gray-400">—</td><td class="text-right">3 480 – 4 080 €</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs text-gray-400 mt-3">⚠️ Estimations basées sur le marché nancéien 2024 — secteur Ville-Vieille / Centre. Variable selon état et étage.</p>
+  </div>
+
+  <%# Par où commencer %>
+  <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-base font-bold text-gray-800 mb-3">🔧 Par où commencer ?</h2>
+    <ol class="space-y-2 text-sm text-gray-700">
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span><span>Comparez les loyers meublés dans votre secteur sur Leboncoin, SeLoger ou Particulier à Particulier.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span><span>Inscrivez-vous au <strong>Registre du Commerce</strong> (gratuit en ligne via l'INPI) pour obtenir votre numéro SIRET de loueur meublé.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span><span>Choisissez votre régime fiscal avec un comptable spécialisé LMNP — le réel simplifié est souvent rentable dès le 1er an si vous avez des travaux.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">4</span><span>Équipez le logement selon la liste légale et rédigez un état des lieux détaillé à l'entrée.</span></li>
+    </ol>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-5">💡 Trois exemples concrets</h2>
+    <div class="space-y-5">
+      <div class="border-l-4 border-emerald-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Studio 25 m², quartier Université Nancy, bail étudiant</p>
+        <p class="text-base text-gray-600 leading-relaxed">Loyer nu équivalent : 380 €/mois. En meublé avec bail 9 mois étudiant : 490 €/mois. Revenu annuel brut : 4 410 €. Abattement micro-BIC 50% : base imposable 2 205 €. Gain fiscal vs nu : ~300 €/an pour un foyer à 30%.</p>
+      </div>
+      <div class="border-l-4 border-emerald-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">46 m² rénové, centre Nancy, régime réel simplifié</p>
+        <p class="text-base text-gray-600 leading-relaxed">Loyer meublé : 620 €/mois. Revenus bruts : 7 440 €. Charges déductibles : 3 200 €. Amortissement du bien sur 30 ans : ~3 000 €/an. Résultat fiscal négatif les 10 premières années — aucun impôt sur les revenus locatifs.</p>
+      </div>
+      <div class="border-l-4 border-emerald-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">T3 65 m², Vandœuvre-lès-Nancy, colocation meublée</p>
+        <p class="text-base text-gray-600 leading-relaxed">3 chambres louées séparément à 350 €/chambre. Total : 1 050 €/mois vs 750 € en location classique. Rendement brut de 7,5% vs 5,4% en nu.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-xs text-gray-400 space-y-1">
+    <p class="font-semibold text-gray-500 mb-2">Sources</p>
+    <p>• <a href="https://www.service-public.fr/particuliers/vosdroits/F2892" target="_blank" class="underline">service-public.fr — Location meublée</a></p>
+    <p>• Décret n° 2015-981 du 31 juillet 2015 — liste des meubles obligatoires</p>
+    <p>• ANIL — <em>Fiscalité des locations meublées</em> (2024)</p>
+  </div>
+
+</div>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/pages/mentions_legales.html.erb
+═══════════════════════════════════════════════════════════════
+<div class="max-w-3xl mx-auto px-6 py-16">
+  <h1 class="text-3xl font-bold text-gray-900 mb-8">Mentions légales</h1>
+
+  <div class="prose prose-gray max-w-none space-y-8">
+    <section>
+      <h2 class="text-xl font-bold text-gray-800 mb-3">Éditeur du site</h2>
+      <p class="text-gray-600">Lotys — plateforme immobilière<br>
+      Contact : <a href="mailto:contact@lotys.fr" class="text-emerald-600 hover:underline">contact@lotys.fr</a></p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-bold text-gray-800 mb-3">Hébergement</h2>
+      <p class="text-gray-600">Heroku (Salesforce)<br>
+      The Landmark at One Market, Suite 300, San Francisco, CA 94105, États-Unis</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-bold text-gray-800 mb-3">Propriété intellectuelle</h2>
+      <p class="text-gray-600">L'ensemble du contenu de ce site (textes, images, analyses) est la propriété exclusive de Lotys. Toute reproduction est interdite sans autorisation préalable.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-bold text-gray-800 mb-3">Responsabilité</h2>
+      <p class="text-gray-600">Les estimations et analyses produites par Lotys sont fournies à titre indicatif. Elles ne constituent pas un avis juridique, fiscal ou financier. Lotys ne saurait être tenu responsable des décisions prises sur la base de ces informations.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-bold text-gray-800 mb-3">Données personnelles</h2>
+      <p class="text-gray-600">Conformément au RGPD, vous disposez d'un droit d'accès, de rectification et de suppression de vos données. Pour exercer ces droits : <a href="mailto:contact@lotys.fr" class="text-emerald-600 hover:underline">contact@lotys.fr</a></p>
+    </section>
+  </div>
+</div>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/pages/proprietaires.html.erb
+═══════════════════════════════════════════════════════════════
+<%# ═══════════════════════════════════════════════════════════════════════
+     /proprietaires v3
+     - Hero et CTA final en grandes cartes arrondies centrées
+       (max-width 1280px), pas en bandeaux pleine largeur.
+     - Photo : intérieur chaleureux (salon).
+     - Typo Fraunces (titres) + Inter (corps), polices grossies.
+     ═══════════════════════════════════════════════════════════════════════ %>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap">
+
+<style>
+  .lotys-page { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+  .lotys-page h1, .lotys-page h2, .lotys-page h3 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+  }
+</style>
+
+<div class="lotys-page">
+
+  <%# ── Hero en carte arrondie ────────────────────────────────── %>
+  <section style="position:relative; padding:0; overflow:hidden;">
+
+    <%# Photo intérieur chaleureux — salon lumineux %>
+    <div style="position:absolute; inset:0; z-index:0;">
+      <img src="<%= asset_path("personae/proprietaires-hero.jpg") %>"
+           alt="" style="width:100%; height:100%; object-fit:cover;">
+      <div style="position:absolute; inset:0;
+                  background:linear-gradient(135deg,rgba(15,23,42,.85) 0%,rgba(30,58,95,.78) 100%);"></div>
+    </div>
+
+    <div style="position:relative; z-index:1; padding:104px 32px 88px;">
+      <div style="max-width:880px; margin:0 auto; text-align:center; color:#fff;">
+        <p style="font-family:'Inter',sans-serif;
+                  font-size:.85rem; font-weight:700; color:#6ee7b7;
+                  text-transform:uppercase; letter-spacing:.14em;
+                  margin:0 0 20px;">
+          Pour les propriétaires
+        </p>
+        <h1 style="font-size:clamp(2.4rem,5vw,4rem); font-weight:900;
+                   line-height:1.1; letter-spacing:-0.02em; margin:0 0 28px;">
+          Votre rénovation, comprise et chiffrée en quelques minutes
+        </h1>
+        <p style="font-size:1.2rem; color:#cbd5e1; max-width:680px;
+                  margin:0 auto 40px; line-height:1.65; font-weight:400;">
+          Téléversez votre DPE. Lotys vous dit quoi faire, combien ça
+          coûte vraiment, et qui peut le faire près de chez vous.
+        </p>
+        <%= link_to "Analyser mon bien gratuitement", new_property_path,
+            style: "display:inline-block; background:#fff; color:#065f46;
+                    font-weight:700; font-size:1.1rem; padding:18px 42px;
+                    border-radius:16px; text-decoration:none;
+                    box-shadow:0 8px 32px rgba(0,0,0,.2);" %>
+      </div>
+    </div>
+  </section>
+
+  <%# ── Les 3 apports ──────────────────────────────────────────── %>
+  <section style="background:#ffffff; padding:96px 24px;">
+    <div style="max-width:1100px; margin:0 auto;">
+
+      <div style="display:grid;
+                  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+                  gap:48px;">
+
+        <div style="text-align:center;">
+          <div style="font-size:3.5rem; margin-bottom:24px;">📋</div>
+          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
+                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
+            Comprendre ce qu'il faut faire
+          </h2>
+          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
+            Lotys lit votre DPE et vous propose un plan de travaux clair :
+            quels postes, quel ordre, quel saut de classe énergétique
+            atteignable.
+          </p>
+        </div>
+
+        <div style="text-align:center;">
+          <div style="font-size:3.5rem; margin-bottom:24px;">💶</div>
+          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
+                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
+            Savoir combien ça coûte vraiment
+          </h2>
+          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
+            MaPrimeRénov', CEE, éco-PTZ, <strong>plus les aides de votre
+            métropole ou intercommunalité</strong>. Lotys calcule tout
+            et vous montre le reste à votre charge.
+          </p>
+        </div>
+
+        <div style="text-align:center;">
+          <div style="font-size:3.5rem; margin-bottom:24px;">🤝</div>
+          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
+                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
+            Trouver un artisan, sans démarchage
+          </h2>
+          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
+            Publiez votre dossier si vous le souhaitez. Les artisans RGE
+            de votre territoire <strong>vous contactent</strong> avec
+            leurs propositions. Vous choisissez.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <%# ── CTA final en carte arrondie ──────────────────────────── %>
+  <section style="position:relative; padding:0; overflow:hidden;">
+
+    <div style="position:absolute; inset:0; z-index:0;">
+      <img src="<%= asset_path("personae/proprietaires-cta.jpg") %>"
+           alt="" style="width:100%; height:100%; object-fit:cover;">
+      <div style="position:absolute; inset:0;
+                  background:linear-gradient(135deg,rgba(15,23,42,.92) 0%,rgba(30,58,95,.88) 100%);"></div>
+    </div>
+
+    <div style="position:relative; z-index:1; padding:88px 32px;">
+      <div style="max-width:760px; margin:0 auto; text-align:center; color:#fff;">
+
+        <h2 style="font-size:clamp(1.7rem,4vw,2.4rem); font-weight:900;
+                   margin:0 0 20px; letter-spacing:-0.02em; line-height:1.2;">
+          Gratuit, sans engagement, sans inscription préalable
+        </h2>
+        <p style="font-size:1.15rem; color:#cbd5e1; max-width:600px;
+                  margin:0 auto 36px; line-height:1.65;">
+          L'analyse DPE et le calcul d'aides sont libres d'accès. Vous créez
+          un compte uniquement si vous voulez sauvegarder votre plan ou
+          publier votre dossier.
+        </p>
+
+        <%= link_to "Analyser mon bien gratuitement", new_property_path,
+            style: "display:inline-block; background:#fff; color:#065f46;
+                    font-weight:700; font-size:1.1rem; padding:18px 42px;
+                    border-radius:16px; text-decoration:none;
+                    box-shadow:0 8px 32px rgba(0,0,0,.2);" %>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/pages/home.html.erb
+═══════════════════════════════════════════════════════════════
+<%# ═══════════════════════════════════════════════════════════════════════
+     Home refondue v2 — photo de fond sur toute la page.
+
+     L'image de fond est `position: fixed` : elle reste au viewport
+     pendant qu'on scroll, et toutes les sections ont des overlays
+     semi-transparents qui la laissent transparaître. Résultat :
+     continuité visuelle parfaite, pas de rupture de section.
+
+     Structure : image fixe + 4 sections (hero, 3 cards, hub, carte).
+     Le footer reste en variant overlay dans le wrapper relative.
+     ═══════════════════════════════════════════════════════════════════════ %>
+
+<div class="relative min-h-screen overflow-hidden">
+
+  <%# ── Image de fond, fixée au viewport ─────────────────────────── %>
+  <div style="position:fixed; top:0; left:0; width:100vw; height:100vh;
+              z-index:0; overflow:hidden;" aria-hidden="true">
+    <img
+      src="https://images.unsplash.com/photo-1460317442991-0ec209397118?q=80&w=1800&auto=format&fit=crop"
+      alt=""
+      style="width:100%; height:100%; object-fit:cover;">
+  </div>
+
+  <%# ── Contenu par-dessus l'image ──────────────────────────────── %>
+  <div style="position:relative; z-index:1;">
+
+    <%# Hero — overlay noir translucide %>
+    <section style="background:rgba(0,0,0,0.55); padding:0;">
+      <div class="relative flex items-center justify-center overflow-hidden"
+           style="min-height:520px;">
+        <div class="relative z-10 mx-auto flex w-full max-w-5xl flex-col
+                    items-center px-6 py-20 text-center">
+          <h1 class="font-serif font-black text-white leading-none"
+              style="font-size:clamp(2.8rem,6vw,4.5rem);
+                     letter-spacing:-0.03em; max-width:900px;">
+            <span class="block">Votre rénovation thermique,</span>
+            <span class="text-emerald-400">en quelques clics</span>
+          </h1>
+
+          <p class="mt-6 max-w-xl text-base md:text-lg text-white/85 leading-relaxed">
+            Téléversez votre DPE. Lotys calcule vos aides, construit votre plan,
+            et vous met en relation avec les artisans RGE de votre territoire.
+          </p>
+
+          <div class="mt-10">
+            <%= link_to "Analyser mon bien gratuitement", new_property_path,
+                class: "rounded-2xl bg-emerald-500 px-8 py-4 text-base font-bold
+                        text-white shadow-lg shadow-emerald-900/30 transition
+                        hover:bg-emerald-400" %>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <%# 3 cards problem/solution/benefit — overlay navy translucide
+        pour que l'image transparaisse derrière les cards. %>
+    <section style="background:rgba(0,0,0,0.55); padding:88px 24px;
+                    backdrop-filter:blur(4px);
+                    -webkit-backdrop-filter:blur(4px);">
+      <div style="max-width:1100px; margin:0 auto;">
+
+        <div style="text-align:center; margin-bottom:56px;">
+          <p style="font-size:.75rem; font-weight:800; color:#34d399;
+                    text-transform:uppercase; letter-spacing:.12em;
+                    margin:0 0 12px;">
+            Notre promesse
+          </p>
+          <h2 style="font-size:clamp(1.8rem,4vw,2.6rem); font-weight:900;
+                     color:#fff; margin:0; letter-spacing:-0.02em;
+                     line-height:1.2;">
+            Lotys simplifie la rénovation thermique
+          </h2>
+        </div>
+
+        <div style="display:grid;
+                    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+                    gap:24px;">
+
+          <%# Card 1 — Problème — emoji cerveau qui explose %>
+          <div style="background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+                      border-radius:20px; padding:32px; backdrop-filter:blur(8px);">
+            <div style="font-size:3rem; text-align:center; margin-bottom:20px;">🤯</div>
+            <h3 style="font-size:1.5rem; font-weight:900; color:#fff;
+                       text-align:center; margin:0 0 14px; letter-spacing:-0.01em;">
+              Trop de paperasse
+            </h3>
+            <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
+                      text-align:center; margin:0;">
+              MaPrimeRénov', CEE, éco-PTZ, aides de votre métropole :
+              chaque dispositif a ses règles, ses plafonds, ses cumuls.
+              Et vous, vous avez juste un logement à rénover.
+            </p>
+          </div>
+
+          <%# Card 2 — Solution — accent émeraude %>
+          <div style="background:rgba(16,185,129,.15); border:1px solid rgba(110,231,183,.35);
+                      border-radius:20px; padding:32px; backdrop-filter:blur(8px);">
+            <div style="font-size:3rem; text-align:center; margin-bottom:20px;">🔍</div>
+            <h3 style="font-size:1.5rem; font-weight:900; color:#fff;
+                       text-align:center; margin:0 0 14px; letter-spacing:-0.01em;">
+              Lotys calcule tout
+            </h3>
+            <p style="font-size:1.05rem; color:#d1fae5; line-height:1.65;
+                      text-align:center; margin:0;">
+              Déposez votre DPE. Lotys identifie vos travaux, chiffre
+              votre budget et calcule vos aides à l'euro près.
+            </p>
+          </div>
+
+          <%# Card 3 — Bénéfice %>
+          <div style="background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+                      border-radius:20px; padding:32px; backdrop-filter:blur(8px);">
+            <div style="font-size:3rem; text-align:center; margin-bottom:20px;">🤝</div>
+            <h3 style="font-size:1.5rem; font-weight:900; color:#fff;
+                       text-align:center; margin:0 0 14px; letter-spacing:-0.01em;">
+              Les pros viennent à vous
+            </h3>
+            <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
+                      text-align:center; margin:0;">
+              Publiez votre dossier. Artisans RGE et banques partenaires
+              vous contactent avec leurs propositions.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <%# Hub 3 personae — même overlay navy que les sections adjacentes
+        pour une continuité visuelle parfaite. Les cards blanches
+        ressortent avec force sur le fond sombre. %>
+    <section style="background:rgba(0,0,0,0.55); padding:88px 24px;
+                    backdrop-filter:blur(4px);
+                    -webkit-backdrop-filter:blur(4px);">
+      <div style="max-width:1100px; margin:0 auto;">
+
+        <div style="text-align:center; margin-bottom:56px;">
+          <p style="font-size:.75rem; font-weight:800; color:#34d399;
+                    text-transform:uppercase; letter-spacing:.12em;
+                    margin:0 0 12px;">
+            Vous êtes…
+          </p>
+          <h2 style="font-size:clamp(1.8rem,4vw,2.6rem); font-weight:900;
+                     color:#fff; margin:0; letter-spacing:-0.02em;
+                     line-height:1.2;">
+            Lotys a une réponse pour chacun
+          </h2>
+        </div>
+
+        <div style="display:grid;
+                    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+                    gap:24px;">
+
+          <%# Card 1 — Propriétaire %>
+          <%= link_to proprietaires_path,
+              style: "display:block; text-decoration:none;
+                      background:rgba(255,255,255,.06);
+                      border:1px solid rgba(255,255,255,.12);
+                      border-radius:20px; padding:36px 32px;
+                      backdrop-filter:blur(8px); transition:all .2s ease;",
+              onmouseover: "this.style.borderColor='rgba(110,231,183,.5)';
+                            this.style.transform='translateY(-4px)';
+                            this.style.background='rgba(255,255,255,.09)';",
+              onmouseout:  "this.style.borderColor='rgba(255,255,255,.12)';
+                            this.style.transform='';
+                            this.style.background='rgba(255,255,255,.06)';" do %>
+            <div style="font-size:3rem; text-align:center;
+                        margin-bottom:20px;">🏠</div>
+            <h3 style="font-size:1.5rem; font-weight:900; color:#fff;
+                       text-align:center; margin:0 0 14px;
+                       letter-spacing:-0.01em;">
+              Je suis propriétaire
+            </h3>
+            <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
+                      text-align:center; margin:0 0 20px;">
+              Je veux comprendre combien coûte la rénovation de mon logement,
+              quelles aides je peux obtenir, et qui peut faire les travaux.
+            </p>
+            <p style="font-size:1rem; font-weight:700; color:#34d399;
+                      text-align:center; margin:0;">
+              Découvrir le parcours →
+            </p>
+          <% end %>
+
+          <%# Card 2 — Artisan/Banque %>
+          <%= link_to artisans_path,
+              style: "display:block; text-decoration:none;
+                      background:rgba(255,255,255,.06);
+                      border:1px solid rgba(255,255,255,.12);
+                      border-radius:20px; padding:36px 32px;
+                      backdrop-filter:blur(8px); transition:all .2s ease;",
+              onmouseover: "this.style.borderColor='rgba(110,231,183,.5)';
+                            this.style.transform='translateY(-4px)';
+                            this.style.background='rgba(255,255,255,.09)';",
+              onmouseout:  "this.style.borderColor='rgba(255,255,255,.12)';
+                            this.style.transform='';
+                            this.style.background='rgba(255,255,255,.06)';" do %>
+            <div style="font-size:3rem; text-align:center;
+                        margin-bottom:20px;">🔧</div>
+            <h3 style="font-size:1.5rem; font-weight:900; color:#fff;
+                       text-align:center; margin:0 0 14px;
+                       letter-spacing:-0.01em;">
+              Je suis artisan ou banquier
+            </h3>
+            <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
+                      text-align:center; margin:0 0 20px;">
+              Je cherche des dossiers de rénovation qualifiés sur mon
+              territoire. DPE, travaux, aides, localisation — vérifiés.
+            </p>
+            <p style="font-size:1rem; font-weight:700; color:#34d399;
+                      text-align:center; margin:0;">
+              Voir les dossiers →
+            </p>
+          <% end %>
+
+          <%# Card 3 — Collectivité %>
+          <%= link_to collectivites_path,
+              style: "display:block; text-decoration:none;
+                      background:rgba(255,255,255,.06);
+                      border:1px solid rgba(255,255,255,.12);
+                      border-radius:20px; padding:36px 32px;
+                      backdrop-filter:blur(8px); transition:all .2s ease;",
+              onmouseover: "this.style.borderColor='rgba(110,231,183,.5)';
+                            this.style.transform='translateY(-4px)';
+                            this.style.background='rgba(255,255,255,.09)';",
+              onmouseout:  "this.style.borderColor='rgba(255,255,255,.12)';
+                            this.style.transform='';
+                            this.style.background='rgba(255,255,255,.06)';" do %>
+            <div style="font-size:3rem; text-align:center;
+                        margin-bottom:20px;">🏛️</div>
+            <h3 style="font-size:1.5rem; font-weight:900; color:#fff;
+                       text-align:center; margin:0 0 14px;
+                       letter-spacing:-0.01em;">
+              Je suis une collectivité
+            </h3>
+            <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
+                      text-align:center; margin:0 0 20px;">
+              Je veux offrir à mes habitants un outil qui intègre mes
+              dispositifs locaux, et mesurer l'effort de rénovation sur
+              mon territoire.
+            </p>
+            <p style="font-size:1rem; font-weight:700; color:#34d399;
+                      text-align:center; margin:0;">
+              Découvrir l'offre EPCI →
+            </p>
+          <% end %>
+
+        </div>
+      </div>
+    </section>
+
+    <%# Carte géographique — overlay navy plus opaque pour que la
+        carte Leaflet elle-même reste très lisible. %>
+    <section style="background:rgba(0,0,0,0.55); padding:72px 24px;
+                    backdrop-filter:blur(4px);
+                    -webkit-backdrop-filter:blur(4px);">
+      <div style="max-width:1000px; margin:0 auto;">
+
+        <div style="text-align:center; margin-bottom:36px;">
+          <p style="font-size:.75rem; font-weight:800; color:#34d399;
+                    text-transform:uppercase; letter-spacing:.12em;
+                    margin:0 0 10px;">
+            Sur le terrain
+          </p>
+          <h2 style="font-size:clamp(1.6rem,4vw,2.4rem); font-weight:900;
+                     color:#fff; margin:0 0 12px; line-height:1.2;">
+            Les dossiers publiés sur Lotys
+          </h2>
+          <p style="font-size:1rem; color:#94a3b8; max-width:560px;
+                    margin:0 auto;">
+            Chaque marqueur est un propriétaire qui a publié son projet
+            de rénovation. La carte s'enrichit au rythme des analyses.
+          </p>
+        </div>
+
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+        <div id="home-map"
+             style="height:480px; border-radius:20px; overflow:hidden;
+                    border:2px solid rgba(255,255,255,.15);
+                    box-shadow:0 8px 40px rgba(0,0,0,.5);
+                    background:#e5e7eb;"></div>
+
+        <div style="display:flex; gap:24px; justify-content:center;
+                    margin-top:20px; flex-wrap:wrap;">
+          <% [["A-C","#16a34a","Bien performant"],
+              ["D","#ca8a04","Peu performant"],
+              ["E-G","#dc2626","Passoire thermique"]].each do |label,color,desc| %>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:14px; height:14px; border-radius:50%;
+                          background:<%= color %>; flex-shrink:0;"></div>
+              <span style="font-size:.8rem; color:#94a3b8;">
+                <strong style="color:#e2e8f0;"><%= label %></strong> — <%= desc %>
+              </span>
+            </div>
+          <% end %>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <style>
+    @media (max-width: 768px) {
+      #home-map { height: 300px !important; border-radius: 12px !important; }
+    }
+  </style>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+  (function tryMap(attempts){
+    var el = document.getElementById('home-map');
+    if(!el) return;
+    if(typeof L === 'undefined' || el._leaflet_id){
+      if(attempts > 0) setTimeout(function(){ tryMap(attempts-1); }, 200);
+      return;
+    }
+    var map = L.map(el, {zoomControl:true, scrollWheelZoom:true}).setView([48.6921,6.1844], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+    }).addTo(map);
+    var biens = <%= (@published_properties || []).map { |p| {
+      lat:     p.lat,
+      lng:     p.lng,
+      dpe:     p.dpe_class&.upcase || "?",
+      address: p.address,
+      type:    p.property_type&.capitalize || "Bien",
+      surface: p.surface,
+      img:     p.property_type == "maison" ?
+                 "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=300&q=70" :
+                 "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=300&q=70",
+      url:     "/properties/#{p.id}"
+    }}.to_json.html_safe %>;
+    var C = {A:'#16a34a', B:'#22c55e', C:'#84cc16', D:'#ca8a04',
+             E:'#f97316', F:'#dc2626', G:'#991b1b'};
+    biens.forEach(function(b){
+      var col = C[b.dpe] || '#6b7280';
+      var icon = L.divIcon({
+        html:'<div style="width:32px;height:32px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:900;color:#fff;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);">'+b.dpe+'</div>',
+        className:'', iconSize:[32,32], iconAnchor:[16,16]
+      });
+      L.marker([b.lat,b.lng], {icon:icon}).addTo(map)
+       .bindPopup(
+        '<div style="width:200px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;padding:0;">'
+        +'<img src="'+b.img+'" style="width:100%;height:90px;object-fit:cover;border-radius:6px 6px 0 0;display:block;">'
+        +'<div style="padding:10px 12px;">'
+        +'<p style="font-size:.8rem;font-weight:700;color:#6b7280;margin:0 0 4px;">'+b.type+' · '+b.surface+' m²</p>'
+        +'<p style="font-size:.88rem;font-weight:800;color:#111;margin:0 0 10px;line-height:1.3;">'+b.address+'</p>'
+        +'<a href="'+b.url+'" style="display:block;text-align:center;background:#059669;color:#fff;font-size:.75rem;font-weight:700;padding:6px;border-radius:6px;text-decoration:none;">Voir le dossier →</a>'
+        +'</div></div>'
+       , {maxWidth:220, padding:[0,0]});
+    });
+  })(20);
+  </script>
+
+  <%= render "shared/footer", variant: :overlay %>
+</div>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/pages/box_stockage.html.erb
+═══════════════════════════════════════════════════════════════
+<%# app/views/pages/box_stockage.html.erb %>
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+
+  <div class="mb-8">
+    <a href="javascript:history.back()" class="text-sm text-gray-400 hover:text-emerald-600 transition">← Retour</a>
+    <h1 class="text-3xl font-black text-gray-900 mt-4 mb-2">📦 Louer un box ou un espace de stockage</h1>
+    <p class="text-gray-500 text-lg">Monétiser un espace sous-utilisé : cave, garage, abri ou parcelle.</p>
+  </div>
+
+  <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-amber-900 mb-3">💡 Un revenu passif simple</h2>
+    <ul class="space-y-2 text-amber-800 text-sm">
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Demande croissante :</strong> le marché du self-stockage croît de 8%/an en France. Les particuliers cherchent des solutions moins chères que les grandes enseignes.</span></li>
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Fiscalité simple :</strong> les revenus sont déclarables en micro-BIC avec 50% d'abattement. En dessous de 305 €/an, ils sont même exonérés.</span></li>
+      <li class="flex items-start gap-2"><span class="font-bold mt-0.5">✓</span><span><strong>Faibles travaux :</strong> une cave ou un garage peut se louer dès l'installation d'un éclairage et d'un cadenas robuste.</span></li>
+    </ul>
+  </div>
+
+  <h2 class="text-xl font-bold text-gray-900 mb-4">💰 Ce que ça peut rapporter à Nancy</h2>
+  <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-6">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50">
+        <tr class="border-b border-gray-200">
+          <th class="text-left px-5 py-3 text-gray-500 font-semibold">Type d'espace</th>
+          <th class="text-right px-5 py-3 text-gray-500 font-semibold">Loyer mensuel</th>
+          <th class="text-right px-5 py-3 text-gray-500 font-semibold">Loyer annuel</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <tr><td class="px-5 py-3">Cave (5 – 10 m²)</td><td class="text-right px-5 py-3">30 – 60 €</td><td class="text-right px-5 py-3 font-semibold text-emerald-700">360 – 720 €</td></tr>
+        <tr><td class="px-5 py-3">Garage fermé</td><td class="text-right px-5 py-3">80 – 130 €</td><td class="text-right px-5 py-3 font-semibold text-emerald-700">960 – 1 560 €</td></tr>
+        <tr><td class="px-5 py-3">Box fermé (10 – 20 m²)</td><td class="text-right px-5 py-3">60 – 120 €</td><td class="text-right px-5 py-3 font-semibold text-emerald-700">720 – 1 440 €</td></tr>
+        <tr><td class="px-5 py-3">Place de parking</td><td class="text-right px-5 py-3">50 – 90 €</td><td class="text-right px-5 py-3 font-semibold text-emerald-700">600 – 1 080 €</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-3">📋 Cadre juridique</h2>
+    <div class="space-y-3 text-base text-gray-700">
+      <div>
+        <p class="font-bold text-gray-800 mb-1 text-base">Contrat de location de box/cave</p>
+        <p>Pas de loi spécifique — contrat de droit commun (article 1708 du Code civil). Rédigez un bail simple avec montant, durée, mode de paiement et état des lieux.</p>
+      </div>
+      <div>
+        <p class="font-bold text-gray-800 mb-1 text-base">Plateformes pour trouver des locataires</p>
+        <p>Jestocke.com, Costockage.fr, Ouistock.fr — commissions de 20 à 30% mais gestion simplifiée et assurance incluse.</p>
+      </div>
+      <div>
+        <p class="font-bold text-gray-800 mb-1 text-base">Assurance</p>
+        <p>Vérifiez que votre assurance habitation couvre la mise en location de dépendances. Une clause spécifique peut être nécessaire.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-lg font-bold text-gray-800 mb-3">🔧 Par où commencer ?</h2>
+    <ol class="space-y-2 text-base text-gray-700">
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span><span>Évaluez l'espace disponible et son état — nettoyage, éclairage, humidité.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span><span>Publiez sur Jestocke ou Leboncoin avec photos et surface précise.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span><span>Rédigez un contrat simple et faites un état des lieux à l'entrée.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">4</span><span>Déclarez les revenus en micro-BIC l'année suivante (case 5ND sur la déclaration).</span></li>
+    </ol>
+  </div>
+
+
+  <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-5">💡 Trois exemples concrets</h2>
+    <div class="space-y-5">
+      <div class="border-l-4 border-amber-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Cave 8 m², immeuble centre Nancy</p>
+        <p class="text-base text-gray-600 leading-relaxed">Nettoyage + étagères + serrure renforcée : 380 €. Location sur Jestocke : 45 €/mois. Revenu net annuel : 540 €. Retour sur investissement : 8 mois.</p>
+      </div>
+      <div class="border-l-4 border-amber-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Garage fermé 18 m², maison Tomblaine</p>
+        <p class="text-base text-gray-600 leading-relaxed">Location à un artisan plombier : 110 €/mois. Revenu annuel : 1 320 €. Après abattement micro-BIC : coût fiscal ~198 €/an. Revenu net d'impôt : ~1 122 €/an sans aucun travaux.</p>
+      </div>
+      <div class="border-l-4 border-amber-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Abri bois 12 m² construit, Laxou</p>
+        <p class="text-base text-gray-600 leading-relaxed">Construction < 20 m² (déclaration préalable). Coût : 3 800 €. Loué à deux voisins à 70 €/mois chacun. Revenu : 1 680 €/an. Retour sur investissement : 2,3 ans.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/pages/artisans.html.erb
+═══════════════════════════════════════════════════════════════
+<%# ═══════════════════════════════════════════════════════════════════════
+     /artisans v3
+     - Photo : façade en cours de rénovation/isolation (clairement identifiable)
+     - Hero et CTA en cartes arrondies centrées
+     - Typo Fraunces + Inter, polices grossies
+     ═══════════════════════════════════════════════════════════════════════ %>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap">
+
+<style>
+  .lotys-page { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+  .lotys-page h1, .lotys-page h2, .lotys-page h3 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+  }
+</style>
+
+<div class="lotys-page">
+
+  <%# ── Hero — chantier de rénovation avec échafaudage ─────────── %>
+  <section style="position:relative; padding:0; overflow:hidden;">
+
+    <%# Photo : façade d'immeuble en cours de rénovation, échafaudage,
+        clairement reconnaissable comme un chantier de rénovation. %>
+    <div style="position:absolute; inset:0; z-index:0;">
+      <img src="<%= asset_path("personae/artisans-hero.jpg") %>"
+           alt="" style="width:100%; height:100%; object-fit:cover;">
+      <div style="position:absolute; inset:0;
+                  background:linear-gradient(135deg,rgba(15,23,42,.85) 0%,rgba(30,58,95,.78) 100%);"></div>
+    </div>
+
+    <div style="position:relative; z-index:1; padding:104px 32px 88px;">
+      <div style="max-width:880px; margin:0 auto; text-align:center; color:#fff;">
+        <p style="font-family:'Inter',sans-serif;
+                  font-size:.85rem; font-weight:700; color:#6ee7b7;
+                  text-transform:uppercase; letter-spacing:.14em;
+                  margin:0 0 20px;">
+          Pour les artisans RGE et les banques
+        </p>
+        <h1 style="font-size:clamp(2.4rem,5vw,4rem); font-weight:900;
+                   line-height:1.1; letter-spacing:-0.02em; margin:0 0 28px;">
+          Des dossiers qualifiés sur votre territoire
+        </h1>
+        <p style="font-size:1.2rem; color:#cbd5e1; max-width:680px;
+                  margin:0 auto 40px; line-height:1.65; font-weight:400;">
+          Chaque dossier publié sur Lotys a été analysé : DPE extrait,
+          surface vérifiée, projet de travaux défini, aides calculées.
+          Plus de prospection à froid.
+        </p>
+        <%= link_to "Voir les dossiers disponibles", offers_path,
+            data: { turbo: false },
+            style: "display:inline-block; background:#10b981; color:#fff;
+                    font-weight:700; font-size:1.1rem; padding:18px 42px;
+                    border-radius:16px; text-decoration:none;
+                    box-shadow:0 8px 32px rgba(0,0,0,.3);" %>
+      </div>
+    </div>
+  </section>
+
+  <%# ── Les 3 apports ──────────────────────────────────────────── %>
+  <section style="background:#ffffff; padding:96px 24px;">
+    <div style="max-width:1100px; margin:0 auto;">
+
+      <div style="display:grid;
+                  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+                  gap:48px;">
+
+        <div style="text-align:center;">
+          <div style="font-size:3.5rem; margin-bottom:24px;">📄</div>
+          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
+                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
+            Des dossiers déjà instruits
+          </h2>
+          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
+            DPE officiel, surface, travaux envisagés, aides mobilisables,
+            reste à charge calculé. <strong>Vous savez à qui vous parlez</strong>
+            avant de prendre contact.
+          </p>
+        </div>
+
+        <div style="text-align:center;">
+          <div style="font-size:3.5rem; margin-bottom:24px;">📍</div>
+          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
+                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
+            Sur votre territoire
+          </h2>
+          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
+            Filtrez par zone, commune, distance. Pas de chantier à
+            l'autre bout du département. <strong>Les bons dossiers, près
+            de chez vous.</strong>
+          </p>
+        </div>
+
+        <div style="text-align:center;">
+          <div style="font-size:3.5rem; margin-bottom:24px;">🤝</div>
+          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
+                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
+            Sans commission Lotys
+          </h2>
+          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
+            Vous traitez directement avec le propriétaire, sur devis.
+            <strong>Lotys ne prend rien</strong> sur les travaux réalisés.
+            Notre modèle est celui de la plateforme, pas du commissionnement.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <%# ── CTA final en carte arrondie ──────────────────────────── %>
+  <section style="position:relative; padding:0; overflow:hidden;">
+
+    <%# Photo : autre chantier, plan plus rapproché %>
+    <div style="position:absolute; inset:0; z-index:0;">
+      <img src="<%= asset_path("personae/artisans-cta.jpg") %>"
+           alt="" style="width:100%; height:100%; object-fit:cover;">
+      <div style="position:absolute; inset:0;
+                  background:linear-gradient(135deg,rgba(15,23,42,.92) 0%,rgba(30,58,95,.88) 100%);"></div>
+    </div>
+
+    <div style="position:relative; z-index:1; padding:88px 32px;">
+      <div style="max-width:760px; margin:0 auto; text-align:center; color:#fff;">
+
+        <h2 style="font-size:clamp(1.7rem,4vw,2.4rem); font-weight:900;
+                   margin:0 0 20px; letter-spacing:-0.02em; line-height:1.2;">
+          Consultez les dossiers maintenant
+        </h2>
+        <p style="font-size:1.15rem; color:#cbd5e1; max-width:600px;
+                  margin:0 auto 36px; line-height:1.65;">
+          Accès libre, sans inscription préalable. Vous créez un compte
+          uniquement si vous souhaitez envoyer une proposition à un
+          propriétaire.
+        </p>
+
+        <%= link_to "Parcourir les biens à rénover", offers_path,
+            data: { turbo: false },
+            style: "display:inline-block; background:#10b981; color:#fff;
+                    font-weight:700; font-size:1.1rem; padding:18px 42px;
+                    border-radius:16px; text-decoration:none;
+                    box-shadow:0 8px 32px rgba(0,0,0,.3);" %>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/pages/about.html.erb
+═══════════════════════════════════════════════════════════════
+<%# about.html.erb — Comment ça marche %>
+
+<%# ── Hero simplifié : juste la promesse en une phrase ── %>
+<div class="relative w-full overflow-hidden" style="height:520px;margin-top:-1px;">
+  <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1600&q=85" alt="Immeuble" class="w-full h-full object-cover">
+  <div class="absolute inset-0" style="background:linear-gradient(90deg,rgba(15,23,42,0.96) 0%,rgba(15,23,42,0.88) 45%,rgba(15,23,42,0.55) 75%,rgba(15,23,42,0.25) 100%);"></div>
+  <div class="absolute inset-0 flex items-center"><div class="w-full max-w-5xl mx-auto px-6">
+    <h1 class="text-white font-black leading-none mb-8" style="font-size:clamp(2.8rem,6vw,4.5rem);letter-spacing:-0.03em;">
+      Simplifier la<br><span class="text-emerald-400">rénovation thermique.</span>
+    </h1>
+    <%= link_to "Analyser mon bien gratuitement →", new_property_path,
+        class: "inline-block bg-emerald-500 text-white font-bold px-10 py-4 rounded-2xl hover:bg-emerald-400 transition-colors",
+        style: "font-size:1.05rem;width:fit-content;" %>
+  </div></div>
+</div>
+
+<%# IMPORTANT : Tailwind v4 JIT ne compile que les classes présentes dans le code.
+    gap-14, space-y-10, space-y-28, mt-28… n'existent pas dans le CSS.
+    On utilise donc des styles inline pour garantir les espacements sans rebuild. %>
+<div class="max-w-5xl mx-auto px-6 py-20">
+
+  <%# ── Pourquoi Lotys ? ──
+       mb-10 sous le H2 pour resserrer titre/cards.
+       gap:5rem (80px) inline entre les cards pour que les 3 images ne se
+       lisent plus comme un bandeau continu. %>
+  <div class="px-4 md:px-12">
+    <h2 class="font-black text-gray-900 mb-10 text-center" style="font-size:2rem;">Pourquoi Lotys ?</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3" style="gap:5rem;">
+      <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
+        <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80" alt="Logement énergivore" class="w-full h-44 object-cover">
+        <div class="p-7">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-4" style="background:#fef2f2;">🏚️</div>
+          <h3 class="font-black text-gray-900 mb-3" style="font-size:1.15rem;">Un parc qui vieillit</h3>
+          <p class="text-gray-700 leading-relaxed" style="font-size:1.05rem;">5 millions de passoires thermiques en France. La loi Climat interdit la location des G depuis 2025, des F en 2028, des E en 2034.</p>
+        </div>
+      </div>
+      <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
+        <img src="https://images.unsplash.com/photo-1521791136064-7986c2920216?w=600&q=80" alt="Artisans et conseillers" class="w-full h-44 object-cover">
+        <div class="p-7">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-4" style="background:#fffbeb;">🧩</div>
+          <h3 class="font-black text-gray-900 mb-3" style="font-size:1.15rem;">Des intervenants éparpillés</h3>
+          <p class="text-gray-700 leading-relaxed" style="font-size:1.05rem;">Artisans RGE, banques, France Rénov', métropole… Chaque acteur apporte sa part mais personne ne donne une vision d'ensemble.</p>
+        </div>
+      </div>
+      <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
+        <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&q=80" alt="Dispositifs d'aides" class="w-full h-44 object-cover">
+        <div class="p-7">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-4" style="background:#f0fdf4;">💡</div>
+          <h3 class="font-black text-gray-900 mb-3" style="font-size:1.15rem;">Des aides complexes</h3>
+          <p class="text-gray-700 leading-relaxed" style="font-size:1.05rem;">MaPrimeRénov', CEE, éco-PTZ, aides locales. Les dispositifs sont puissants mais difficiles à articuler sans accompagnement.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# ── 3 étapes pour un plan de rénovation ──
+       margin-top:7rem (112px) inline pour séparer des cards précédentes.
+       mb-10 sous le H2 pour coller le titre à son bloc.
+       flex-col + gap:2.5rem (40px) pour espacer correctement les 3 étapes
+       (remplace un space-y-10 qui n'existe pas dans le CSS compilé). %>
+  <div style="margin-top:7rem;">
+    <h2 class="font-black text-gray-900 mb-10 text-center" style="font-size:2rem;">3 étapes, quelques minutes.</h2>
+    <div class="flex flex-col" style="gap:2.5rem;">
+
+      <%# Étape 1 — Dépôt documents %>
+      <div class="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex overflow-hidden">
+        <div class="w-2 shrink-0" style="background:#059669;"></div>
+        <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400&q=80" alt="" class="w-40 h-40 object-cover shrink-0 hidden md:block">
+        <div class="flex-1 p-8 flex items-start gap-5">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shrink-0" style="background:#059669;">1</div>
+          <div>
+            <h3 class="font-black text-gray-900 mb-2" style="font-size:1.2rem;">Vous déposez votre DPE et vos factures</h3>
+            <p class="text-gray-700 leading-relaxed" style="font-size:1.05rem;">Adresse, surface, photos, DPE, factures d'énergie. Lotys lit automatiquement vos documents et en extrait les éléments clés : classe DPE, consommation, points faibles du bâti.</p>
+          </div>
+        </div>
+      </div>
+
+      <%# Étape 2 — Analyse et plan %>
+      <div class="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex overflow-hidden">
+        <div class="w-2 shrink-0" style="background:#1d4ed8;"></div>
+        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&q=80" alt="" class="w-40 h-40 object-cover shrink-0 hidden md:block">
+        <div class="flex-1 p-8 flex items-start gap-5">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shrink-0" style="background:#1d4ed8;">2</div>
+          <div>
+            <h3 class="font-black text-gray-900 mb-2" style="font-size:1.2rem;">Lotys calcule vos travaux et vos aides</h3>
+            <p class="text-gray-700 leading-relaxed" style="font-size:1.05rem;">Travaux prioritaires, budget médian, MaPrimeRénov' + CEE + éco-PTZ + aides locales, reste à financer, mensualité d'un prêt bancaire. Ajustez la cible DPE, tout se recalcule en temps réel.</p>
+          </div>
+        </div>
+      </div>
+
+      <%# Étape 3 — Prestataires %>
+      <div class="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex overflow-hidden">
+        <div class="w-2 shrink-0" style="background:#b45309;"></div>
+        <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=400&q=80" alt="" class="w-40 h-40 object-cover shrink-0 hidden md:block">
+        <div class="flex-1 p-8 flex items-start gap-5">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shrink-0" style="background:#b45309;">3</div>
+          <div>
+            <h3 class="font-black text-gray-900 mb-2" style="font-size:1.2rem;">Les prestataires viennent à vous</h3>
+            <p class="text-gray-700 leading-relaxed" style="font-size:1.05rem;">Si vous le souhaitez, publiez anonymement votre dossier. Artisans RGE, courtiers et banques de votre secteur peuvent vous proposer une offre directement. Vous choisissez.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <%# ── CTA final ──
+       margin-top:9rem (144px) inline, volontairement plus grand que les
+       7rem entre les autres sections, pour bien détacher l'appel à l'action
+       de la dernière étape. space-y-6 est compilé, on le garde. %>
+  <div class="text-center space-y-6" style="margin-top:9rem;">
+    <h2 class="font-black text-gray-900" style="font-size:2rem;">Prêt à analyser votre bien ?</h2>
+    <p class="text-gray-500" style="font-size:1.05rem;">Gratuit, sans engagement, résultat en quelques minutes.</p>
+    <%= link_to "Commencer maintenant →", new_property_path,
+        class: "inline-block bg-emerald-600 text-white font-bold rounded-2xl hover:bg-emerald-700 transition-colors",
+        style: "font-size:1.1rem;padding:16px 40px;" %>
+  </div>
+
+</div>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/pages/collectivites.html.erb
+═══════════════════════════════════════════════════════════════
+<%# ═══════════════════════════════════════════════════════════════════════
+     /collectivites v3
+     - Photo : bâtiment institutionnel (mairie/hôtel d'agglo style français)
+     - Hero et CTA en cartes arrondies centrées
+     - Typo Fraunces + Inter, polices grossies
+     ═══════════════════════════════════════════════════════════════════════ %>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap">
+
+<style>
+  .lotys-page { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+  .lotys-page h1, .lotys-page h2, .lotys-page h3 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+  }
+</style>
+
+<div class="lotys-page">
+
+  <%# ── Hero — bâtiment institutionnel ──────────────────────── %>
+  <section style="position:relative; padding:0; overflow:hidden;">
+
+    <%# Photo : bâtiment institutionnel, façade pierre claire,
+        évoque sans ambiguïté l'institution publique. %>
+    <div style="position:absolute; inset:0; z-index:0;">
+      <img src="<%= asset_path("personae/collectivites-hero.jpg") %>"
+           alt="" style="width:100%; height:100%; object-fit:cover;">
+      <div style="position:absolute; inset:0;
+                  background:linear-gradient(135deg,rgba(15,23,42,.85) 0%,rgba(30,58,95,.78) 100%);"></div>
+    </div>
+
+    <div style="position:relative; z-index:1; padding:104px 32px 88px;">
+      <div style="max-width:880px; margin:0 auto; text-align:center; color:#fff;">
+        <p style="font-family:'Inter',sans-serif;
+                  font-size:.85rem; font-weight:700; color:#6ee7b7;
+                  text-transform:uppercase; letter-spacing:.14em;
+                  margin:0 0 20px;">
+          Pour les intercommunalités
+        </p>
+        <h1 style="font-size:clamp(2.4rem,5vw,4rem); font-weight:900;
+                   line-height:1.1; letter-spacing:-0.02em; margin:0 0 28px;">
+          Accélérer la rénovation thermique sur votre territoire
+        </h1>
+        <p style="font-size:1.2rem; color:#cbd5e1; max-width:680px;
+                  margin:0 auto 40px; line-height:1.65; font-weight:400;">
+          Lotys équipe votre EPCI d'un outil unique pour vos habitants,
+          vos artisans, et pour rendre visibles les dispositifs que
+          vous engagez.
+        </p>
+        <%= link_to "Prendre rendez-vous", contact_path,
+            style: "display:inline-block; background:#10b981; color:#fff;
+                    font-weight:700; font-size:1.1rem; padding:18px 42px;
+                    border-radius:16px; text-decoration:none;
+                    box-shadow:0 8px 32px rgba(0,0,0,.3);" %>
+      </div>
+    </div>
+  </section>
+
+  <%# ── Les 3 apports ──────────────────────────────────────────── %>
+  <section style="background:#ffffff; padding:96px 24px;">
+    <div style="max-width:1100px; margin:0 auto;">
+
+      <div style="display:grid;
+                  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+                  gap:48px;">
+
+        <div style="text-align:center;">
+          <div style="font-size:3.5rem; margin-bottom:24px;">🏠</div>
+          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
+                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
+            Les habitants y voient plus clair
+          </h2>
+          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
+            Un simulateur qui combine les aides nationales et
+            <strong>vos dispositifs locaux</strong>, commune par commune.
+            Le plan de rénovation, son coût réel, ses étapes — en quelques
+            minutes.
+          </p>
+        </div>
+
+        <div style="text-align:center;">
+          <div style="font-size:3.5rem; margin-bottom:24px;">🔧</div>
+          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
+                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
+            Les artisans accèdent aux projets
+          </h2>
+          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
+            Les artisans RGE de votre territoire consultent les dossiers
+            publiés par les habitants. <strong>Prospection qualifiée et
+            locale</strong>, sans démarchage à froid.
+          </p>
+        </div>
+
+        <div style="text-align:center;">
+          <div style="font-size:3.5rem; margin-bottom:24px;">📣</div>
+          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
+                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
+            Vos dispositifs sont davantage visibles
+          </h2>
+          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
+            Les aides que votre EPCI engage sont intégrées au simulateur,
+            chiffrées dans chaque plan, <strong>connues et activées</strong>
+            par les habitants qui y ont droit.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <%# ── CTA final en carte arrondie ──────────────────────────── %>
+  <section style="position:relative; padding:0; overflow:hidden;">
+
+    <%# Photo : autre bâtiment institutionnel ou place publique %>
+    <div style="position:absolute; inset:0; z-index:0;">
+      <img src="<%= asset_path("personae/collectivites-cta.jpg") %>"
+           alt="" style="width:100%; height:100%; object-fit:cover;">
+      <div style="position:absolute; inset:0;
+                  background:linear-gradient(135deg,rgba(15,23,42,.92) 0%,rgba(30,58,95,.88) 100%);"></div>
+    </div>
+
+    <div style="position:relative; z-index:1; padding:88px 32px;">
+      <div style="max-width:760px; margin:0 auto; text-align:center; color:#fff;">
+
+        <h2 style="font-size:clamp(1.7rem,4vw,2.4rem); font-weight:900;
+                   margin:0 0 20px; letter-spacing:-0.02em; line-height:1.2;">
+          Discutons de votre territoire
+        </h2>
+        <p style="font-size:1.15rem; color:#cbd5e1; max-width:600px;
+                  margin:0 auto 36px; line-height:1.65;">
+          Chaque intercommunalité est un cas particulier. La meilleure
+          façon de savoir ce que Lotys peut apporter au vôtre, c'est
+          d'en parler.
+        </p>
+
+        <%= link_to "Prendre rendez-vous", contact_path,
+            style: "display:inline-block; background:#10b981; color:#fff;
+                    font-weight:700; font-size:1.1rem; padding:18px 42px;
+                    border-radius:16px; text-decoration:none;
+                    box-shadow:0 8px 32px rgba(0,0,0,.3);
+                    margin-right:16px;" %>
+
+        <a href="mailto:contact@lotys.fr"
+           style="display:inline-block; color:#6ee7b7; font-weight:600;
+                  font-size:1.05rem; padding:18px 0; text-decoration:underline;">
+          contact@lotys.fr
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+</div>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/pages/confidentialite.html.erb
+═══════════════════════════════════════════════════════════════
+<div class="max-w-3xl mx-auto px-6 py-16">
+  <h1 class="text-3xl font-bold text-gray-900 mb-8">Politique de confidentialité</h1>
+
+  <div class="space-y-8">
+    <section>
+      <h2 class="text-xl font-bold text-gray-800 mb-3">Données collectées</h2>
+      <p class="text-gray-600">Lotys collecte les données suivantes : adresse email, informations sur votre bien immobilier (adresse, surface, DPE), documents uploadés (DPE, PV d'AG, factures), photos du bien.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-bold text-gray-800 mb-3">Utilisation des données</h2>
+      <p class="text-gray-600">Vos données sont utilisées exclusivement pour produire l'analyse de votre bien et mettre en relation avec des prestataires qualifiés. Elles ne sont jamais vendues à des tiers.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-bold text-gray-800 mb-3">Stockage et sécurité</h2>
+      <p class="text-gray-600">Les documents sont stockés sur Amazon S3 (région EU-Paris). L'accès est chiffré et restreint. Les analyses sont générées via l'API Anthropic (Claude) — les documents ne sont pas conservés par Anthropic après traitement.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-bold text-gray-800 mb-3">Durée de conservation</h2>
+      <p class="text-gray-600">Vos données sont conservées pendant la durée de votre compte. Vous pouvez demander leur suppression à tout moment en contactant <a href="mailto:contact@lotys.fr" class="text-emerald-600 hover:underline">contact@lotys.fr</a>.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-bold text-gray-800 mb-3">Cookies</h2>
+      <p class="text-gray-600">Lotys utilise uniquement des cookies techniques nécessaires au fonctionnement du service (session, authentification). Aucun cookie publicitaire ou de tracking.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-bold text-gray-800 mb-3">Vos droits</h2>
+      <p class="text-gray-600">Conformément au RGPD, vous disposez d'un droit d'accès, rectification, suppression et portabilité. Contact : <a href="mailto:contact@lotys.fr" class="text-emerald-600 hover:underline">contact@lotys.fr</a></p>
+    </section>
+  </div>
+</div>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/pages/panneaux_solaires.html.erb
+═══════════════════════════════════════════════════════════════
+<%# app/views/pages/panneaux_solaires.html.erb %>
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+
+  <div class="mb-8">
+    <a href="javascript:history.back()" class="text-sm text-gray-400 hover:text-emerald-600 transition">← Retour</a>
+    <h1 class="text-3xl font-black text-gray-900 mt-4 mb-2">☀️ Installer des panneaux solaires</h1>
+    <p class="text-gray-500 text-lg">L'équation a changé : désormais, c'est ce que vous <em>consommez</em> qui compte, plus ce que vous vendez.</p>
+  </div>
+
+  <%# ── Le nouveau paradigme ──────────────────────────────── %>
+  <div class="bg-orange-50 border-l-4 border-orange-400 rounded-r-2xl p-6 mb-6">
+    <p class="text-xs font-bold text-orange-700 uppercase tracking-wide mb-2">Mise à jour mars 2025</p>
+    <h2 class="text-xl font-bold text-orange-900 mb-3">⚠️ L'État veut que vous autoconsommiez</h2>
+    <p class="text-orange-900 text-sm leading-relaxed mb-3">
+      Depuis le 27 mars 2025, le tarif de rachat du surplus par EDF OA est passé de
+      <strong>12,7 c€/kWh à 4 c€/kWh</strong> (division par 3). La prime à l'autoconsommation
+      a aussi été divisée par deux (80 €/kWc, contre ~210 € auparavant).
+    </p>
+    <p class="text-orange-900 text-sm leading-relaxed mb-3">
+      Pourquoi ? Parce que le gouvernement ne veut plus acheter votre électricité à un prix subventionné.
+      Il veut que vous consommiez ce que vous produisez chez vous, au moment où vous le produisez.
+    </p>
+    <p class="text-orange-900 text-sm leading-relaxed">
+      <strong>Conséquence directe :</strong> chaque kWh autoconsommé vous économise environ
+      19 c€ (prix du tarif bleu EDF). Chaque kWh revendu ne vous rapporte que 4 c€.
+      <strong>Autoconsommer est aujourd'hui ~5× plus rentable que revendre.</strong>
+    </p>
+  </div>
+
+  <%# ── Comment vraiment autoconsommer ────────────────────── %>
+  <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-amber-900 mb-3">🔑 Le bon geste : décaler ses usages aux heures solaires</h2>
+    <p class="text-amber-900 text-sm mb-4 leading-relaxed">
+      Décaler la machine à laver à midi ne suffit pas. Pour vraiment rentabiliser une installation,
+      il faut <strong>adapter ses habitudes aux heures de production</strong> (10h-16h en général).
+    </p>
+    <ul class="space-y-3 text-amber-900 text-sm">
+      <li class="flex items-start gap-3">
+        <span class="text-lg shrink-0">💧</span>
+        <div>
+          <strong class="text-amber-900">Ballon d'eau chaude :</strong> caler la période de chauffe sur les heures solaires.
+          C'est le poste le plus facile à piloter — un simple contacteur suffit.
+        </div>
+      </li>
+      <li class="flex items-start gap-3">
+        <span class="text-lg shrink-0">🚗</span>
+        <div>
+          <strong class="text-amber-900">Voiture électrique :</strong> la recharger la journée plutôt que la nuit.
+          Pour 500 km/semaine, la dépense passe de ~276 €/mois en carburant à ~48 €/mois
+          en heure creuse — et peut tendre vers zéro avec du solaire autoconsommé.
+        </div>
+      </li>
+      <li class="flex items-start gap-3">
+        <span class="text-lg shrink-0">🌀</span>
+        <div>
+          <strong class="text-amber-900">Pompe à chaleur pilotée :</strong> couplée à une installation PV,
+          une PAC intelligente qui chauffe davantage quand l'électricité est abondante peut réduire
+          la facture de chauffage d'environ 30 % (source Mylight150 citée par Le Figaro).
+        </div>
+      </li>
+      <li class="flex items-start gap-3">
+        <span class="text-lg shrink-0">🏊</span>
+        <div>
+          <strong class="text-amber-900">Climatisation & filtration piscine :</strong> usages qui tombent pile
+          sur les heures solaires. Gain caché sur la piscine : plus de filtration = moins de produits chimiques.
+        </div>
+      </li>
+      <li class="flex items-start gap-3">
+        <span class="text-lg shrink-0">🧺</span>
+        <div>
+          <strong class="text-amber-900">Électroménager :</strong> lave-linge, lave-vaisselle, sèche-linge
+          programmés en journée, surtout l'été. Utiliser les programmes ECO en priorité.
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <%# ── Batterie stationnaire ─────────────────────────────── %>
+  <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-3">🔋 Ajouter une batterie ?</h2>
+    <p class="text-gray-700 text-sm mb-4 leading-relaxed">
+      Avec la baisse du tarif de rachat, de plus en plus de foyers choisissent d'ajouter une
+      batterie stationnaire à leurs panneaux. Elle stocke l'excédent produit en journée
+      pour le restituer le soir et le matin, quand les panneaux ne produisent plus.
+    </p>
+    <div class="space-y-3 text-sm">
+      <div class="bg-gray-50 rounded-xl p-4">
+        <p class="font-bold text-gray-900 mb-1">💳 Achat direct : 4 000 à 6 000 €</p>
+        <p class="text-gray-600 leading-relaxed">
+          Pour une batterie lithium de 5 à 10 kWh, installation comprise. Rentabilité
+          dépend fortement de votre profil de consommation soir/matin.
+        </p>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-4">
+        <p class="font-bold text-gray-900 mb-1">🤝 Location ou batterie virtuelle</p>
+        <p class="text-gray-600 leading-relaxed">
+          Des opérateurs comme <strong>Ensol</strong> ou <strong>Octopus Energy</strong> proposent
+          de mettre à disposition leur batterie ou la vôtre contre un bonus mensuel.
+          Octopus verse par exemple environ <strong>30 €/mois pour 10 kWh de capacité</strong>
+          de stockage partagée avec le réseau.
+        </p>
+      </div>
+    </div>
+    <p class="text-xs text-gray-500 mt-4 italic">
+      À évaluer au cas par cas : une batterie n'est pas rentable pour tous les profils.
+      Un conseiller <a href="https://france-renov.gouv.fr" target="_blank" class="text-emerald-600 hover:underline">France Rénov'</a>
+      peut faire le calcul avec vous.
+    </p>
+  </div>
+
+  <%# ── Conditions ────────────────────────────────────────── %>
+  <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-4">🏠 Conditions d'installation</h2>
+    <div class="space-y-4 text-sm text-gray-700">
+      <div>
+        <p class="font-bold text-gray-800 mb-1">Orientation et inclinaison</p>
+        <p>Toiture orientée sud (±45°), inclinaison 30 à 35° : idéal. Est ou ouest restent rentables avec une production réduite de 15-20 %. Nord seul : déconseillé.</p>
+      </div>
+      <div>
+        <p class="font-bold text-gray-800 mb-1">Surface minimale</p>
+        <p>Comptez ~7 m² par kWc installé. Installation standard de 3 kWc (foyer de 2-3 personnes) : ~21 m² de toiture dégagée.</p>
+      </div>
+      <div>
+        <p class="font-bold text-gray-800 mb-1">Copropriété</p>
+        <p>Vote en AG nécessaire (majorité simple article 24). En maison individuelle, aucune autorisation requise sauf zone ABF (bâtiments classés).</p>
+      </div>
+      <div>
+        <p class="font-bold text-gray-800 mb-1">Déclaration préalable</p>
+        <p>Obligatoire au-delà de 3 kWc ou en zone protégée. En dessous : simple déclaration de raccordement à Enedis.</p>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Les aides actualisées ─────────────────────────────── %>
+  <h2 class="text-xl font-bold text-gray-900 mb-4">💰 Les aides en 2026</h2>
+  <div class="space-y-4 mb-8">
+
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <p class="font-bold text-gray-900">Prime à l'autoconsommation</p>
+          <p class="text-xs text-gray-500">Versée en une fois, ~1 an après installation</p>
+        </div>
+        <span class="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full shrink-0">80 €/kWc</span>
+      </div>
+      <p class="text-sm text-gray-600 leading-relaxed">
+        Forfait 2026 pour les installations ≤ 9 kWc en autoconsommation avec vente du surplus.
+        Exemples : 240 € pour 3 kWc, 480 € pour 6 kWc, 720 € pour 9 kWc.
+      </p>
+      <p class="text-xs text-amber-700 mt-2">
+        ⚠️ Divisée par 2 depuis le 27 mars 2025. Versée par EDF OA.
+      </p>
+    </div>
+
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <p class="font-bold text-gray-900">Tarif de rachat du surplus</p>
+          <p class="text-xs text-gray-500">Contrat sur 20 ans avec EDF OA</p>
+        </div>
+        <span class="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full shrink-0">4 c€/kWh</span>
+      </div>
+      <p class="text-sm text-gray-600 leading-relaxed">
+        Pour les installations ≤ 9 kWc. Entre 9 et 100 kWc : 4,73 c€/kWh.
+        À comparer aux 19,4 c€/kWh du tarif bleu EDF que vous économisez par chaque kWh autoconsommé.
+      </p>
+    </div>
+
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <p class="font-bold text-gray-900">TVA réduite à 10 %</p>
+          <p class="text-xs text-gray-500">Logement de plus de 2 ans</p>
+        </div>
+        <span class="text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full shrink-0">−10 %</span>
+      </div>
+      <p class="text-sm text-gray-600 leading-relaxed">
+        Au lieu de 20 %. S'applique pour les installations ≤ 3 kWc. Au-delà : TVA à 20 % sur la totalité.
+      </p>
+    </div>
+
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <p class="font-bold text-gray-900">Exonération de taxe foncière</p>
+          <p class="text-xs text-gray-500">Selon les communes — à vérifier en mairie</p>
+        </div>
+        <span class="text-sm font-bold text-green-700 bg-green-50 px-3 py-1 rounded-full shrink-0">variable</span>
+      </div>
+      <p class="text-sm text-gray-600 leading-relaxed">
+        Certaines communes accordent une exonération temporaire pour les installations en énergies renouvelables.
+      </p>
+    </div>
+
+  </div>
+
+  <%# ── Budget et ROI actualisés ──────────────────────────── %>
+  <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-base font-bold text-gray-800 mb-3">📊 Budget et retour sur investissement (2026)</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-200">
+            <th class="text-left py-2 text-gray-500 font-semibold">Puissance</th>
+            <th class="text-right py-2 text-gray-500 font-semibold">Coût installé</th>
+            <th class="text-right py-2 text-gray-500 font-semibold">Économies/an*</th>
+            <th class="text-right py-2 text-gray-500 font-semibold">ROI</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <tr><td class="py-2">3 kWc</td><td class="text-right">6 000 – 9 000 €</td><td class="text-right">350 – 500 €</td><td class="text-right">13 – 18 ans</td></tr>
+          <tr><td class="py-2">6 kWc</td><td class="text-right">10 000 – 15 000 €</td><td class="text-right">550 – 900 €</td><td class="text-right">12 – 17 ans</td></tr>
+          <tr><td class="py-2">9 kWc</td><td class="text-right">14 000 – 20 000 €</td><td class="text-right">800 – 1 300 €</td><td class="text-right">13 – 18 ans</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs text-gray-500 mt-3 leading-relaxed">
+      * Hypothèse : 50 % d'autoconsommation (19,4 c€/kWh économisés) + 50 % de surplus revendu à 4 c€/kWh.
+      Les chiffres grimpent significativement si vous dépassez 50 % d'autoconsommation grâce à une batterie
+      ou au pilotage de vos usages.
+    </p>
+  </div>
+
+  <%# ── Couplage avec d'autres équipements ──────────────── %>
+  <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-emerald-900 mb-3">⚡ Coupler pour amplifier</h2>
+    <p class="text-emerald-900 text-sm mb-4 leading-relaxed">
+      Les panneaux solaires prennent toute leur valeur quand ils alimentent d'autres équipements du logement.
+      Deux couplages particulièrement pertinents :
+    </p>
+    <div class="space-y-3 text-sm">
+      <div class="bg-white rounded-xl p-4 border border-emerald-100">
+        <p class="font-bold text-emerald-900 mb-1">🌀 PAC + PV piloté = −30 % de facture chauffage</p>
+        <p class="text-gray-700 leading-relaxed mb-2">
+          Une pompe à chaleur pilotée intelligemment — qui chauffe davantage quand l'électricité est
+          abondante et peu chère — peut réduire d'environ 30 % la facture de chauffage par rapport
+          à une PAC classique (source Mylight150 citée par Le Figaro).
+        </p>
+        <p class="text-xs text-emerald-700">
+          💡 La PAC air/eau est éligible à MaPrimeRénov' (jusqu'à 5 000 € selon profil). Elle constitue
+          souvent le meilleur premier investissement avant les panneaux.
+        </p>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-emerald-100">
+        <p class="font-bold text-emerald-900 mb-1">🚗 VE + PV = carburant quasi-gratuit</p>
+        <p class="text-gray-700 leading-relaxed mb-2">
+          Pour un trajet hebdomadaire de 500 km, on passe de ~276 €/mois en carburant
+          (voiture thermique) à ~48 €/mois en heure creuse (VE). Avec des panneaux solaires
+          et une recharge en journée, on tend vers zéro.
+        </p>
+        <p class="text-xs text-emerald-700">
+          <%= link_to "→ Voir la page Borne de recharge électrique", borne_electrique_path,
+              class: "hover:underline" %>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Par où commencer ──────────────────────────────────── %>
+  <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-base font-bold text-gray-800 mb-3">🔧 Par où commencer ?</h2>
+    <ol class="space-y-2 text-sm text-gray-700">
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span><span>Vérifiez l'orientation et l'état de votre toiture — une toiture à refaire avant 10 ans doit être rénovée avant installation.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span><span>Évaluez votre profil de consommation : quelles heures, quels usages ? C'est ça qui détermine la rentabilité, plus que la surface de toit.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span><span>Demandez 3 devis à des installateurs certifiés <strong>QualiPV</strong> — les écarts de prix peuvent atteindre 30 %.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">4</span><span>Choisissez le mode : autoconsommation avec vente du surplus (le plus courant aujourd'hui) et éventuellement ajoutez une batterie selon votre profil.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">5</span><span>Déposez la déclaration préalable en mairie si nécessaire, puis la demande de raccordement à Enedis (délai ~3 mois).</span></li>
+    </ol>
+  </div>
+
+  <%# ── Exemples concrets ─────────────────────────────────── %>
+  <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-5">💡 Trois exemples concrets (après réforme 2025)</h2>
+    <div class="space-y-5">
+      <div class="border-l-4 border-amber-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Maison 90 m² à Laxou, couple avec voiture électrique</p>
+        <p class="text-base text-gray-600 leading-relaxed">
+          Installation 6 kWc + pilotage ballon ECS + recharge VE en journée. Coût : ~11 500 € après prime
+          (480 €). Autoconsommation à 65 % (ballon + VE + électroménager décalé). Économies annuelles :
+          ~820 € sur l'électricité + ~1 800 € sur le carburant. ROI accéléré à ~9 ans grâce au couplage VE.
+        </p>
+      </div>
+      <div class="border-l-4 border-amber-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Retraité seul en appartement T3, copropriété moderne de Nancy</p>
+        <p class="text-base text-gray-600 leading-relaxed">
+          Installation collective votée en AG : 18 kWc sur toiture-terrasse. Coût par copropriétaire :
+          ~2 400 € (10 lots). Économies sur charges communes : ~180 €/an/lot. L'intérêt porte plus sur
+          la valorisation du bien (+3 à 5 % à la revente selon études notariales) que sur le ROI strict.
+        </p>
+      </div>
+      <div class="border-l-4 border-amber-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Famille avec PAC air/eau, orientation est-ouest</p>
+        <p class="text-base text-gray-600 leading-relaxed">
+          Installation 3 kWc pour alimenter prioritairement la PAC pilotée en journée. Coût :
+          5 800 € après prime. Économies : ~400 €/an sur la facture chauffage + ~180 €/an sur
+          l'électricité domestique. Retour sur investissement estimé à 11-13 ans malgré l'orientation
+          non idéale, grâce au couplage PAC.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Pour Lotys / les DPE F-G ──────────────────────────── %>
+  <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-lg font-bold text-blue-900 mb-2">🏠 Et pour un logement DPE F ou G ?</h2>
+    <p class="text-sm text-blue-900 leading-relaxed">
+      Si votre bien est classé F ou G, <strong>ne commencez pas par les panneaux solaires</strong>.
+      L'isolation et le changement de chauffage offrent un gain DPE et un confort bien supérieurs
+      pour chaque euro investi. Les panneaux arriveront en bout de parcours, une fois l'enveloppe
+      thermique correcte et les équipements électrifiés (PAC, VE) en place — c'est là qu'ils
+      donnent leur plein potentiel.
+    </p>
+  </div>
+
+  <%# ── Sources ───────────────────────────────────────────── %>
+  <div class="text-xs text-gray-400 space-y-1">
+    <p class="font-semibold text-gray-500 mb-2">Sources</p>
+    <p>• <strong>Le Figaro</strong>, Elsa Bembaron — <a href="https://www.lefigaro.fr/societes/electricite-est-il-encore-interessant-d-installer-des-panneaux-solaires-sur-sa-maison-20260419" target="_blank" class="underline"><em>« Électricité : est-il encore intéressant d'installer des panneaux solaires sur sa maison ? »</em></a> (19 avril 2026)</p>
+    <p>• <a href="https://www.service-public.fr/particuliers/actualites/A18205" target="_blank" class="underline">service-public.gouv.fr</a> — arrêté tarifaire du 27 mars 2025</p>
+    <p>• <a href="https://www.quechoisir.org/actualite-panneaux-photovoltaiques-les-consequences-de-la-diminution-des-tarifs-de-rachat-et-des-aides-n165344/" target="_blank" class="underline">UFC-Que Choisir</a> — analyse des nouveaux barèmes</p>
+    <p>• <a href="https://www.edf-oa.fr" target="_blank" class="underline">edf-oa.fr</a> — contrat d'obligation d'achat</p>
+    <p>• ADEME — <em>Photovoltaïque : éclairage sur l'autoconsommation</em> (2024)</p>
+  </div>
+
+</div>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/views/pages/borne_electrique.html.erb
+═══════════════════════════════════════════════════════════════
+<%# app/views/pages/borne_electrique.html.erb %>
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+
+  <div class="mb-8">
+    <a href="javascript:history.back()" class="text-sm text-gray-400 hover:text-emerald-600 transition">← Retour</a>
+    <h1 class="text-3xl font-black text-gray-900 mt-4 mb-2">⚡ Installer une borne de recharge</h1>
+    <p class="text-gray-500 text-lg">Ce que vous pouvez faire, ce à quoi vous avez droit, et les aides disponibles.</p>
+  </div>
+
+  <%# Droit à la prise %>
+  <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-emerald-900 mb-3">✅ C'est un droit</h2>
+    <p class="text-emerald-800 leading-relaxed mb-3">
+      Que vous soyez <strong>propriétaire ou locataire</strong>, vous bénéficiez du <strong>droit à la prise</strong> :
+      vous pouvez faire installer une borne de recharge sur votre place de stationnement, à vos frais,
+      sans autorisation préalable de l'assemblée générale.
+    </p>
+    <ul class="space-y-2 text-emerald-800 text-sm">
+      <li class="flex items-start gap-2"><span class="text-emerald-600 font-bold mt-0.5">✓</span> <span><strong>Propriétaire</strong> : vous pouvez procéder directement, avec obligation d'installer un compteur individuel.</span></li>
+      <li class="flex items-start gap-2"><span class="text-emerald-600 font-bold mt-0.5">✓</span> <span><strong>Locataire</strong> : envoyez une demande au syndic par lettre recommandée avec le descriptif des travaux. Le propriétaire ne peut pas refuser, sauf si un projet collectif est en cours ou si l'installation est techniquement impossible.</span></li>
+    </ul>
+  </div>
+
+  <%# Les aides %>
+  <h2 class="text-xl font-bold text-gray-900 mb-4">💰 Les aides disponibles</h2>
+
+  <div class="space-y-4 mb-8">
+
+    <%# ADVENIR %>
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <p class="font-bold text-gray-900">Programme ADVENIR</p>
+          <p class="text-xs text-gray-500">Propriétaires et locataires en résidentiel collectif</p>
+        </div>
+        <span class="text-sm font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full shrink-0">jusqu'à 960 €</span>
+      </div>
+      <p class="text-base text-gray-600 leading-relaxed">
+        Couvre <strong>50 % des coûts</strong> de fourniture et d'installation du point de recharge individuel,
+        plafonné à 960 € HT. La prime est déduite directement sur la facture par l'installateur labellisé.
+      </p>
+      <p class="text-xs text-gray-400 mt-2">
+        Conditions : parking intérieur ou extérieur, borne ≤ 22 kW, installateur qualifié IRVE labellisé ADVENIR.
+      </p>
+      <a href="https://advenir.mobi/immeublecollectif/" target="_blank" class="inline-block mt-3 text-xs text-emerald-600 hover:underline">advenir.mobi →</a>
+    </div>
+
+    <%# Crédit d'impôt %>
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <p class="font-bold text-gray-900">Crédit d'impôt</p>
+          <p class="text-xs text-gray-500">Résidence principale ou secondaire</p>
+        </div>
+        <span class="text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full shrink-0">jusqu'à 300 €</span>
+      </div>
+      <p class="text-base text-gray-600 leading-relaxed">
+        <strong>75 % des dépenses</strong> d'achat et de pose, plafonné à 300 €, sans condition de ressources.
+        Cumulable avec la prime ADVENIR.
+      </p>
+      <p class="text-xs text-gray-400 mt-2">Conservez votre facture et déclarez-le lors de votre déclaration d'impôts.</p>
+    </div>
+
+    <%# TVA réduite %>
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <p class="font-bold text-gray-900">TVA réduite à 5,5 %</p>
+          <p class="text-xs text-gray-500">Logement achevé depuis plus de 2 ans</p>
+        </div>
+        <span class="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full shrink-0">−14,5 %</span>
+      </div>
+      <p class="text-base text-gray-600 leading-relaxed">
+        Au lieu de 20 %. S'applique directement sur le devis. L'installation et la fourniture doivent figurer
+        sur une seule facture, réalisée par un électricien qualifié IRVE.
+      </p>
+    </div>
+
+    <%# Copropriété %>
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <p class="font-bold text-gray-900">Infrastructure collective en copropriété</p>
+          <p class="text-xs text-gray-500">Prime réservée aux syndicats de copropriétaires</p>
+        </div>
+        <span class="text-sm font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-full shrink-0">jusqu'à 8 000 €</span>
+      </div>
+      <p class="text-base text-gray-600 leading-relaxed">
+        Si votre copropriété vote en AG la création d'une infrastructure collective,
+        la prime ADVENIR peut atteindre 8 000 € pour le réseau commun,
+        + 1 660 € par point de recharge partagé.
+      </p>
+      <p class="text-xs text-gray-400 mt-2">Bâtiments construits avant 2017. Doit être voté en AG avant demande de prime.</p>
+    </div>
+
+  </div>
+
+  <%# Exemples concrets %>
+  <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-5">💡 Trois exemples concrets</h2>
+    <div class="space-y-5">
+
+      <div class="border-l-4 border-blue-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Propriétaire, maison individuelle à Maxéville</p>
+        <p class="text-base text-gray-600 leading-relaxed">Installation d'une borne 7 kW dans le garage en 2024. Coût total : 1 850 € TTC. Prime ADVENIR déduite à la source : −600 €. Crédit d'impôt 75% × 300 € = 225 €. TVA 5,5% appliquée. Coût net final : ~950 €. Recharge complète d'un véhicule 60 kWh en 9h — adaptée à la recharge de nuit.</p>
+      </div>
+
+      <div class="border-l-4 border-blue-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Locataire, copropriété 12 lots, rue Stanislas Nancy</p>
+        <p class="text-base text-gray-600 leading-relaxed">Demande envoyée au syndic par LRAR en mars 2024 avec descriptif technique. Pas de réponse dans les 3 mois → accord tacite (loi ELAN). Installation d'une prise renforcée 3,7 kW sur place de parking n°7. Coût : 980 €. Prime ADVENIR non mobilisable sur prise simple — à prévoir sur borne IRVE dès que budget disponible.</p>
+      </div>
+
+      <div class="border-l-4 border-blue-400 pl-4">
+        <p class="font-bold text-gray-900 mb-1">Copropriété 24 lots, boulevard de la Mothe Nancy</p>
+        <p class="text-base text-gray-600 leading-relaxed">Vote AG en juin 2023 pour infrastructure collective pre-équipement (gaines + tableau). Coût mutualisé : 320 €/lot. Prime ADVENIR collective : −8 000 € sur le réseau commun. 6 bornes individuelles installées en 2024 par les copropriétaires intéressés, chacun mobilisant sa propre prime ADVENIR (480 € par borne).</p>
+      </div>
+
+    </div>
+  </div>
+
+  <%# Conseil pratique %>
+  <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
+    <h2 class="text-base font-bold text-gray-800 mb-3">🔧 Par où commencer ?</h2>
+    <ol class="space-y-2 text-base text-gray-700">
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span> <span>Vérifiez votre place de parking et l'accès au tableau électrique.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span> <span>Contactez un installateur <strong>qualifié IRVE</strong> labellisé ADVENIR — il gère les démarches de prime.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span> <span>Si vous êtes locataire : envoyez votre demande au syndic par <strong>LRAR</strong> avant de commander.</span></li>
+      <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">4</span> <span>Conservez toutes vos factures pour le crédit d'impôt et vérifiez que la TVA à 5,5 % est appliquée.</span></li>
+    </ol>
+    <p class="text-xs text-gray-400 mt-4">
+      ⚠️ Méfiez-vous des installateurs non certifiés. Vérifiez la qualification IRVE sur
+      <a href="https://www.afnor.org" target="_blank" class="underline">afnor.org</a> ou
+      <a href="https://advenir.mobi/trouver-un-installateur/" target="_blank" class="underline">advenir.mobi</a>.
+    </p>
+  </div>
+
+  <%# Sources %>
+  <div class="text-xs text-gray-400 space-y-1">
+    <p class="font-semibold text-gray-500 mb-2">Sources</p>
+    <p>• Ministère chargé des Transports — <em>Les aides pour l'installation d'une borne électrique dans le résidentiel collectif</em> (avril 2022)</p>
+    <p>• RTL — <em>Voiture électrique : comment installer une borne de recharge chez soi</em> (6 mars 2026)</p>
+    <p>• <a href="https://advenir.mobi/immeublecollectif/" target="_blank" class="underline">advenir.mobi</a></p>
+    <p>• <a href="https://www.service-public.fr/particuliers/vosdroits/F35578" target="_blank" class="underline">service-public.fr</a></p>
+  </div>
+
+</div>
+
+═══════════════════════════════════════════════════════════════
+FILE: app/assets/tailwind/application.css
+═══════════════════════════════════════════════════════════════
+@import "tailwindcss";
+
+/*
+  Force la prise en compte de la safelist. En pratique, tailwindcss-rails
+  scanne déjà app/** par défaut, donc cette directive est surtout là pour
+  expliciter l'intention et rendre le comportement robuste si la config
+  par défaut venait à changer.
+*/
+@source "./safelist.html";
+
+═══════════════════════════════════════════════════════════════
+FILE: app/assets/stylesheets/application.css
+═══════════════════════════════════════════════════════════════
+/* Application styles */
+
+.full-bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+
+/* Markdown prose styles */
+.prose h1, .prose h2, .prose h3 { font-weight: 700; margin-top: 1.25em; margin-bottom: 0.5em; }
+.prose h1 { font-size: 1.25rem; color: #111827; }
+.prose h2 { font-size: 1.1rem; color: #1f2937; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.25em; }
+.prose h3 { font-size: 0.95rem; color: #374151; }
+.prose p { margin-bottom: 0.75em; line-height: 1.6; }
+.prose ul, .prose ol { padding-left: 1.5em; margin-bottom: 0.75em; }
+.prose li { margin-bottom: 0.25em; }
+.prose strong { font-weight: 600; color: #111827; }
+.prose table { width: 100%; border-collapse: collapse; margin-bottom: 1em; font-size: 0.875rem; }
+.prose th { background: #f9fafb; padding: 0.5em 0.75em; text-align: left; font-weight: 600; border: 1px solid #e5e7eb; }
+.prose td { padding: 0.5em 0.75em; border: 1px solid #e5e7eb; }
+.prose blockquote { border-left: 3px solid #d1fae5; padding-left: 1em; color: #6b7280; font-style: italic; margin: 0.75em 0; }
+.prose hr { border: none; border-top: 1px solid #e5e7eb; margin: 1.5em 0; }
