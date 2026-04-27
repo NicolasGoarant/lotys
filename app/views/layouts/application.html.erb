@@ -10,7 +10,7 @@
   <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
   <%= javascript_importmap_tags %>
 </head>
-<body class="min-h-screen bg-white text-gray-900">
+<body class="min-h-screen bg-white text-gray-900 flex flex-col">
   <%= render "shared/navbar" %>
 
   <% if notice.present? %>
@@ -25,10 +25,10 @@
     </div>
   <% end %>
 
-  <main>
+  <main class="flex-1">
     <%= yield %>
   </main>
 
-  <%= render "shared/footer", variant: :default %>
+  <%= render "shared/footer", variant: (controller_name == "pages" && action_name == "home" ? :overlay : :default) %>
 </body>
 </html>

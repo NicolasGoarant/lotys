@@ -1,28 +1,67 @@
-<div class="max-w-xl mx-auto px-6 py-16">
-  <h1 class="text-3xl font-bold text-gray-900 mb-4">Contact</h1>
-  <p class="text-gray-500 mb-8">Une question, un partenariat, un retour sur l'application ?</p>
+<div class="max-w-3xl mx-auto px-6 py-16">
 
-  <div class="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm space-y-6">
-    <div class="flex items-center gap-4">
-      <span class="text-2xl">📧</span>
-      <div>
-        <p class="text-sm font-bold text-gray-700">Email</p>
-        <a href="mailto:contact@lotys.fr" class="text-emerald-600 hover:underline">contact@lotys.fr</a>
+  <h1 class="text-4xl font-black text-gray-900 mb-4">Contact</h1>
+  <p class="text-lg text-gray-600 mb-12">
+    Une question, un partenariat, un retour sur l'application ?
+    Je vous réponds personnellement.
+  </p>
+
+  <%# Carte profil + coordonnées %>
+  <div class="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden">
+
+    <div class="grid md:grid-cols-3 gap-0">
+
+      <%# Colonne photo + nom %>
+      <div class="bg-emerald-50 p-8 flex flex-col items-center justify-center text-center md:border-r md:border-emerald-100">
+        <%= image_tag "NG.png",
+            alt: "Nicolas Goarant",
+            class: "w-32 h-32 rounded-full object-cover border-4 border-white shadow-md mb-4" %>
+        <p class="font-black text-gray-900 text-lg">Nicolas Goarant</p>
+        <p class="text-sm text-emerald-700 font-medium">Fondateur de Lotys</p>
+      </div>
+
+      <%# Colonne coordonnées %>
+      <div class="md:col-span-2 p-8 space-y-6">
+
+        <div class="flex items-start gap-4">
+          <span class="text-2xl shrink-0">📧</span>
+          <div>
+            <p class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">Email</p>
+            <a href="mailto:contact@lotys.fr" class="text-emerald-600 hover:underline font-semibold">
+              contact@lotys.fr
+            </a>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-4">
+          <span class="text-2xl shrink-0">📞</span>
+          <div>
+            <p class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">Téléphone</p>
+            <a href="tel:+33667063179" class="text-emerald-600 hover:underline font-semibold">
+              06 67 06 31 79
+            </a>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-4">
+          <span class="text-2xl shrink-0">📍</span>
+          <div>
+            <p class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">Basé à</p>
+            <p class="text-gray-700 font-semibold">Nancy, Grand Est</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-4">
+          <span class="text-2xl shrink-0">⚡</span>
+          <div>
+            <p class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">Temps de réponse</p>
+            <p class="text-gray-700 font-semibold">Sous 48h en jours ouvrés</p>
+          </div>
+        </div>
+
       </div>
     </div>
-    <div class="flex items-center gap-4">
-      <span class="text-2xl">📍</span>
-      <div>
-        <p class="text-sm font-bold text-gray-700">Basé à</p>
-        <p class="text-gray-600">Nancy, Grand Est</p>
-      </div>
-    </div>
-    <div class="flex items-center gap-4">
-      <span class="text-2xl">⚡</span>
-      <div>
-        <p class="text-sm font-bold text-gray-700">Temps de réponse</p>
-        <p class="text-gray-600">Sous 48h en jours ouvrés</p>
-      </div>
-    </div>
+
   </div>
+
 </div>

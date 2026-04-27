@@ -1,34 +1,36 @@
 <% variant ||= :default %>
 
 <% if variant.to_sym == :overlay %>
-  <footer class="absolute bottom-0 left-0 right-0 z-20 border-t border-white/10 bg-black/20 backdrop-blur-sm">
-    <div class="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-4 text-sm text-white/80 md:flex-row md:items-center md:justify-between">
-      <div>
-        <span class="font-semibold text-white">Lotys</span>
-        <span class="ml-2">Rénover, sans se perdre.</span>
+  <%# Footer transparent pour la home (sur fond image) %>
+  <footer class="relative z-10 border-t border-white/10 bg-black/50 backdrop-blur-md text-white/85">
+    <div class="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-5 text-sm md:flex-row md:items-center md:justify-between">
+      <div class="flex items-center gap-2">
+        <%= image_tag "lotys_logo.png", height: 24, alt: "Lotys", class: "h-6 w-auto" %>
+        <span class="font-bold text-white">Lotys</span>
+        <span class="text-white/50">© <%= Date.current.year %></span>
       </div>
-
-      <div class="flex flex-wrap gap-4">
-        <%= link_to "Comment ça marche", about_path, class: "transition hover:text-white" %>
-        <%= link_to "Mentions légales", mentions_legales_path, class: "transition hover:text-white" %>
-        <%= link_to "Confidentialité", confidentialite_path, class: "transition hover:text-white" %>
-        <%= link_to "Contact", contact_path, class: "transition hover:text-white" %>
+      <div class="flex flex-wrap gap-5">
+        <%= link_to "Comment ça marche", about_path, class: "hover:text-white transition" %>
+        <%= link_to "Contact", contact_path, class: "hover:text-white transition" %>
+        <%= link_to "Mentions légales", mentions_legales_path, class: "hover:text-white transition" %>
+        <%= link_to "Confidentialité", confidentialite_path, class: "hover:text-white transition" %>
       </div>
     </div>
   </footer>
 <% else %>
-  <footer class="border-t border-gray-200 bg-white">
-    <div class="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-8 text-sm text-gray-600 md:flex-row md:items-center md:justify-between">
-      <div>
-        <span class="font-semibold text-gray-900">Lotys</span>
-        <span class="ml-2">Rénover, sans se perdre.</span>
+  <%# Footer blanc, par défaut %>
+  <footer class="border-t border-gray-200 bg-white text-gray-600">
+    <div class="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-5 text-sm md:flex-row md:items-center md:justify-between">
+      <div class="flex items-center gap-2">
+        <%= image_tag "lotys_logo.png", height: 24, alt: "Lotys", class: "h-6 w-auto" %>
+        <span class="font-bold text-emerald-600">Lotys</span>
+        <span class="text-gray-400">© <%= Date.current.year %></span>
       </div>
-
-      <div class="flex flex-wrap gap-4">
-        <%= link_to "Comment ça marche", about_path, class: "transition hover:text-gray-900" %>
-        <%= link_to "Mentions légales", mentions_legales_path, class: "transition hover:text-gray-900" %>
-        <%= link_to "Confidentialité", confidentialite_path, class: "transition hover:text-gray-900" %>
-        <%= link_to "Contact", contact_path, class: "transition hover:text-gray-900" %>
+      <div class="flex flex-wrap gap-5">
+        <%= link_to "Comment ça marche", about_path, class: "hover:text-emerald-600 transition" %>
+        <%= link_to "Contact", contact_path, class: "hover:text-emerald-600 transition" %>
+        <%= link_to "Mentions légales", mentions_legales_path, class: "hover:text-emerald-600 transition" %>
+        <%= link_to "Confidentialité", confidentialite_path, class: "hover:text-emerald-600 transition" %>
       </div>
     </div>
   </footer>

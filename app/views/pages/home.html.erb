@@ -10,11 +10,11 @@
      Le footer reste en variant overlay dans le wrapper relative.
      ═══════════════════════════════════════════════════════════════════════ %>
 
-<div class="relative min-h-screen overflow-hidden">
+<div class="relative">
 
   <%# ── Image de fond, fixée au viewport ─────────────────────────── %>
   <div style="position:fixed; top:0; left:0; width:100vw; height:100vh;
-              z-index:0; overflow:hidden;" aria-hidden="true">
+              z-index:-1; overflow:hidden; pointer-events:none;" aria-hidden="true">
     <img
       src="https://images.unsplash.com/photo-1460317442991-0ec209397118?q=80&w=1800&auto=format&fit=crop"
       alt=""
