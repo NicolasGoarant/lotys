@@ -1,12 +1,10 @@
 <%# ═══════════════════════════════════════════════════════════════════════
-     Home v5.1 — textes des cards propriétaire et artisan reformulés.
+     Home v5.2 — H2 personae : retour ligne forcé sur mobile.
 
-     Changements vs v5 :
-       - Card propriétaire : ajout de "thermique" pour préciser le type
-         de rénovation (cohérent avec le H1 et le CTA).
-       - Card artisan RGE : nouvelle formulation orientée action
-         ("j'identifie", "contacter", "faire une première proposition")
-         plutôt que liste de critères.
+     Changements vs v5.1 :
+       - "Trois publics, un même outil" : sur mobile (<768px), retour
+         ligne forcé entre "publics," et "un même outil" pour que la
+         seconde proposition tienne sur une seule ligne.
      ═══════════════════════════════════════════════════════════════════════ %>
 
 <div class="relative">
@@ -83,7 +81,8 @@
           <h2 style="font-size:clamp(1.8rem,4vw,2.6rem); font-weight:900;
                      color:#fff; margin:0; letter-spacing:-0.02em;
                      line-height:1.2;">
-            Trois publics, un même outil
+            Trois publics,<br class="lotys-mobile-only">
+            <span class="lotys-desktop-space"> </span>un même outil
           </h2>
         </div>
 
@@ -146,7 +145,7 @@
             <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
                       text-align:center; margin:0 0 20px;">
               J'identifie des projets de rénovation thermique pour
-              contacter le propriétaire et lui faire de premières propositions.
+              contacter le propriétaire et faire une première proposition.
             </p>
             <p style="font-size:1rem; font-weight:700; color:#34d399;
                       text-align:center; margin:0;">
@@ -177,7 +176,7 @@
             <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
                       text-align:center; margin:0 0 20px;">
               Je veux offrir à mes habitants un outil qui intègre mes
-              dispositifs locaux, et m'aide à mesurer l'effort de rénovation sur
+              dispositifs locaux, et mesurer l'effort de rénovation sur
               mon territoire.
             </p>
             <p style="font-size:1rem; font-weight:700; color:#34d399;
