@@ -1,0 +1,173 @@
+<%# ═══════════════════════════════════════════════════════════════════════
+     _published_properties_map.html.erb
+
+     Partial factorisé : carte Leaflet des biens publiés sur Lotys.
+     Utilisé sur la home (theme: :dark, fond navy) et sur la page
+     artisans (theme: :light, fond blanc).
+
+     Locals attendus :
+       - properties : collection de Property (typiquement
+                      @published_properties du PagesController)
+       - theme      : :dark (défaut, contexte sombre) ou :light
+       - map_id     : id HTML unique du conteneur (défaut "home-map").
+                      À surcharger si plusieurs cartes sur la même page.
+       - title      : H2 affiché au-dessus (défaut "Les projets publiés
+                      sur Lotys")
+       - eyebrow    : eyebrow émeraude au-dessus du H2 (défaut
+                      "Sur le terrain"). Passer false pour cacher.
+       - subtitle   : phrase descriptive sous le H2 (défaut explication
+                      des marqueurs). Passer false pour cacher.
+
+     Usage :
+       Home    : <%= render "pages/published_properties_map",
+                            properties: @published_properties %>
+       Artisans: <%= render "pages/published_properties_map",
+                            properties: @published_properties,
+                            theme: :light, map_id: "artisans-map" %>
+     ═══════════════════════════════════════════════════════════════════════ %>
+
+<%
+  theme    = local_assigns.fetch(:theme, :dark)
+  map_id   = local_assigns.fetch(:map_id, "home-map")
+  title    = local_assigns.fetch(:title, "Les projets publiés sur Lotys")
+  eyebrow  = local_assigns.fetch(:eyebrow, "Sur le terrain")
+  subtitle = local_assigns.fetch(:subtitle,
+    "Chaque marqueur est un projet de rénovation publié par son propriétaire.")
+
+  # Palette adaptée au thème.
+  c = if theme == :light
+    {
+      h2_color:       "#0f172a",  # slate-900
+      eyebrow_color:  "#059669",  # emerald-600 (plus foncé que la home pour rester lisible sur blanc)
+      subtitle_color: "#64748b",  # slate-500
+      legend_label:   "#334155",  # slate-700
+      legend_desc:    "#64748b",
+      map_border:     "rgba(0,0,0,.08)",
+      map_shadow:     "0 4px 24px rgba(0,0,0,.08)"
+    }
+  else
+    {
+      h2_color:       "#fff",
+      eyebrow_color:  "#34d399",  # emerald-400
+      subtitle_color: "#94a3b8",  # slate-400
+      legend_label:   "#e2e8f0",
+      legend_desc:    "#94a3b8",
+      map_border:     "rgba(255,255,255,.15)",
+      map_shadow:     "0 8px 40px rgba(0,0,0,.5)"
+    }
+  end
+%>
+
+<div style="max-width:1000px; margin:0 auto;">
+
+  <% if eyebrow.present? || title.present? || subtitle.present? %>
+    <div style="text-align:center; margin-bottom:36px;">
+      <% if eyebrow.present? %>
+        <p style="font-size:.75rem; font-weight:800;
+                  color:<%= c[:eyebrow_color] %>;
+                  text-transform:uppercase; letter-spacing:.12em;
+                  margin:0 0 10px;">
+          <%= eyebrow %>
+        </p>
+      <% end %>
+      <% if title.present? %>
+        <h2 style="font-size:clamp(1.6rem,4vw,2.4rem); font-weight:900;
+                   color:<%= c[:h2_color] %>; margin:0 0 14px;
+                   line-height:1.2;">
+          <%= title %>
+        </h2>
+      <% end %>
+      <% if subtitle.present? %>
+        <p style="font-size:1rem; color:<%= c[:subtitle_color] %>;
+                  max-width:560px; margin:0 auto; line-height:1.6;">
+          <%= subtitle %>
+        </p>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%# Leaflet CSS — chargé une seule fois grâce à l'attribut id-target,
+      mais le navigateur déduplique de toute façon les <link> identiques. %>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+  <div id="<%= map_id %>"
+       class="lotys-leaflet-map"
+       style="height:480px; border-radius:20px; overflow:hidden;
+              border:2px solid <%= c[:map_border] %>;
+              box-shadow:<%= c[:map_shadow] %>;
+              background:#e5e7eb;"></div>
+
+  <div style="display:flex; gap:24px; justify-content:center;
+              margin-top:20px; flex-wrap:wrap;">
+    <% [["A-C","#16a34a","Bien performant"],
+        ["D","#ca8a04","Peu performant"],
+        ["E-G","#dc2626","Passoire thermique"]].each do |label,color,desc| %>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div style="width:14px; height:14px; border-radius:50%;
+                    background:<%= color %>; flex-shrink:0;"></div>
+        <span style="font-size:.85rem; color:<%= c[:legend_desc] %>;">
+          <strong style="color:<%= c[:legend_label] %>;"><%= label %></strong> — <%= desc %>
+        </span>
+      </div>
+    <% end %>
+  </div>
+
+</div>
+
+<%# Style responsive : carte raccourcie en mobile.
+    Cible la classe .lotys-leaflet-map pour s'appliquer à toutes les
+    instances du partial (home, artisans, futures pages). %>
+<style>
+  @media (max-width: 768px) {
+    .lotys-leaflet-map { height: 300px !important; border-radius: 12px !important; }
+  }
+</style>
+
+<%# Leaflet JS + initialisation. Le script utilise map_id pour cibler
+    le bon conteneur — ainsi plusieurs cartes peuvent coexister. %>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function tryMap_<%= map_id.gsub('-', '_') %>(attempts){
+  var el = document.getElementById('<%= map_id %>');
+  if(!el) return;
+  if(typeof L === 'undefined' || el._leaflet_id){
+    if(attempts > 0) setTimeout(function(){ tryMap_<%= map_id.gsub('-', '_') %>(attempts-1); }, 200);
+    return;
+  }
+  var map = L.map(el, {zoomControl:true, scrollWheelZoom:true}).setView([48.6921,6.1844], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+  }).addTo(map);
+  var biens = <%= (properties || []).map { |p| {
+    lat:     p.lat,
+    lng:     p.lng,
+    dpe:     p.dpe_class&.upcase || "?",
+    address: p.address,
+    type:    p.property_type&.capitalize || "Bien",
+    surface: p.surface,
+    img:     p.property_type == "maison" ?
+               "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=300&q=70" :
+               "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=300&q=70",
+    url:     "/properties/#{p.id}"
+  }}.to_json.html_safe %>;
+  var C = {A:'#16a34a', B:'#22c55e', C:'#84cc16', D:'#ca8a04',
+           E:'#f97316', F:'#dc2626', G:'#991b1b'};
+  biens.forEach(function(b){
+    var col = C[b.dpe] || '#6b7280';
+    var icon = L.divIcon({
+      html:'<div style="width:32px;height:32px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:900;color:#fff;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);">'+b.dpe+'</div>',
+      className:'', iconSize:[32,32], iconAnchor:[16,16]
+    });
+    L.marker([b.lat,b.lng], {icon:icon}).addTo(map)
+     .bindPopup(
+      '<div style="width:200px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;padding:0;">'
+      +'<img src="'+b.img+'" style="width:100%;height:90px;object-fit:cover;border-radius:6px 6px 0 0;display:block;">'
+      +'<div style="padding:10px 12px;">'
+      +'<p style="font-size:.8rem;font-weight:700;color:#6b7280;margin:0 0 4px;">'+b.type+' · '+b.surface+' m²</p>'
+      +'<p style="font-size:.88rem;font-weight:800;color:#111;margin:0 0 10px;line-height:1.3;">'+b.address+'</p>'
+      +'<a href="'+b.url+'" style="display:block;text-align:center;background:#059669;color:#fff;font-size:.75rem;font-weight:700;padding:6px;border-radius:6px;text-decoration:none;">Voir le dossier →</a>'
+      +'</div></div>'
+     , {maxWidth:220, padding:[0,0]});
+  });
+})(20);
+</script>

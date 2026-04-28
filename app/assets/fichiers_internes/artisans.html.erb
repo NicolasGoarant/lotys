@@ -1,8 +1,17 @@
 <%# ═══════════════════════════════════════════════════════════════════════
-     /artisans v3
-     - Photo : façade en cours de rénovation/isolation (clairement identifiable)
-     - Hero et CTA en cartes arrondies centrées
-     - Typo Fraunces + Inter, polices grossies
+     /artisans v4
+
+     Changements vs v3 :
+       - Ajout d'un bloc carte entre la section "3 apports" et le CTA
+         final. Utilise le partial factorisé _published_properties_map
+         (theme: :light pour s'adapter au fond blanc de la page).
+       - Le bloc carte démontre concrètement les promesses faites dans
+         les 3 apports ("sur votre territoire", "près de chez vous",
+         "filtrez par zone").
+
+     Note : le PagesController#artisans doit charger
+     @published_properties pour que la carte affiche des markers.
+     C'est déjà le cas depuis le fix initial.
      ═══════════════════════════════════════════════════════════════════════ %>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -109,6 +118,19 @@
 
       </div>
     </div>
+  </section>
+
+  <%# ── Carte des dossiers publiés — preuve concrète des 3 apports.
+        Fond gris très clair pour rompre avec le blanc précédent
+        et créer un appel visuel vers la carte. ──────────────── %>
+  <section style="background:#f8fafc; padding:88px 24px;">
+    <%= render "pages/published_properties_map",
+               properties: @published_properties,
+               theme:      :light,
+               map_id:     "artisans-map",
+               eyebrow:    "Sur votre territoire",
+               title:      "Les dossiers actuellement disponibles",
+               subtitle:   "Cliquez sur un marqueur pour découvrir le projet et son DPE." %>
   </section>
 
   <%# ── CTA final en carte arrondie ──────────────────────────── %>
