@@ -1,13 +1,12 @@
 <%# ═══════════════════════════════════════════════════════════════════════
-     Home refondue v2 — photo de fond sur toute la page.
+     Home v4.6 — densité retrouvée sur les blocs personae et carte.
 
-     L'image de fond est `position: fixed` : elle reste au viewport
-     pendant qu'on scroll, et toutes les sections ont des overlays
-     semi-transparents qui la laissent transparaître. Résultat :
-     continuité visuelle parfaite, pas de rupture de section.
-
-     Structure : image fixe + 4 sections (hero, 3 cards, hub, carte).
-     Le footer reste en variant overlay dans le wrapper relative.
+     Changements vs v4.5 :
+       - Bloc personae : ajout d'un eyebrow "Lotys, pour qui ?" + H2
+         "Trois publics, un même outil" pour retrouver une transition
+         narrative depuis le hero.
+       - Bloc carte : ajout d'un eyebrow "Sur le terrain" + sous-texte
+         d'orientation pour donner du contexte avant la carte Leaflet.
      ═══════════════════════════════════════════════════════════════════════ %>
 
 <div class="relative">
@@ -24,126 +23,75 @@
   <%# ── Contenu par-dessus l'image ──────────────────────────────── %>
   <div style="position:relative; z-index:1;">
 
-    <%# Hero — overlay noir translucide %>
+    <%# Hero — overlay noir translucide
+        Hiérarchie : H1 principal + H1 différenciateur → CTA → pill. %>
     <section style="background:rgba(0,0,0,0.55); padding:0;">
       <div class="relative flex items-center justify-center overflow-hidden"
            style="min-height:520px;">
         <div class="relative z-10 mx-auto flex w-full max-w-5xl flex-col
                     items-center px-6 py-20 text-center">
+
+          <%# H1 sur 2 lignes %>
           <h1 class="font-serif font-black text-white leading-none"
               style="font-size:clamp(2.8rem,6vw,4.5rem);
                      letter-spacing:-0.03em; max-width:900px;">
-            <span class="block">Votre rénovation thermique,</span>
-            <span class="text-emerald-400">en quelques clics</span>
+            Votre rénovation thermique, en quelques clics
           </h1>
-
-          <p class="mt-6 max-w-xl text-base md:text-lg text-white/85 leading-relaxed">
-            Téléversez votre DPE. Lotys calcule vos aides, construit votre plan,
-            et vous met en relation avec les artisans RGE de votre territoire.
+          <p style="font-family:ui-serif,Georgia,'Times New Roman',serif;
+                    font-weight:700; font-style:italic;
+                    font-size:clamp(1.4rem,3vw,2.1rem);
+                    color:#34d399;
+                    margin:18px 0 0; max-width:700px;
+                    letter-spacing:-0.01em; line-height:1.25;">
+            — avec les aides nationales et locales
           </p>
 
-          <div class="mt-10">
-            <%= link_to "Analyser mon bien gratuitement", new_property_path,
-                class: "rounded-2xl bg-emerald-500 px-8 py-4 text-base font-bold
+          <%# CTA agrandi %>
+          <div class="mt-12">
+            <%= link_to new_property_path,
+                class: "inline-block rounded-2xl bg-emerald-500 px-12 py-6 font-bold
                         text-white shadow-lg shadow-emerald-900/30 transition
-                        hover:bg-emerald-400" %>
+                        hover:bg-emerald-400",
+                style: "font-size:1.1rem;" do %>
+              <span style="margin-right:10px; font-size:1.25rem;">🧮</span>J'estime mes travaux de rénovation thermique
+            <% end %>
+          </div>
+
+          <%# ── Garantie anti-funnel commercial avec pulsation ───── %>
+          <div class="lotys-pulse"
+               style="display:inline-flex; align-items:center; justify-content:center;
+                      gap:14px; margin-top:30px; padding:18px 30px;
+                      background:rgba(16,185,129,.14);
+                      border:1.5px solid rgba(110,231,183,.45);
+                      border-radius:999px;
+                      flex-wrap:wrap;">
+            <span style="font-size:1.6rem; line-height:1;">🛡️</span>
+            <span style="font-size:1.15rem; color:#fff; font-weight:700;
+                         line-height:1.3;">
+              Sans appel commercial, sans capture de coordonnées
+            </span>
           </div>
         </div>
       </div>
     </section>
 
-    <%# 3 cards problem/solution/benefit — overlay navy translucide
-        pour que l'image transparaisse derrière les cards. %>
-    <section style="background:rgba(0,0,0,0.55); padding:88px 24px;
+    <%# Hub 3 personae — eyebrow + H2 pour redonner une transition
+        narrative depuis le hero. %>
+    <section style="background:rgba(0,0,0,0.55); padding:56px 24px 88px;
                     backdrop-filter:blur(4px);
                     -webkit-backdrop-filter:blur(4px);">
       <div style="max-width:1100px; margin:0 auto;">
 
-        <div style="text-align:center; margin-bottom:56px;">
+        <div style="text-align:center; margin-bottom:48px;">
           <p style="font-size:.75rem; font-weight:800; color:#34d399;
                     text-transform:uppercase; letter-spacing:.12em;
                     margin:0 0 12px;">
-            Notre promesse
+            Lotys, pour qui ?
           </p>
           <h2 style="font-size:clamp(1.8rem,4vw,2.6rem); font-weight:900;
                      color:#fff; margin:0; letter-spacing:-0.02em;
                      line-height:1.2;">
-            Lotys simplifie la rénovation thermique
-          </h2>
-        </div>
-
-        <div style="display:grid;
-                    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-                    gap:24px;">
-
-          <%# Card 1 — Problème — emoji cerveau qui explose %>
-          <div style="background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
-                      border-radius:20px; padding:32px; backdrop-filter:blur(8px);">
-            <div style="font-size:3rem; text-align:center; margin-bottom:20px;">🤯</div>
-            <h3 style="font-size:1.5rem; font-weight:900; color:#fff;
-                       text-align:center; margin:0 0 14px; letter-spacing:-0.01em;">
-              Trop de paperasse
-            </h3>
-            <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
-                      text-align:center; margin:0;">
-              MaPrimeRénov', CEE, éco-PTZ, aides de votre métropole :
-              chaque dispositif a ses règles, ses plafonds, ses cumuls.
-              Et vous, vous avez juste un logement à rénover.
-            </p>
-          </div>
-
-          <%# Card 2 — Solution — accent émeraude %>
-          <div style="background:rgba(16,185,129,.15); border:1px solid rgba(110,231,183,.35);
-                      border-radius:20px; padding:32px; backdrop-filter:blur(8px);">
-            <div style="font-size:3rem; text-align:center; margin-bottom:20px;">🔍</div>
-            <h3 style="font-size:1.5rem; font-weight:900; color:#fff;
-                       text-align:center; margin:0 0 14px; letter-spacing:-0.01em;">
-              Lotys calcule tout
-            </h3>
-            <p style="font-size:1.05rem; color:#d1fae5; line-height:1.65;
-                      text-align:center; margin:0;">
-              Déposez votre DPE. Lotys identifie vos travaux, chiffre
-              votre budget et calcule vos aides à l'euro près.
-            </p>
-          </div>
-
-          <%# Card 3 — Bénéfice %>
-          <div style="background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
-                      border-radius:20px; padding:32px; backdrop-filter:blur(8px);">
-            <div style="font-size:3rem; text-align:center; margin-bottom:20px;">🤝</div>
-            <h3 style="font-size:1.5rem; font-weight:900; color:#fff;
-                       text-align:center; margin:0 0 14px; letter-spacing:-0.01em;">
-              Les pros viennent à vous
-            </h3>
-            <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
-                      text-align:center; margin:0;">
-              Publiez votre dossier. Artisans RGE et banques partenaires
-              vous contactent avec leurs propositions.
-            </p>
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-    <%# Hub 3 personae — même overlay navy que les sections adjacentes
-        pour une continuité visuelle parfaite. Les cards blanches
-        ressortent avec force sur le fond sombre. %>
-    <section style="background:rgba(0,0,0,0.55); padding:88px 24px;
-                    backdrop-filter:blur(4px);
-                    -webkit-backdrop-filter:blur(4px);">
-      <div style="max-width:1100px; margin:0 auto;">
-
-        <div style="text-align:center; margin-bottom:56px;">
-          <p style="font-size:.75rem; font-weight:800; color:#34d399;
-                    text-transform:uppercase; letter-spacing:.12em;
-                    margin:0 0 12px;">
-            Vous êtes…
-          </p>
-          <h2 style="font-size:clamp(1.8rem,4vw,2.6rem); font-weight:900;
-                     color:#fff; margin:0; letter-spacing:-0.02em;
-                     line-height:1.2;">
-            Lotys a une réponse pour chacun
+            Trois publics, un même outil
           </h2>
         </div>
 
@@ -182,7 +130,7 @@
             </p>
           <% end %>
 
-          <%# Card 2 — Artisan/Banque %>
+          <%# Card 2 — Artisan RGE %>
           <%= link_to artisans_path,
               style: "display:block; text-decoration:none;
                       background:rgba(255,255,255,.06);
@@ -200,16 +148,16 @@
             <h3 style="font-size:1.5rem; font-weight:900; color:#fff;
                        text-align:center; margin:0 0 14px;
                        letter-spacing:-0.01em;">
-              Je suis artisan ou banquier
+              Je suis artisan RGE
             </h3>
             <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
                       text-align:center; margin:0 0 20px;">
-              Je cherche des dossiers de rénovation qualifiés sur mon
+              Je cherche des projets de rénovation qualifiés sur mon
               territoire. DPE, travaux, aides, localisation — vérifiés.
             </p>
             <p style="font-size:1rem; font-weight:700; color:#34d399;
                       text-align:center; margin:0;">
-              Voir les dossiers →
+              Voir les projets →
             </p>
           <% end %>
 
@@ -249,8 +197,8 @@
       </div>
     </section>
 
-    <%# Carte géographique — overlay navy plus opaque pour que la
-        carte Leaflet elle-même reste très lisible. %>
+    <%# Carte géographique — eyebrow + H2 + sous-texte d'orientation
+        pour donner du contexte avant la carte Leaflet. %>
     <section style="background:rgba(0,0,0,0.55); padding:72px 24px;
                     backdrop-filter:blur(4px);
                     -webkit-backdrop-filter:blur(4px);">
@@ -263,13 +211,12 @@
             Sur le terrain
           </p>
           <h2 style="font-size:clamp(1.6rem,4vw,2.4rem); font-weight:900;
-                     color:#fff; margin:0 0 12px; line-height:1.2;">
-            Les dossiers publiés sur Lotys
+                     color:#fff; margin:0 0 14px; line-height:1.2;">
+            Les projets publiés sur Lotys
           </h2>
           <p style="font-size:1rem; color:#94a3b8; max-width:560px;
-                    margin:0 auto;">
-            Chaque marqueur est un propriétaire qui a publié son projet
-            de rénovation. La carte s'enrichit au rythme des analyses.
+                    margin:0 auto; line-height:1.6;">
+            Chaque marqueur est un projet de rénovation publié par son propriétaire.
           </p>
         </div>
 
@@ -301,6 +248,25 @@
   </div>
 
   <style>
+    @keyframes lotys-pulse {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.45),
+                    0 0 0 0 rgba(52, 211, 153, 0.0);
+      }
+      50% {
+        box-shadow: 0 0 0 10px rgba(52, 211, 153, 0.0),
+                    0 0 30px 4px rgba(52, 211, 153, 0.25);
+      }
+    }
+    .lotys-pulse {
+      animation: lotys-pulse 3s ease-in-out infinite;
+    }
+    .lotys-pulse:hover {
+      animation-play-state: paused;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .lotys-pulse { animation: none; }
+    }
     @media (max-width: 768px) {
       #home-map { height: 300px !important; border-radius: 12px !important; }
     }
