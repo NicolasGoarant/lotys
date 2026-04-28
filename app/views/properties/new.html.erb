@@ -1,4 +1,24 @@
-<div class="max-w-2xl mx-auto">
+<%# ═══════════════════════════════════════════════════════════════════════
+     properties/new — v4
+
+     Changements vs v3 :
+       1. Fond de page plus marqué : slate-100 + dégradé doux vers le
+          haut. Les cards ressortent vraiment.
+       2. Badge confidentialité ajouté en tête (juste sous le H1) :
+          rappel rapide que les documents sont supprimés, avec lien
+          d'ancrage vers le bloc complet en bas.
+       3. Polices encore augmentées d'un cran :
+          - H1 : 5xl → 6xl
+          - Sous-titre page : xl → 2xl
+          - H2 blocs principaux : 2xl → 3xl
+          - Sous-titres blocs : base → lg
+          - Liste confidentialité : base → lg
+     ═══════════════════════════════════════════════════════════════════════ %>
+
+<%# Fond gris clair plus marqué + dégradé doux. -mt-px évite trait
+    blanc parasite au raccord avec la navbar. %>
+<div class="bg-gradient-to-b from-slate-100 to-slate-50 min-h-full -mt-px py-12 md:py-16">
+<div class="max-w-3xl mx-auto px-4">
 
   <%# Détection source institutionnelle %>
   <% source = params[:source] %>
@@ -6,7 +26,7 @@
 
   <%# Header — adapté selon la source %>
   <% if is_brigade %>
-    <div style="background:linear-gradient(135deg,#1e3a5f,#1e40af);border-radius:1.5rem;padding:1.5rem 2rem;margin-bottom:2rem;color:white;">
+    <div style="background:linear-gradient(135deg,#1e3a5f,#1e40af);border-radius:1.5rem;padding:1.5rem 2rem;margin-bottom:2.5rem;color:white;">
       <p style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;color:#93c5fd;margin:0 0 6px;">VILLE DE NANCY · BRIGADE LOGEMENTS VACANTS</p>
       <h1 style="font-size:1.5rem;font-weight:900;margin:0 0 8px;">Vous avez reçu un courrier de la Ville de Nancy</h1>
       <p style="font-size:0.875rem;color:#bfdbfe;margin:0;line-height:1.6;">
@@ -15,79 +35,100 @@
     </div>
   <% else %>
     <div class="text-center mb-10">
-      <h1 class="text-4xl font-bold text-gray-900 mb-3">Analysez votre bien</h1>
-      <p class="text-gray-500 text-lg">Deux informations suffisent. Lotys fait le reste.</p>
+      <h1 class="text-6xl font-bold text-gray-900 mb-5 tracking-tight leading-tight">Analysez votre bien</h1>
+      <p class="text-gray-600 text-2xl leading-relaxed">
+        Deux informations suffisent. Lotys calcule vos aides —
+        <span class="text-emerald-600 font-semibold">nationales et locales</span>.
+      </p>
+    </div>
+
+    <%# Badge confidentialité en tête : rassure dès l'arrivée sur la
+        page, avant que le user commence à téléverser. Le lien d'ancrage
+        descend vers le bloc complet en bas pour les détails. %>
+    <div class="mb-10 flex justify-center">
+      <a href="#confidentialite-bloc"
+         class="inline-flex items-center gap-3 bg-white border border-emerald-200 rounded-full px-6 py-3 shadow-sm hover:border-emerald-400 hover:shadow transition">
+        <span class="text-2xl flex-shrink-0">🔒</span>
+        <span class="text-base text-gray-700">
+          <strong class="text-gray-900">Vos documents juridiques sont supprimés après l'analyse.</strong>
+          <span class="text-emerald-700 underline ml-1">Voir nos engagements →</span>
+        </span>
+      </a>
     </div>
   <% end %>
 
-  <%= form_with model: @property, multipart: true, data: { turbo: false }, class: "space-y-6" do |f| %>
+  <%= form_with model: @property, multipart: true, data: { turbo: false }, class: "space-y-5" do |f| %>
     <%= f.hidden_field :source, value: source %>
 
     <% if @property.errors.any? %>
-      <div class="bg-red-50 border border-red-200 rounded-2xl p-5 text-sm text-red-700">
+      <div class="bg-red-50 border border-red-200 rounded-2xl p-5 text-base text-red-700">
         <% @property.errors.full_messages.each do |msg| %>
           <p>⚠️ <%= msg %></p>
         <% end %>
       </div>
     <% end %>
 
-    <%# Bloc 1 — Adresse %>
-    <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-      <div class="flex items-center gap-3 mb-6">
-        <span class="text-3xl">📍</span>
+    <%# ═══════════════════════════════════════════════════════════════
+        BLOC PRINCIPAL — Adresse
+        ═══════════════════════════════════════════════════════════════ %>
+    <div class="bg-white border border-gray-200 rounded-3xl p-7 md:p-9 shadow-sm">
+      <div class="flex items-center gap-4 mb-7">
+        <span class="flex-shrink-0 w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center text-3xl">📍</span>
         <div>
-          <h2 class="text-xl font-bold text-gray-800">Adresse du bien</h2>
-          <p class="text-sm text-gray-400">C'est la seule information que nous vous demandons.</p>
+          <h2 class="text-3xl font-bold text-gray-900">Adresse du bien</h2>
+          <p class="text-lg text-gray-500">C'est la seule information que nous vous demandons.</p>
         </div>
       </div>
       <div class="space-y-4">
         <%= f.text_field :address, placeholder: "12 rue de la Paix",
-            class: "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50" %>
+            class: "w-full border border-gray-200 rounded-xl px-4 py-3.5 text-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50" %>
         <div class="grid grid-cols-2 gap-4">
           <%= f.text_field :zipcode, placeholder: "54000",
-              class: "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50" %>
+              class: "w-full border border-gray-200 rounded-xl px-4 py-3.5 text-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50" %>
           <%= f.text_field :city, placeholder: "Nancy",
-              class: "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50" %>
+              class: "w-full border border-gray-200 rounded-xl px-4 py-3.5 text-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50" %>
         </div>
       </div>
     </div>
 
-    <%# Bloc 2b — Statut d'occupation %>
-    <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-      <div class="flex items-center gap-3 mb-6">
-        <span class="text-3xl">🏠</span>
+    <%# ═══════════════════════════════════════════════════════════════
+        BLOC PRINCIPAL — Statut d'occupation
+        ═══════════════════════════════════════════════════════════════ %>
+    <div class="bg-white border border-gray-200 rounded-3xl p-7 md:p-9 shadow-sm">
+      <div class="flex items-center gap-4 mb-7">
+        <span class="flex-shrink-0 w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center text-3xl">🏠</span>
         <div>
-          <h2 class="text-xl font-bold text-gray-800">Votre logement est-il occupé ?</h2>
-          <p class="text-sm text-gray-400">Cela oriente les recommandations de Lotys.</p>
+          <h2 class="text-3xl font-bold text-gray-900">Votre logement est-il occupé ?</h2>
+          <p class="text-lg text-gray-500">Cela oriente les recommandations de Lotys.</p>
         </div>
       </div>
 
       <div class="grid grid-cols-2 gap-4 mb-6" id="occupation-choice">
         <label id="label-occupe"
                onclick="setOccupation(false)"
-               style="cursor:pointer;border:2px solid #e5e7eb;border-radius:1rem;padding:1.25rem;text-align:center;transition:all 0.15s;">
+               style="cursor:pointer;border:2px solid #e5e7eb;border-radius:1rem;padding:1.5rem 1.25rem;text-align:center;transition:all 0.15s;">
           <input type="radio" name="occupation_radio" value="false" class="hidden">
-          <div style="font-size:2rem;margin-bottom:8px;">👥</div>
-          <p style="font-weight:700;color:#111827;margin:0 0 4px;">Oui, il est occupé</p>
-          <p style="font-size:0.75rem;color:#6b7280;margin:0;">Par moi, un locataire ou de la famille</p>
+          <div style="font-size:2.5rem;margin-bottom:10px;">👥</div>
+          <p style="font-weight:700;color:#111827;margin:0 0 4px;font-size:1.125rem;">Oui, il est occupé</p>
+          <p style="font-size:0.95rem;color:#6b7280;margin:0;">Par moi, un locataire ou de la famille</p>
         </label>
         <label id="label-vacant"
                onclick="setOccupation(true)"
-               style="cursor:pointer;border:2px solid #e5e7eb;border-radius:1rem;padding:1.25rem;text-align:center;transition:all 0.15s;">
+               style="cursor:pointer;border:2px solid #e5e7eb;border-radius:1rem;padding:1.5rem 1.25rem;text-align:center;transition:all 0.15s;">
           <input type="radio" name="occupation_radio" value="true" class="hidden">
-          <div style="font-size:2rem;margin-bottom:8px;">🔑</div>
-          <p style="font-weight:700;color:#111827;margin:0 0 4px;">Non, il est inoccupé</p>
-          <p style="font-size:0.75rem;color:#6b7280;margin:0;">Vacant, en succession, ou en attente</p>
+          <div style="font-size:2.5rem;margin-bottom:10px;">🔑</div>
+          <p style="font-weight:700;color:#111827;margin:0 0 4px;font-size:1.125rem;">Non, il est inoccupé</p>
+          <p style="font-size:0.95rem;color:#6b7280;margin:0;">Vacant, en succession, ou en attente</p>
         </label>
       </div>
       <%= f.hidden_field :vacant, value: false, id: "vacant-field" %>
 
       <%# Questions complémentaires si vacant %>
-      <div id="vacant-questions" style="display:none;background:#fafafa;border-radius:1rem;padding:1.25rem;border:1px solid #f3f4f6;">
-        <p class="text-sm font-semibold text-gray-700 mb-4">Quelques précisions pour affiner l'analyse :</p>
+      <div id="vacant-questions" style="display:none;background:#fafafa;border-radius:1rem;padding:1.5rem;border:1px solid #f3f4f6;">
+        <p class="text-lg font-semibold text-gray-700 mb-4">Quelques précisions pour affiner l'analyse :</p>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-2">Depuis combien de temps ce logement est-il inoccupé ?</label>
+            <label class="block text-base font-medium text-gray-600 mb-2">Depuis combien de temps ce logement est-il inoccupé ?</label>
             <div class="grid grid-cols-2 gap-2">
               <% [
                 ["moins_1an", "Moins d'un an"],
@@ -95,7 +136,7 @@
                 ["2_5ans",    "2 à 5 ans"],
                 ["plus_5ans", "Plus de 5 ans"],
               ].each do |val, label| %>
-                <label style="cursor:pointer;border:1px solid #e5e7eb;border-radius:0.75rem;padding:10px 12px;font-size:0.8rem;display:flex;align-items:center;gap:8px;background:white;">
+                <label style="cursor:pointer;border:1px solid #e5e7eb;border-radius:0.75rem;padding:12px 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;background:white;">
                   <%= f.radio_button :vacancy_duration, val, style: "accent-color:#059669;" %>
                   <%= label %>
                 </label>
@@ -103,7 +144,7 @@
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-2">Quelle en est la raison principale ?</label>
+            <label class="block text-base font-medium text-gray-600 mb-2">Quelle en est la raison principale ?</label>
             <div class="grid grid-cols-2 gap-2">
               <% [
                 ["succession",  "Succession / héritage"],
@@ -111,7 +152,7 @@
                 ["attente",     "En attente de décision"],
                 ["autre",       "Autre raison"],
               ].each do |val, label| %>
-                <label style="cursor:pointer;border:1px solid #e5e7eb;border-radius:0.75rem;padding:10px 12px;font-size:0.8rem;display:flex;align-items:center;gap:8px;background:white;">
+                <label style="cursor:pointer;border:1px solid #e5e7eb;border-radius:0.75rem;padding:12px 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;background:white;">
                   <%= f.radio_button :vacancy_reason, val, style: "accent-color:#059669;" %>
                   <%= label %>
                 </label>
@@ -122,19 +163,21 @@
       </div>
     </div>
 
-    <%# Bloc 2 — Documents %>
-    <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-      <div class="flex items-center gap-3 mb-2">
-        <span class="text-3xl">📎</span>
+    <%# ═══════════════════════════════════════════════════════════════
+        BLOC PRINCIPAL — Documents et photos
+        ═══════════════════════════════════════════════════════════════ %>
+    <div class="bg-white border border-gray-200 rounded-3xl p-7 md:p-9 shadow-sm">
+      <div class="flex items-center gap-4 mb-3">
+        <span class="flex-shrink-0 w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center text-3xl">📎</span>
         <div>
-          <h2 class="text-xl font-bold text-gray-800">Vos documents et photos</h2>
-          <p class="text-sm text-gray-400">Lotys analyse tout automatiquement — aucune saisie manuelle.</p>
+          <h2 class="text-3xl font-bold text-gray-900">Vos documents et photos</h2>
+          <p class="text-lg text-gray-500">Lotys analyse tout automatiquement — aucune saisie manuelle.</p>
         </div>
       </div>
-      <div class="grid grid-cols-2 gap-3 my-6">
-        <div class="bg-emerald-50 rounded-2xl p-4 text-sm">
-          <p class="font-semibold text-emerald-800 mb-2">📋 Ce que Lotys lit dans vos docs</p>
-          <ul class="text-emerald-700 space-y-1 text-xs">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 my-6">
+        <div class="bg-emerald-50 rounded-2xl p-5">
+          <p class="font-semibold text-emerald-800 mb-3 text-lg">📋 Ce que Lotys lit dans vos docs</p>
+          <ul class="text-emerald-700 space-y-1.5 text-base">
             <li>✓ Classe énergétique (DPE)</li>
             <li>✓ Surface et année de construction</li>
             <li>✓ Situation de la copropriété</li>
@@ -142,9 +185,9 @@
             <li>✓ Ambiance de la copropriété (PV d'AG)</li>
           </ul>
         </div>
-        <div class="bg-blue-50 rounded-2xl p-4 text-sm">
-          <p class="font-semibold text-blue-800 mb-2">📸 Ce que Lotys voit sur vos photos</p>
-          <ul class="text-blue-700 space-y-1 text-xs">
+        <div class="bg-blue-50 rounded-2xl p-5">
+          <p class="font-semibold text-blue-800 mb-3 text-lg">📸 Ce que Lotys voit sur vos photos</p>
+          <ul class="text-blue-700 space-y-1.5 text-base">
             <li>✓ État général du bien</li>
             <li>✓ Type de menuiseries</li>
             <li>✓ État de la toiture / façade</li>
@@ -152,12 +195,12 @@
           </ul>
         </div>
       </div>
-      <div class="border-2 border-dashed border-gray-200 rounded-2xl p-10 text-center hover:border-emerald-400 hover:bg-emerald-50 transition cursor-pointer"
+      <div class="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center hover:border-emerald-400 hover:bg-emerald-50 transition cursor-pointer"
            onclick="document.getElementById('documents_upload').click()">
-        <div class="text-5xl mb-3">☁️</div>
-        <p class="font-semibold text-gray-700 mb-1">Glissez tous vos fichiers ici</p>
-        <p class="text-sm text-gray-400 mb-4">DPE · titre de propriété · PV d'AG · devis · photos</p>
-        <span class="inline-block bg-emerald-600 text-white text-sm px-6 py-2 rounded-xl hover:bg-emerald-700">
+        <div class="text-6xl mb-4">☁️</div>
+        <p class="font-semibold text-gray-700 mb-2 text-xl">Glissez tous vos fichiers ici</p>
+        <p class="text-base text-gray-400 mb-5">DPE · titre de propriété · PV d'AG · devis · photos</p>
+        <span class="inline-block bg-emerald-600 text-white text-base font-semibold px-7 py-3 rounded-xl hover:bg-emerald-700">
           Parcourir les fichiers
         </span>
         <input type="file" id="documents_upload" name="property[uploaded_files][]"
@@ -165,17 +208,33 @@
                class="hidden"
                onchange="showFileList(this)">
       </div>
-      <p class="text-xs text-gray-400 text-center mt-3">PDF, JPG, PNG · Pas de limite · Max 10 Mo par fichier</p>
+      <p class="text-base text-gray-400 text-center mt-3">PDF, JPG, PNG · Pas de limite · Max 10 Mo par fichier</p>
+
+      <%# Mini-rappel confidentialité directement sous le dropzone. %>
+      <p class="text-base text-emerald-700 text-center mt-3 font-medium">
+        🔒 Vos documents (DPE, titre, PV d'AG) sont supprimés après l'analyse —
+        <a href="#confidentialite-bloc" class="underline hover:text-emerald-800">détails ci-dessous</a>
+      </p>
+
       <div id="file-list" class="mt-4 space-y-2 hidden"></div>
     </div>
 
-    <%# Bloc revenus — optionnel %>
-    <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-      <div class="flex items-center gap-3 mb-4">
-        <span class="text-3xl">💰</span>
+    <%# ═══════════════════════════════════════════════════════════════
+        BLOCS SECONDAIRES (optionnels) — séparateur visuel
+        ═══════════════════════════════════════════════════════════════ %>
+    <div class="pt-8 pb-2">
+      <p class="text-sm font-bold text-gray-400 uppercase tracking-wider text-center">
+        Pour affiner l'analyse — facultatif
+      </p>
+    </div>
+
+    <%# Bloc secondaire — Revenus %>
+    <div class="bg-white border border-gray-200 rounded-3xl p-6 md:p-7 shadow-sm">
+      <div class="flex items-center gap-4 mb-5">
+        <span class="flex-shrink-0 w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-2xl">💰</span>
         <div>
-          <h2 class="text-xl font-bold text-gray-800">Vos revenus <span class="text-gray-400 font-normal text-base">(optionnel)</span></h2>
-          <p class="text-sm text-gray-400">Permet d'affiner les aides locales et nationales dans votre diagnostic.</p>
+          <h2 class="text-2xl font-bold text-gray-900">Vos revenus <span class="text-gray-400 font-normal text-lg">(optionnel)</span></h2>
+          <p class="text-lg text-gray-500">Pour calculer vos aides nationales <strong class="text-gray-700">et</strong> les aides de votre intercommunalité.</p>
         </div>
       </div>
       <div class="grid grid-cols-2 gap-3">
@@ -185,40 +244,112 @@
              ["intermediaire", "Intermédiaires",  "30 000 – 45 000 €"],
              ["superieur",     "Supérieurs",      "> 45 000 €"]
            ].each do |val, label, range| %>
-          <label style="cursor:pointer;border:2px solid #e5e7eb;border-radius:1rem;padding:1rem;transition:all 0.15s;"
+          <label style="cursor:pointer;border:2px solid #e5e7eb;border-radius:1rem;padding:1.125rem;transition:all 0.15s;"
                  onclick="setIncomeBracket('<%= val %>', this)">
             <%= f.radio_button :income_bracket, val, class: "hidden" %>
-            <p class="font-bold text-sm text-gray-800 mb-0.5"><%= label %></p>
-            <p class="text-xs text-gray-400"><%= range %></p>
+            <p class="font-bold text-lg text-gray-800 mb-0.5"><%= label %></p>
+            <p class="text-base text-gray-400"><%= range %></p>
           </label>
         <% end %>
       </div>
-      <p class="text-xs text-gray-400 mt-3">Ces données ne sont utilisées que pour calculer vos aides — elles ne sont pas partagées avec des tiers.</p>
+      <p class="text-base text-gray-400 mt-3">Ces données ne sont utilisées que pour calculer vos aides — elles ne sont pas partagées avec des tiers.</p>
     </div>
 
-    <%# Bloc 3 — Contexte libre %>
-    <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-      <div class="flex items-center gap-3 mb-4">
-        <span class="text-3xl">💬</span>
+    <%# Bloc secondaire — Contexte libre %>
+    <div class="bg-white border border-gray-200 rounded-3xl p-6 md:p-7 shadow-sm">
+      <div class="flex items-center gap-4 mb-5">
+        <span class="flex-shrink-0 w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-2xl">💬</span>
         <div>
-          <h2 class="text-xl font-bold text-gray-800">Votre situation <span class="text-gray-400 font-normal text-base">(optionnel)</span></h2>
-          <p class="text-sm text-gray-400" id="description-hint">Un contexte que vous souhaitez partager avec Lotys.</p>
+          <h2 class="text-2xl font-bold text-gray-900">Votre situation <span class="text-gray-400 font-normal text-lg">(optionnel)</span></h2>
+          <p class="text-lg text-gray-500" id="description-hint">Un contexte que vous souhaitez partager avec Lotys.</p>
         </div>
       </div>
       <%= f.text_area :description,
           placeholder: "Ex : j'ai hérité de ce bien, je souhaite évaluer s'il vaut mieux rénover ou vendre. Les relations en copropriété sont tendues.",
           rows: 3,
           id: "description-field",
-          class: "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 resize-none" %>
+          class: "w-full border border-gray-200 rounded-xl px-4 py-3.5 text-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 resize-none" %>
+    </div>
+
+    <%# ═══════════════════════════════════════════════════════════════
+        BLOC CONFIDENTIALITÉ
+        ═══════════════════════════════════════════════════════════════ %>
+    <div id="confidentialite-bloc"
+         class="mt-8 bg-gray-100 border border-gray-200 rounded-3xl p-7 md:p-9">
+      <div class="flex items-center gap-4 mb-6">
+        <span class="flex-shrink-0 w-14 h-14 rounded-2xl bg-gray-200 flex items-center justify-center text-3xl">🔒</span>
+        <div>
+          <h2 class="text-3xl font-bold text-gray-900">Vos documents, en toute confidentialité</h2>
+          <p class="text-lg text-gray-500">Lotys ne conserve pas vos pièces juridiques.</p>
+        </div>
+      </div>
+
+      <ul class="space-y-4 text-lg text-gray-700 leading-relaxed">
+        <li class="flex gap-3">
+          <span class="text-emerald-600 font-bold flex-shrink-0 text-xl leading-none mt-0.5">✓</span>
+          <span>
+            <strong class="text-gray-900">Vos documents juridiques sont supprimés après l'analyse.</strong>
+            DPE, titre de propriété, PV d'assemblée générale, devis :
+            ces fichiers sont effacés de nos serveurs dès que l'analyse
+            est terminée. Seul le résultat synthétique est conservé dans
+            votre espace.
+          </span>
+        </li>
+        <li class="flex gap-3">
+          <span class="text-emerald-600 font-bold flex-shrink-0 text-xl leading-none mt-0.5">✓</span>
+          <span>
+            <strong class="text-gray-900">Vos photos sont conservées pour votre fiche.</strong>
+            Elles servent à illustrer votre projet si vous le publiez,
+            et restent supprimables à tout moment depuis votre espace.
+          </span>
+        </li>
+        <li class="flex gap-3">
+          <span class="text-emerald-600 font-bold flex-shrink-0 text-xl leading-none mt-0.5">✓</span>
+          <span>
+            <strong class="text-gray-900">Lus par l'IA, jamais par un humain.</strong>
+            Vos documents sont traités exclusivement par l'IA d'Anthropic
+            (Claude) le temps de l'analyse. Aucun membre de l'équipe Lotys
+            n'y a accès.
+          </span>
+        </li>
+        <li class="flex gap-3">
+          <span class="text-emerald-600 font-bold flex-shrink-0 text-xl leading-none mt-0.5">✓</span>
+          <span>
+            <strong class="text-gray-900">Chiffrés sur le serveur.</strong>
+            Pendant le bref temps du traitement, les fichiers sont
+            stockés chiffrés (AWS S3, chiffrement par défaut).
+          </span>
+        </li>
+        <li class="flex gap-3">
+          <span class="text-emerald-600 font-bold flex-shrink-0 text-xl leading-none mt-0.5">✓</span>
+          <span>
+            <strong class="text-gray-900">Aucun partage avec des tiers.</strong>
+            Vos documents et données ne sont jamais transmis à des
+            artisans, banques ou collectivités — sauf si vous publiez
+            volontairement votre dossier pour recevoir des propositions.
+          </span>
+        </li>
+        <li class="flex gap-3">
+          <span class="text-emerald-600 font-bold flex-shrink-0 text-xl leading-none mt-0.5">✓</span>
+          <span>
+            <strong class="text-gray-900">Droit à l'effacement.</strong>
+            Vous pouvez à tout moment supprimer votre compte et toutes
+            les données associées depuis votre espace, ou en nous
+            écrivant à
+            <a href="mailto:contact@lotys.fr" class="text-emerald-700 underline hover:text-emerald-800">contact@lotys.fr</a>.
+          </span>
+        </li>
+      </ul>
     </div>
 
     <%# CTA %>
-    <div class="text-center pb-8">
+    <div class="text-center pt-6 pb-4">
       <%= f.submit "Lancer l'analyse →",
-          class: "bg-emerald-600 text-white px-12 py-4 rounded-2xl hover:bg-emerald-700 font-bold text-xl shadow-md cursor-pointer transition" %>
-      <p class="text-xs text-gray-400 mt-3">Sans engagement · Résultat en quelques minutes · Vos documents restent confidentiels</p>
+          class: "bg-emerald-600 text-white px-14 py-5 rounded-2xl hover:bg-emerald-700 font-bold text-2xl shadow-md cursor-pointer transition" %>
+      <p class="text-base text-gray-500 mt-4">Sans engagement · Résultat en quelques minutes · Vos documents restent confidentiels</p>
     </div>
   <% end %>
+</div>
 </div>
 
 <script>
@@ -257,15 +388,15 @@ function setOccupation(isVacant) {
 
 function showFileList(input) {
   const list = document.getElementById('file-list');
-  list.innerHTML = '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Fichiers sélectionnés (' + input.files.length + ')</p>';
+  list.innerHTML = '<p class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Fichiers sélectionnés (' + input.files.length + ')</p>';
   list.classList.remove('hidden');
   Array.from(input.files).forEach(file => {
     const ext  = file.name.split('.').pop().toLowerCase();
     const icon = ['jpg','jpeg','png'].includes(ext) ? '📸' : '📄';
     const size = (file.size / 1024).toFixed(0) + ' Ko';
-    list.innerHTML += `<div class="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2 text-sm">
+    list.innerHTML += `<div class="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2 text-base">
       <span class="text-gray-700">${icon} ${file.name}</span>
-      <span class="text-gray-400 text-xs">${size}</span>
+      <span class="text-gray-400 text-sm">${size}</span>
     </div>`;
   });
 }

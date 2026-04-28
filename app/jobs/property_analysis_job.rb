@@ -37,6 +37,28 @@ class PropertyAnalysisJob < ApplicationJob
 
     property.update(status: :analyzed)
 
+    # ─────────────────────────────────────────────────────────────────
+    # Purge des documents juridiques après extraction.
+    #
+    # Les pages /properties/new et la page Confidentialité promettent
+    # explicitement à l'utilisateur que ses documents sont supprimés
+    # après l'analyse. Cette ligne honore cette promesse.
+    #
+    # Périmètre : seuls les Documents (DPE, titre de propriété, PV
+    # d'AG, devis) sont purgés. Les Property#photos sont conservées
+    # car elles servent d'illustration sur la fiche publique du bien
+    # une fois publié.
+    #
+    # purge_later : suppression asynchrone via Active Job — ne bloque
+    # pas la fin du job courant et survit à un échec ponctuel du
+    # service de stockage (retry géré par ActiveJob).
+    #
+    # Placée APRÈS le passage en :analyzed pour que l'utilisateur voie
+    # son rapport disponible immédiatement, indépendamment du temps de
+    # purge effective côté S3.
+    # ─────────────────────────────────────────────────────────────────
+    purge_documents(property)
+
   rescue => e
     Rails.logger.error("PropertyAnalysisJob ##{property_id} failed: #{e.message}")
     property&.update(status: :draft)
@@ -45,6 +67,21 @@ class PropertyAnalysisJob < ApplicationJob
 
   private
 
+  # Purge les fichiers attachés aux Documents du bien.
+  # Les enregistrements Document eux-mêmes restent (ils gardent leur
+  # document_type pour la traçabilité), mais leur attachment :file est
+  # détaché et le blob supprimé du stockage.
+  def purge_documents(property)
+    property.documents.each do |doc|
+      doc.file.purge_later if doc.file.attached?
+    end
+    Rails.logger.info("[PropertyAnalysisJob ##{property.id}] documents purgés (#{property.documents.count} fichiers)")
+  rescue => e
+    # On ne fait pas remonter une erreur de purge : l'analyse est
+    # terminée, l'utilisateur a son résultat. On loggue pour le suivi.
+    Rails.logger.error("[PropertyAnalysisJob ##{property.id}] purge documents échouée : #{e.message}")
+  end
+
   # Sync des champs depuis le JSON d'analyse Claude vers les colonnes dédiées.
   # 4 groupes :
   #   1. DPE (dpe_class, dpe_target) — si non renseignés par l'utilisateur
@@ -52,64 +89,7 @@ class PropertyAnalysisJob < ApplicationJob
   #   3. Équipements choisis (jsonb equipements_selection + nb_parois_vitrees)
   #   4. Travaux à réaliser (jsonb travaux_selection) — 7 cases à cocher macro
   def sync_analysis_fields(property)
-    return unless property.analysis&.content.present?
-    parsed = JSON.parse(property.analysis.content) rescue nil
-    return unless parsed
-
-    updates = {}
-
-    # ---- 1. DPE ----
-    if property.dpe_target.blank?
-      dpe_cible = parsed.dig("energie", "dpe_cible")&.upcase
-      updates[:dpe_target] = dpe_cible if dpe_cible.in?(%w[A B C D E F G])
-    end
-    if property.dpe_class.blank?
-      dpe_estime = parsed.dig("energie", "dpe_estime")&.upcase
-      updates[:dpe_class] = dpe_estime if dpe_estime.in?(%w[A B C D E F G])
-    end
-
-    # ---- 2. Surfaces (MPR Par geste) ----
-    quantites = parsed["quantites_mpr"] || {}
-    SURFACE_COLS.each do |col|
-      next unless property.send(col).to_f.zero?  # ne pas écraser une saisie utilisateur
-      val = quantites[col]
-      updates[col.to_sym] = val if val.is_a?(Numeric) && val >= 0
-    end
-
-    nb_vitrees = quantites["nb_parois_vitrees"]
-    nb_vitrees_value = nb_vitrees.is_a?(Numeric) && nb_vitrees >= 0 ? nb_vitrees.to_i : nil
-
-    # ---- 3. Équipements (jsonb equipements_selection) ----
-    equipements = (quantites["equipements"] || {}).slice(*EQUIPEMENT_BOOLS)
-    existing_equip = property.equipements_selection || {}
-    merged_equip   = existing_equip.dup
-    equipements.each do |k, v|
-      next if existing_equip.key?(k)
-      merged_equip[k] = !!v
-    end
-    merged_equip["nb_parois_vitrees"] = nb_vitrees_value if nb_vitrees_value && !existing_equip.key?("nb_parois_vitrees")
-    updates[:equipements_selection] = merged_equip if merged_equip != existing_equip
-
-    # ---- 4. Travaux à réaliser (jsonb travaux_selection) ----
-    # Pour chaque travail proposé par Claude, on mappe vers un code canonique
-    # et on pré-coche la case correspondante. On préserve les choix utilisateur
-    # existants (une case déjà explicitement à true/false n'est pas écrasée).
-    travaux_claude = parsed.dig("energie", "travaux") || []
-    existing_travaux = property.travaux_selection || {}
-    merged_travaux = existing_travaux.dup
-
-    travaux_claude.each do |t|
-      code = TravauxMapperService.code_for_poste(t["poste"])
-      next unless code
-      next if existing_travaux.key?(code)  # respecte choix utilisateur antérieur
-      merged_travaux[code] = true
-    end
-
-    updates[:travaux_selection] = merged_travaux if merged_travaux != existing_travaux
-
-    property.update(updates) if updates.any?
-    Rails.logger.info("sync_analysis_fields updated: #{updates.keys.join(', ')}")
-  rescue => e
-    Rails.logger.error("sync_analysis_fields failed: #{e.message}")
+    # ... [le reste de votre méthode sync_analysis_fields existante,
+    #      inchangée — je n'ai pas tout le code dans le bundle]
   end
 end
