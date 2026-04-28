@@ -1,12 +1,12 @@
 <%# ═══════════════════════════════════════════════════════════════════════
-     Home v5 — différenciateur déplacé en bandeau navbar permanent.
+     Home v5.1 — textes des cards propriétaire et artisan reformulés.
 
-     Changements vs v4.9 :
-       - Bande "Aides nationales + aides de votre intercommunalité"
-         supprimée du hero. La signature est désormais portée par le
-         bandeau permanent sous la navbar (cf. _navbar.html.erb), qui
-         apparaît sur toutes les pages.
-       - Le hero retrouve sa structure simple : H1 → CTA → pill garantie.
+     Changements vs v5 :
+       - Card propriétaire : ajout de "thermique" pour préciser le type
+         de rénovation (cohérent avec le H1 et le CTA).
+       - Card artisan RGE : nouvelle formulation orientée action
+         ("j'identifie", "contacter", "faire une première proposition")
+         plutôt que liste de critères.
      ═══════════════════════════════════════════════════════════════════════ %>
 
 <div class="relative">
@@ -23,10 +23,7 @@
   <%# ── Contenu par-dessus l'image ──────────────────────────────── %>
   <div style="position:relative; z-index:1;">
 
-    <%# Hero — overlay noir translucide
-        Hiérarchie limpide : H1 → CTA → pill. Trois éléments, pas un de
-        plus. Le différenciateur "aides locales" est porté par le
-        bandeau permanent au-dessus, donc inutile de le redire ici. %>
+    <%# Hero — overlay noir translucide. Hiérarchie : H1 → CTA → pill. %>
     <section style="background:rgba(0,0,0,0.55); padding:0;">
       <div class="relative flex items-center justify-center overflow-hidden"
            style="min-height:520px;">
@@ -116,8 +113,9 @@
             </h3>
             <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
                       text-align:center; margin:0 0 20px;">
-              Je veux comprendre combien coûte la rénovation de mon logement,
-              quelles aides je peux obtenir, et qui peut faire les travaux.
+              Je veux comprendre combien coûte la rénovation thermique de
+              mon logement, quelles aides je peux obtenir, et qui peut
+              faire les travaux.
             </p>
             <p style="font-size:1rem; font-weight:700; color:#34d399;
                       text-align:center; margin:0;">
@@ -147,8 +145,8 @@
             </h3>
             <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
                       text-align:center; margin:0 0 20px;">
-              Je cherche des projets de rénovation qualifiés sur mon
-              territoire. DPE, travaux, aides, localisation — vérifiés.
+              J'identifie des projets de rénovation thermique pour
+              contacter le propriétaire et lui faire de premières propositions.
             </p>
             <p style="font-size:1rem; font-weight:700; color:#34d399;
                       text-align:center; margin:0;">
@@ -179,7 +177,7 @@
             <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
                       text-align:center; margin:0 0 20px;">
               Je veux offrir à mes habitants un outil qui intègre mes
-              dispositifs locaux, et mesurer l'effort de rénovation sur
+              dispositifs locaux, et m'aide à mesurer l'effort de rénovation sur
               mon territoire.
             </p>
             <p style="font-size:1rem; font-weight:700; color:#34d399;
