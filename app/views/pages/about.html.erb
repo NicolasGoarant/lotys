@@ -1,119 +1,222 @@
-<%# about.html.erb — Comment ça marche %>
+<%# ═══════════════════════════════════════════════════════════════════════
+     about.html.erb — "Comment ça marche"
 
-<%# ── Hero simplifié : juste la promesse en une phrase ── %>
-<div class="relative w-full overflow-hidden" style="height:520px;margin-top:-1px;">
-  <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1600&q=85" alt="Immeuble" class="w-full h-full object-cover">
-  <div class="absolute inset-0" style="background:linear-gradient(90deg,rgba(15,23,42,0.96) 0%,rgba(15,23,42,0.88) 45%,rgba(15,23,42,0.55) 75%,rgba(15,23,42,0.25) 100%);"></div>
-  <div class="absolute inset-0 flex items-center"><div class="w-full max-w-5xl mx-auto px-6">
-    <h1 class="text-white font-black leading-none mb-8" style="font-size:clamp(2.8rem,6vw,4.5rem);letter-spacing:-0.03em;">
-      Simplifier la<br><span class="text-emerald-400">rénovation thermique.</span>
+     Refonte v5 :
+       - Auto-référence resserrée : un seul paragraphe d'origine
+         personnelle (au lieu de deux), puis bascule rapide sur "vous"
+         et "l'habitant".
+       - Polices encore grossies (corps 1.55rem, lettrine 6.5rem,
+         pull-quote 2.1rem, H2 2.7rem).
+       - Émojis ajoutés uniquement devant les 4 différenciateurs
+         (D'abord/Ensuite/Ensuite/Enfin) pour donner du rythme et de
+         la chaleur sans tomber dans le ton corporate.
+     ═══════════════════════════════════════════════════════════════════════ %>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Crimson+Pro:ital,wght@0,400;0,500;0,700;1,400&display=swap">
+
+<style>
+  .lotys-letter {
+    font-family: 'Crimson Pro', Georgia, serif;
+    color: #1f2937;
+  }
+  .lotys-letter h1,
+  .lotys-letter h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+    letter-spacing: -0.02em;
+  }
+  .lotys-letter p {
+    font-size: 1.55rem;
+    line-height: 1.7;
+    margin-bottom: 1.7rem;
+  }
+  .lotys-letter h2 {
+    font-size: 2.7rem;
+    line-height: 1.15;
+    margin-top: 4rem;
+    margin-bottom: 1.5rem;
+    font-weight: 900;
+    color: #0f172a;
+  }
+  /* Lettrine de la première lettre du premier paragraphe. */
+  .lotys-letter .first-paragraph::first-letter {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 900;
+    font-size: 6.5rem;
+    float: left;
+    line-height: 0.9;
+    margin: 0.4rem 0.7rem -0.2rem 0;
+    color: #059669;
+  }
+  .lotys-letter .pull-quote {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 700;
+    font-style: italic;
+    font-size: 2.1rem;
+    line-height: 1.4;
+    color: #047857;
+    border-left: 4px solid #10b981;
+    padding-left: 1.75rem;
+    margin: 3rem 0;
+  }
+  .lotys-letter strong {
+    color: #0f172a;
+    font-weight: 700;
+  }
+  /* Émoji introductif devant les 4 différenciateurs. Plus gros que le
+     texte courant, espacé après. */
+  .lotys-letter .diff-emoji {
+    font-size: 2rem;
+    margin-right: 0.6rem;
+    display: inline-block;
+    vertical-align: -0.1em;
+  }
+  /* Image illustrée intégrée au corps de l'essai. Largeur étendue
+     au-delà de la colonne de texte. */
+  .lotys-letter .essay-image {
+    margin: 3rem -2rem;
+    border-radius: 1rem;
+    overflow: hidden;
+  }
+  .lotys-letter .essay-image img {
+    width: 100%;
+    height: 320px;
+    object-fit: cover;
+    display: block;
+  }
+  @media (max-width: 640px) {
+    .lotys-letter p { font-size: 1.3rem; line-height: 1.65; }
+    .lotys-letter h2 { font-size: 2rem; }
+    .lotys-letter .first-paragraph::first-letter { font-size: 4.5rem; }
+    .lotys-letter .pull-quote { font-size: 1.5rem; padding-left: 1rem; margin: 2rem 0; }
+    .lotys-letter .essay-image { margin: 2rem 0; }
+    .lotys-letter .essay-image img { height: 220px; }
+    .lotys-letter .diff-emoji { font-size: 1.6rem; }
+  }
+</style>
+
+<%# ── Hero court : juste un titre éditorial ── %>
+<div class="bg-slate-50 border-b border-slate-100">
+  <div class="max-w-3xl mx-auto px-6 py-20 text-center">
+    <p class="text-sm font-bold text-emerald-600 uppercase tracking-widest mb-5">
+      Pourquoi nous avons construit Lotys
+    </p>
+    <h1 class="text-gray-900 font-black"
+        style="font-family:'Fraunces',Georgia,serif; font-size:clamp(2.8rem,5.5vw,4.2rem); line-height:1.1; letter-spacing:-0.02em;">
+      Une rénovation thermique<br>qui respecte celles et ceux<br>qui s'y engagent.
     </h1>
-    <%= link_to "Analyser mon bien gratuitement →", new_property_path,
-        class: "inline-block bg-emerald-500 text-white font-bold px-10 py-4 rounded-2xl hover:bg-emerald-400 transition-colors",
-        style: "font-size:1.05rem;width:fit-content;" %>
-  </div></div>
+  </div>
 </div>
 
-<%# IMPORTANT : Tailwind v4 JIT ne compile que les classes présentes dans le code.
-    gap-14, space-y-10, space-y-28, mt-28… n'existent pas dans le CSS.
-    On utilise donc des styles inline pour garantir les espacements sans rebuild. %>
-<div class="max-w-5xl mx-auto px-6 py-20">
+<%# ── Corps de la lettre ── %>
+<article class="lotys-letter max-w-2xl mx-auto px-6 py-16">
 
-  <%# ── Pourquoi Lotys ? ──
-       mb-10 sous le H2 pour resserrer titre/cards.
-       gap:5rem (80px) inline entre les cards pour que les 3 images ne se
-       lisent plus comme un bandeau continu. %>
-  <div class="px-4 md:px-12">
-    <h2 class="font-black text-gray-900 mb-10 text-center" style="font-size:2rem;">Pourquoi Lotys ?</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3" style="gap:5rem;">
-      <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
-        <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80" alt="Logement énergivore" class="w-full h-44 object-cover">
-        <div class="p-7">
-          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-4" style="background:#fef2f2;">🏚️</div>
-          <h3 class="font-black text-gray-900 mb-3" style="font-size:1.15rem;">Un parc qui vieillit</h3>
-          <p class="text-gray-700 leading-relaxed" style="font-size:1.05rem;">5 millions de passoires thermiques en France. La loi Climat interdit la location des G depuis 2025, des F en 2028, des E en 2034.</p>
-        </div>
-      </div>
-      <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
-        <img src="https://images.unsplash.com/photo-1521791136064-7986c2920216?w=600&q=80" alt="Artisans et conseillers" class="w-full h-44 object-cover">
-        <div class="p-7">
-          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-4" style="background:#fffbeb;">🧩</div>
-          <h3 class="font-black text-gray-900 mb-3" style="font-size:1.15rem;">Des intervenants éparpillés</h3>
-          <p class="text-gray-700 leading-relaxed" style="font-size:1.05rem;">Artisans RGE, banques, France Rénov', métropole… Chaque acteur apporte sa part mais personne ne donne une vision d'ensemble.</p>
-        </div>
-      </div>
-      <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
-        <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&q=80" alt="Dispositifs d'aides" class="w-full h-44 object-cover">
-        <div class="p-7">
-          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-4" style="background:#f0fdf4;">💡</div>
-          <h3 class="font-black text-gray-900 mb-3" style="font-size:1.15rem;">Des aides complexes</h3>
-          <p class="text-gray-700 leading-relaxed" style="font-size:1.05rem;">MaPrimeRénov', CEE, éco-PTZ, aides locales. Les dispositifs sont puissants mais difficiles à articuler sans accompagnement.</p>
-        </div>
-      </div>
+  <%# Un seul paragraphe d'origine personnelle, court. La suite bascule
+      immédiatement sur "vous". %>
+  <p class="first-paragraph">
+    L'idée de Lotys est née d'une expérience très concrète : engager une rénovation thermique sur mon propre logement, un duplex à Nancy classé G. Toiture, isolation, financement par éco-PTZ. Et là, comme tant d'autres avant moi, je me suis retrouvé face à <strong>l'éparpillement complet de l'information</strong>.
+  </p>
+
+  <p>
+    Pour comprendre quelles aides on peut mobiliser, il faut prendre rendez-vous à France Rénov', à l'ALEC, à la Maison de l'Habitat, à sa banque, à plusieurs artisans. Chacun apporte une pièce du puzzle, mais personne ne donne la vue d'ensemble. <strong>Au bout de trois mois, beaucoup abandonnent.</strong> C'est une perte sèche pour l'habitant, pour le climat, pour la collectivité.
+  </p>
+
+  <%# Première illustration : un logement à rénover. %>
+  <figure class="essay-image">
+    <%= image_tag "personae/proprietaires-hero.jpg",
+        alt: "Un propriétaire face à ses documents de rénovation",
+        loading: "lazy" %>
+  </figure>
+
+  <p>
+    Et puis il y a l'autre voie, celle des grandes plateformes en ligne. Elles promettent de simplifier. En réalité, elles vous demandent de saisir vous-même votre type de bien, votre surface, votre étiquette DPE, vos revenus, votre nom, votre prénom, votre numéro de téléphone, votre adresse. <strong>Quelques minutes plus tard, un commercial vous appelle. Le lendemain aussi. Et le surlendemain.</strong> Ce que vous pensiez être un calculateur d'aides était en fait un piège à coordonnées, revendues à des artisans qui paient pour vous démarcher.
+  </p>
+
+  <p class="pull-quote">
+    L'habitant n'est pas un prospect.
+    Il n'a pas à être rappelé par trois commerciaux pour avoir le droit
+    de comprendre les aides auxquelles il a droit.
+  </p>
+
+  <h2>Ce que Lotys fait différemment</h2>
+
+  <p>
+    L'idée tient en quatre choix simples, et chacun d'eux est un parti pris assumé.
+  </p>
+
+  <p>
+    <span class="diff-emoji">🤖</span><strong>D'abord, l'IA fait la saisie à votre place.</strong> Vous déposez vos documents tels quels — DPE, titre de propriété, PV d'assemblée générale, factures d'énergie, photos. Lotys les lit, en extrait ce qui compte, et vous présente une analyse. Pas de formulaire interminable où l'on vous demande de retrouver votre consommation annuelle en kWh/m²/an : c'est marqué sur votre DPE, le logiciel sait le lire.
+  </p>
+
+  <p>
+    <span class="diff-emoji">🔒</span><strong>Ensuite, vos documents sont supprimés après l'analyse.</strong> Pas conservés, pas indexés, pas analysés rétroactivement. Lus une fois par l'IA, jamais par un humain, puis effacés. Seul le résultat synthétique reste dans votre espace. C'est ce que ferait n'importe quel professionnel digne de ce nom avec vos pièces juridiques — il n'y a aucune raison qu'une plateforme en ligne fasse moins.
+  </p>
+
+  <p>
+    <span class="diff-emoji">🎯</span><strong>Ensuite, on calcule toutes les aides — y compris les aides locales.</strong> MaPrimeRénov', les certificats d'économie d'énergie, l'éco-prêt à taux zéro : tout le monde fait ça. Mais sur les autres plateformes, les dispositifs portés par votre intercommunalité — qui peuvent ajouter plusieurs milliers d'euros au plan de financement — sont systématiquement absents. C'est précisément le moment où ça change : avec la décentralisation annoncée par le Gouvernement, les intercos vont devenir le pilier de la rénovation énergétique. Lotys est construit pour ça.
+  </p>
+
+  <%# Deuxième illustration : la dimension collectivité. %>
+  <figure class="essay-image">
+    <%= image_tag "personae/collectivites-cta.jpg",
+        alt: "Une collectivité au service de ses habitants",
+        loading: "lazy" %>
+  </figure>
+
+  <p>
+    <span class="diff-emoji">🤝</span><strong>Enfin, ce sont les artisans qui viennent à vous, pas l'inverse.</strong> Si vous le souhaitez, vous publiez votre dossier de manière anonyme. Les artisans RGE de votre territoire le consultent et vous proposent une offre. Vous choisissez. <strong>Lotys ne prend aucune commission sur les travaux</strong> — ni sur l'artisan, ni sur vous.
+  </p>
+
+  <h2>Comment Lotys se finance</h2>
+
+  <p>
+    Puisque ni l'habitant ni l'artisan ne sont sources de revenu, il faut bien que quelqu'un finance la plateforme. Ce sont les <strong>intercommunalités</strong> qui le font, par abonnement. En échange, elles offrent l'outil à tous leurs administrés et reçoivent une vue d'ensemble de l'effort de rénovation sur leur territoire — où sont les passoires, quels travaux sont envisagés, où va l'argent public local.
+  </p>
+
+  <p>
+    C'est un modèle inhabituel pour une plateforme grand public. Mais c'est précisément parce que le modèle économique est aligné avec la politique publique de rénovation que Lotys peut tenir sa promesse de ne pas vous démarcher. <strong>Quand l'utilisateur n'est pas le payeur, il est généralement le produit. Sur Lotys, c'est la collectivité qui paie pour ses habitants — donc vous n'êtes ni l'un, ni l'autre.</strong>
+  </p>
+
+  <p>
+    Voilà l'idée. Si vous êtes propriétaire d'un logement à rénover, je vous invite à essayer. Si vous êtes élu local ou agent de collectivité et que ce que vous lisez résonne avec ce que vous observez, écrivez-moi.
+  </p>
+
+  <%# ── Médaillon signature ── %>
+  <div class="mt-16 pt-12 border-t border-gray-200 flex items-center gap-7 flex-wrap sm:flex-nowrap">
+    <%= image_tag "NG.png",
+        alt: "Nicolas Goarant",
+        class: "rounded-full object-cover shrink-0",
+        style: "width:140px; height:140px; border:4px solid #10b981; box-shadow: 0 8px 24px rgba(16,185,129,0.15);" %>
+    <div>
+      <p style="font-family:'Fraunces',Georgia,serif; font-size:1.6rem; font-weight:900; color:#0f172a; margin:0 0 6px;">
+        Nicolas Goarant
+      </p>
+      <p style="font-family:'Crimson Pro',Georgia,serif; font-size:1.15rem; color:#475569; margin:0; line-height:1.55;">
+        Fondateur de Lotys.<br>
+        Quinze ans en cabinet politique territorial<br>
+        (Métropole du Grand Nancy, Ville de Paris, Assemblée nationale).
+      </p>
     </div>
   </div>
 
-  <%# ── 3 étapes pour un plan de rénovation ──
-       margin-top:7rem (112px) inline pour séparer des cards précédentes.
-       mb-10 sous le H2 pour coller le titre à son bloc.
-       flex-col + gap:2.5rem (40px) pour espacer correctement les 3 étapes
-       (remplace un space-y-10 qui n'existe pas dans le CSS compilé). %>
-  <div style="margin-top:7rem;">
-    <h2 class="font-black text-gray-900 mb-10 text-center" style="font-size:2rem;">3 étapes, quelques minutes.</h2>
-    <div class="flex flex-col" style="gap:2.5rem;">
+</article>
 
-      <%# Étape 1 — Dépôt documents %>
-      <div class="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex overflow-hidden">
-        <div class="w-2 shrink-0" style="background:#059669;"></div>
-        <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400&q=80" alt="" class="w-40 h-40 object-cover shrink-0 hidden md:block">
-        <div class="flex-1 p-8 flex items-start gap-5">
-          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shrink-0" style="background:#059669;">1</div>
-          <div>
-            <h3 class="font-black text-gray-900 mb-2" style="font-size:1.2rem;">Vous déposez votre DPE et vos factures</h3>
-            <p class="text-gray-700 leading-relaxed" style="font-size:1.05rem;">Adresse, surface, photos, DPE, factures d'énergie. Lotys lit automatiquement vos documents et en extrait les éléments clés : classe DPE, consommation, points faibles du bâti.</p>
-          </div>
-        </div>
-      </div>
-
-      <%# Étape 2 — Analyse et plan %>
-      <div class="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex overflow-hidden">
-        <div class="w-2 shrink-0" style="background:#1d4ed8;"></div>
-        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&q=80" alt="" class="w-40 h-40 object-cover shrink-0 hidden md:block">
-        <div class="flex-1 p-8 flex items-start gap-5">
-          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shrink-0" style="background:#1d4ed8;">2</div>
-          <div>
-            <h3 class="font-black text-gray-900 mb-2" style="font-size:1.2rem;">Lotys calcule vos travaux et vos aides</h3>
-            <p class="text-gray-700 leading-relaxed" style="font-size:1.05rem;">Travaux prioritaires, budget médian, MaPrimeRénov' + CEE + éco-PTZ + aides locales, reste à financer, mensualité d'un prêt bancaire. Ajustez la cible DPE, tout se recalcule en temps réel.</p>
-          </div>
-        </div>
-      </div>
-
-      <%# Étape 3 — Prestataires %>
-      <div class="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex overflow-hidden">
-        <div class="w-2 shrink-0" style="background:#b45309;"></div>
-        <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=400&q=80" alt="" class="w-40 h-40 object-cover shrink-0 hidden md:block">
-        <div class="flex-1 p-8 flex items-start gap-5">
-          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shrink-0" style="background:#b45309;">3</div>
-          <div>
-            <h3 class="font-black text-gray-900 mb-2" style="font-size:1.2rem;">Les prestataires viennent à vous</h3>
-            <p class="text-gray-700 leading-relaxed" style="font-size:1.05rem;">Si vous le souhaitez, publiez anonymement votre dossier. Artisans RGE, courtiers et banques de votre secteur peuvent vous proposer une offre directement. Vous choisissez.</p>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <%# ── CTA final ──
-       margin-top:9rem (144px) inline, volontairement plus grand que les
-       7rem entre les autres sections, pour bien détacher l'appel à l'action
-       de la dernière étape. space-y-6 est compilé, on le garde. %>
-  <div class="text-center space-y-6" style="margin-top:9rem;">
-    <h2 class="font-black text-gray-900" style="font-size:2rem;">Prêt à analyser votre bien ?</h2>
-    <p class="text-gray-500" style="font-size:1.05rem;">Gratuit, sans engagement, résultat en quelques minutes.</p>
-    <%= link_to "Commencer maintenant →", new_property_path,
+<%# ── CTA final ── %>
+<div class="bg-slate-50 border-t border-slate-100">
+  <div class="max-w-2xl mx-auto px-6 py-16 text-center">
+    <h2 class="text-gray-900 font-black mb-4"
+        style="font-family:'Fraunces',Georgia,serif; font-size:clamp(2rem,4.5vw,2.8rem); line-height:1.2; letter-spacing:-0.02em;">
+      Essayez Lotys avec votre logement.
+    </h2>
+    <p style="font-family:'Crimson Pro',Georgia,serif; font-size:1.35rem; color:#475569; margin-bottom:2rem; line-height:1.6;">
+      Gratuit, sans engagement, sans appel commercial.<br>
+      Vous pouvez supprimer votre compte à tout moment.
+    </p>
+    <%= link_to "Analyser mon bien →", new_property_path,
         class: "inline-block bg-emerald-600 text-white font-bold rounded-2xl hover:bg-emerald-700 transition-colors",
-        style: "font-size:1.1rem;padding:16px 40px;" %>
+        style: "font-family:'Inter',sans-serif; font-size:1.15rem; padding:20px 48px;" %>
   </div>
-
 </div>
