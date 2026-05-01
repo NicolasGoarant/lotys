@@ -11,4 +11,6 @@ amazon:
   access_key_id: <%= ENV["AWS_ACCESS_KEY_ID"] %>
   secret_access_key: <%= ENV["AWS_SECRET_ACCESS_KEY"] %>
   region: eu-west-3
+  # NOTE: bucket nommé "lotys-documents" pour des raisons historiques (avant rebranding Lauze).
+  # Migration vers "lauze-documents" à planifier (sync S3 + bascule progressive).
   bucket: lotys-documents
