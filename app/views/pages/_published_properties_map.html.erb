@@ -1,7 +1,7 @@
 <%# ═══════════════════════════════════════════════════════════════════════
      _published_properties_map.html.erb
 
-     Partial factorisé : carte Leaflet des biens publiés sur Lotys.
+     Partial factorisé : carte Leaflet des biens publiés sur Lauze.
      Utilisé sur la home (theme: :dark, fond navy) et sur la page
      artisans (theme: :light, fond blanc).
 
@@ -12,7 +12,7 @@
        - map_id     : id HTML unique du conteneur (défaut "home-map").
                       À surcharger si plusieurs cartes sur la même page.
        - title      : H2 affiché au-dessus (défaut "Les projets publiés
-                      sur Lotys")
+                      sur Lauze")
        - eyebrow    : eyebrow émeraude au-dessus du H2 (défaut
                       "Sur le terrain"). Passer false pour cacher.
        - subtitle   : phrase descriptive sous le H2 (défaut explication
@@ -29,7 +29,7 @@
 <%
   theme    = local_assigns.fetch(:theme, :dark)
   map_id   = local_assigns.fetch(:map_id, "home-map")
-  title    = local_assigns.fetch(:title, "Les projets publiés sur Lotys")
+  title    = local_assigns.fetch(:title, "Les projets publiés sur Lauze")
   eyebrow  = local_assigns.fetch(:eyebrow, "Sur le terrain")
   subtitle = local_assigns.fetch(:subtitle,
     "Chaque marqueur est un projet de rénovation publié par son propriétaire.")
@@ -91,7 +91,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
   <div id="<%= map_id %>"
-       class="lotys-leaflet-map"
+       class="lauze-leaflet-map"
        style="height:480px; border-radius:20px; overflow:hidden;
               border:2px solid <%= c[:map_border] %>;
               box-shadow:<%= c[:map_shadow] %>;
@@ -115,11 +115,11 @@
 </div>
 
 <%# Style responsive : carte raccourcie en mobile.
-    Cible la classe .lotys-leaflet-map pour s'appliquer à toutes les
+    Cible la classe .lauze-leaflet-map pour s'appliquer à toutes les
     instances du partial (home, artisans, futures pages). %>
 <style>
   @media (max-width: 768px) {
-    .lotys-leaflet-map { height: 300px !important; border-radius: 12px !important; }
+    .lauze-leaflet-map { height: 300px !important; border-radius: 12px !important; }
   }
 </style>
 

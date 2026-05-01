@@ -1,6 +1,6 @@
 # app/mailers/offer_mailer.rb
 class OfferMailer < ApplicationMailer
-  default from: "Lotys <noreply@lotys.fr>"
+  default from: "Lauze <noreply@lauze.fr>"
 
   def new_offer(offer)
     @offer    = offer

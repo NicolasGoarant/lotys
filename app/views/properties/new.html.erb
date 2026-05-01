@@ -30,14 +30,14 @@
       <p style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;color:#93c5fd;margin:0 0 6px;">VILLE DE NANCY · BRIGADE LOGEMENTS VACANTS</p>
       <h1 style="font-size:1.5rem;font-weight:900;margin:0 0 8px;">Vous avez reçu un courrier de la Ville de Nancy</h1>
       <p style="font-size:0.875rem;color:#bfdbfe;margin:0;line-height:1.6;">
-        Lotys est l'outil partenaire de la Ville pour vous aider à comprendre les options pour votre logement — valeur, aides, scénarios. Gratuit, sans engagement, confidentiel.
+        Lauze est l'outil partenaire de la Ville pour vous aider à comprendre les options pour votre logement — valeur, aides, scénarios. Gratuit, sans engagement, confidentiel.
       </p>
     </div>
   <% else %>
     <div class="text-center mb-10">
       <h1 class="text-6xl font-bold text-gray-900 mb-5 tracking-tight leading-tight">Analysez votre bien</h1>
       <p class="text-gray-600 text-2xl leading-relaxed">
-        Deux informations suffisent. Lotys calcule vos aides —
+        Deux informations suffisent. Lauze calcule vos aides —
         <span class="text-emerald-600 font-semibold">nationales et locales</span>.
       </p>
     </div>
@@ -99,7 +99,7 @@
         <span class="flex-shrink-0 w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center text-3xl">🏠</span>
         <div>
           <h2 class="text-3xl font-bold text-gray-900">Votre logement est-il occupé ?</h2>
-          <p class="text-lg text-gray-500">Cela oriente les recommandations de Lotys.</p>
+          <p class="text-lg text-gray-500">Cela oriente les recommandations de Lauze.</p>
         </div>
       </div>
 
@@ -171,12 +171,12 @@
         <span class="flex-shrink-0 w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center text-3xl">📎</span>
         <div>
           <h2 class="text-3xl font-bold text-gray-900">Vos documents et photos</h2>
-          <p class="text-lg text-gray-500">Lotys analyse tout automatiquement — aucune saisie manuelle.</p>
+          <p class="text-lg text-gray-500">Lauze analyse tout automatiquement — aucune saisie manuelle.</p>
         </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 my-6">
         <div class="bg-emerald-50 rounded-2xl p-5">
-          <p class="font-semibold text-emerald-800 mb-3 text-lg">📋 Ce que Lotys lit dans vos docs</p>
+          <p class="font-semibold text-emerald-800 mb-3 text-lg">📋 Ce que Lauze lit dans vos docs</p>
           <ul class="text-emerald-700 space-y-1.5 text-base">
             <li>✓ Classe énergétique (DPE)</li>
             <li>✓ Surface et année de construction</li>
@@ -186,7 +186,7 @@
           </ul>
         </div>
         <div class="bg-blue-50 rounded-2xl p-5">
-          <p class="font-semibold text-blue-800 mb-3 text-lg">📸 Ce que Lotys voit sur vos photos</p>
+          <p class="font-semibold text-blue-800 mb-3 text-lg">📸 Ce que Lauze voit sur vos photos</p>
           <ul class="text-blue-700 space-y-1.5 text-base">
             <li>✓ État général du bien</li>
             <li>✓ Type de menuiseries</li>
@@ -261,7 +261,7 @@
         <span class="flex-shrink-0 w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-2xl">💬</span>
         <div>
           <h2 class="text-2xl font-bold text-gray-900">Votre situation <span class="text-gray-400 font-normal text-lg">(optionnel)</span></h2>
-          <p class="text-lg text-gray-500" id="description-hint">Un contexte que vous souhaitez partager avec Lotys.</p>
+          <p class="text-lg text-gray-500" id="description-hint">Un contexte que vous souhaitez partager avec Lauze.</p>
         </div>
       </div>
       <%= f.text_area :description,
@@ -280,7 +280,7 @@
         <span class="flex-shrink-0 w-14 h-14 rounded-2xl bg-gray-200 flex items-center justify-center text-3xl">🔒</span>
         <div>
           <h2 class="text-3xl font-bold text-gray-900">Vos documents, en toute confidentialité</h2>
-          <p class="text-lg text-gray-500">Lotys ne conserve pas vos pièces juridiques.</p>
+          <p class="text-lg text-gray-500">Lauze ne conserve pas vos pièces juridiques.</p>
         </div>
       </div>
 
@@ -308,7 +308,7 @@
           <span>
             <strong class="text-gray-900">Lus par l'IA, jamais par un humain.</strong>
             Vos documents sont traités exclusivement par l'IA d'Anthropic
-            (Claude) le temps de l'analyse. Aucun membre de l'équipe Lotys
+            (Claude) le temps de l'analyse. Aucun membre de l'équipe Lauze
             n'y a accès.
           </span>
         </li>
@@ -336,7 +336,7 @@
             Vous pouvez à tout moment supprimer votre compte et toutes
             les données associées depuis votre espace, ou en nous
             écrivant à
-            <a href="mailto:contact@lotys.fr" class="text-emerald-700 underline hover:text-emerald-800">contact@lotys.fr</a>.
+            <a href="mailto:contact@lauze.fr" class="text-emerald-700 underline hover:text-emerald-800">contact@lauze.fr</a>.
           </span>
         </li>
       </ul>
@@ -368,7 +368,7 @@ function setOccupation(isVacant) {
     labelOccupe.style.border = '2px solid #e5e7eb';
     labelOccupe.style.background = 'white';
     vacantQ.style.display = 'block';
-    hint.textContent = 'Ajoutez tout ce qui peut aider Lotys à mieux comprendre la situation de ce logement.';
+    hint.textContent = 'Ajoutez tout ce qui peut aider Lauze à mieux comprendre la situation de ce logement.';
     desc.placeholder = 'Ex : appartement hérité de ma mère en 2022, en mauvais état. Trois héritiers, décision à prendre ensemble. Personne ne souhaite le conserver.';
   } else {
     labelOccupe.style.border = '2px solid #059669';
@@ -376,7 +376,7 @@ function setOccupation(isVacant) {
     labelVacant.style.border = '2px solid #e5e7eb';
     labelVacant.style.background = 'white';
     vacantQ.style.display = 'none';
-    hint.textContent = 'Un contexte que vous souhaitez partager avec Lotys.';
+    hint.textContent = 'Un contexte que vous souhaitez partager avec Lauze.';
     desc.placeholder = "Ex : j'ai hérité de ce bien, je souhaite évaluer s'il vaut mieux rénover ou vendre. Les relations en copropriété sont tendues.";
   }
 }

@@ -48,7 +48,7 @@ class DocumentAnalysisService
 
   def pdf_to_images
     images = []
-    dir = Dir.mktmpdir("lotys_vision")
+    dir = Dir.mktmpdir("lauze_vision")
 
     Tempfile.create(["doc", ".pdf"]) do |tmp|
       tmp.binmode

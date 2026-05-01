@@ -66,7 +66,7 @@ Rails.application.configure do
 
   # Use a real queuing backend for Active Job (and separate queues per environment).
   # config.active_job.queue_adapter = :resque
-  # config.active_job.queue_name_prefix = "lotys_production"
+  # config.active_job.queue_name_prefix = "lauze_production"
 
   # Disable caching for Action Mailer templates even if Action Controller
   # caching is enabled.
@@ -74,7 +74,7 @@ Rails.application.configure do
 
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.raise_delivery_errors = true
-  config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "lotys-3f0c82772cf8.herokuapp.com") }
+  config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "lauze-3f0c82772cf8.herokuapp.com") }
   config.action_mailer.smtp_settings = {
     address:              ENV.fetch("SMTP_ADDRESS"),
     port:                 ENV.fetch("SMTP_PORT", 587).to_i,

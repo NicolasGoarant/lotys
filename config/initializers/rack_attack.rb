@@ -29,7 +29,7 @@ class Rack::Attack
       429,
       { "Content-Type" => "text/html; charset=utf-8" },
       ["<html><body style='font-family:sans-serif;text-align:center;padding:60px'>
-        <h1 style='color:#059669'>Lotys</h1>
+        <h1 style='color:#059669'>Lauze</h1>
         <h2>Trop de requêtes</h2>
         <p>Vous avez dépassé la limite autorisée. Veuillez réessayer dans quelques minutes.</p>
         <a href='/'>← Retour</a>

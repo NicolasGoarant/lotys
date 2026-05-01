@@ -559,7 +559,7 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
     <p style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;color:#93c5fd;margin:0 0 8px;">PHASE 2 — FINANCEMENT</p>
     <h2 style="font-size:1.5rem;font-weight:900;margin:0 0 8px;">Pouvez-vous financer votre projet ?</h2>
     <p style="font-size:0.875rem;color:#bfdbfe;margin:0 0 1.5rem;line-height:1.6;">
-      Lotys a calculé vos aides et votre reste à charge. L'étape suivante : comprendre comment le financer.
+      Lauze a calculé vos aides et votre reste à charge. L'étape suivante : comprendre comment le financer.
     </p>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;">
       <div style="background:rgba(255,255,255,0.1);border-radius:1rem;padding:1rem;text-align:center;">
@@ -608,7 +608,7 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
       <div style="font-size:2rem;margin-bottom:12px;">✉️</div>
       <h3 style="font-size:1rem;font-weight:800;color:#111827;margin:0 0 8px;">Contacter mon banquier</h3>
       <p style="font-size:0.8rem;color:#6b7280;line-height:1.6;margin:0 0 16px;flex:1;">
-        Lotys génère un email pré-rempli avec tous vos chiffres. Votre conseiller reçoit un dossier complet — le rendez-vous est productif dès le départ.
+        Lauze génère un email pré-rempli avec tous vos chiffres. Votre conseiller reçoit un dossier complet — le rendez-vous est productif dès le départ.
       </p>
       <div style="background:#f9fafb;border-radius:0.75rem;padding:12px;font-size:0.72rem;color:#6b7280;margin-bottom:16px;line-height:1.8;">
         <span style="color:#374151;font-weight:600;">Bien :</span> <%= @property.address %> · DPE <%= @property.dpe_class&.upcase %><br>
@@ -618,7 +618,7 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
       </div>
       <%= link_to "✉️ Ouvrir dans ma messagerie", "mailto:?subject=#{sujet}&body=#{corps}",
           style: "display:block;background:#1e40af;color:white;text-align:center;padding:12px;border-radius:12px;text-decoration:none;font-weight:700;font-size:0.875rem;" %>
-      <p style="font-size:0.7rem;color:#9ca3af;text-align:center;margin:8px 0 0;">Aucune donnée transmise à Lotys</p>
+      <p style="font-size:0.7rem;color:#9ca3af;text-align:center;margin:8px 0 0;">Aucune donnée transmise à Lauze</p>
     </div>
 
     <%# Panneau 2 : Simulation directe %>
@@ -626,7 +626,7 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
       <div style="font-size:2rem;margin-bottom:12px;">🧮</div>
       <h3 style="font-size:1rem;font-weight:800;color:#111827;margin:0 0 8px;">Simuler mon financement</h3>
       <p style="font-size:0.8rem;color:#6b7280;line-height:1.6;margin:0 0 16px;">
-        Renseignez quelques éléments — Lotys calcule vos mensualités, votre taux d'endettement et le coût total de votre crédit.
+        Renseignez quelques éléments — Lauze calcule vos mensualités, votre taux d'endettement et le coût total de votre crédit.
       </p>
       <button onclick="toggleSimulation()"
               style="display:block;width:100%;background:#059669;color:white;padding:12px;border-radius:12px;border:none;font-weight:700;font-size:0.875rem;cursor:pointer;margin-top:auto;">
@@ -638,7 +638,7 @@ document.addEventListener('DOMContentLoaded', function() { calcTravaux(); calcPr
   <%# --- Formulaire de simulation (masqué par défaut) --- %>
   <div id="simulation-bancaire" style="display:none;background:white;border:2px solid #059669;border-radius:1.5rem;padding:2rem;margin-bottom:1.5rem;">
     <h3 style="font-size:1.1rem;font-weight:800;color:#111827;margin:0 0 4px;">🧮 Simulation de financement personnalisée</h3>
-    <p style="font-size:0.8rem;color:#6b7280;margin:0 0 1.5rem;">Ces informations restent sur votre appareil et ne sont pas transmises à Lotys.</p>
+    <p style="font-size:0.8rem;color:#6b7280;margin:0 0 1.5rem;">Ces informations restent sur votre appareil et ne sont pas transmises à Lauze.</p>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
       <div>

@@ -83,7 +83,7 @@ class DvfEstimationService
       access_key_id:     ENV["AWS_ACCESS_KEY_ID"],
       secret_access_key: ENV["AWS_SECRET_ACCESS_KEY"]
     )
-    bucket = ENV.fetch("S3_BUCKET", "lotys-documents")
+    bucket = ENV.fetch("S3_BUCKET", "lauze-documents")
 
     # Vérifier l'âge du cache S3
     begin

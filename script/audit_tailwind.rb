@@ -5,7 +5,7 @@
 #
 # Objectif : détecter silencieusement les classes qu'un développeur a écrites
 # mais qui ne sont pas compilées dans le CSS final (et tombent donc à zéro
-# au rendu). C'est exactement le bug qu'on a rencontré sur Lotys avec
+# au rendu). C'est exactement le bug qu'on a rencontré sur Lauze avec
 # space-y-10, gap-14, space-y-28.
 #
 # Usage :

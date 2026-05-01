@@ -2,11 +2,11 @@ fr:
   devise:
     mailer:
       confirmation_instructions:
-        subject: "Confirmez votre adresse email — Lotys"
+        subject: "Confirmez votre adresse email — Lauze"
       reset_password_instructions:
         subject: "Instructions pour réinitialiser votre mot de passe"
       unlock_instructions:
-        subject: "Déblocage de votre compte Lotys"
+        subject: "Déblocage de votre compte Lauze"
     sessions:
       signed_out: "Vous avez été déconnecté avec succès."
       signed_in: "Vous êtes connecté avec succès."
