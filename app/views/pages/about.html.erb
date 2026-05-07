@@ -1,7 +1,17 @@
 <%# ═══════════════════════════════════════════════════════════════════════
      about.html.erb — "Comment ça marche"
 
-     Refonte v5 :
+     Refonte v6 :
+       - Largeur de colonne élargie en desktop seulement (lg:max-w-4xl xl:max-w-5xl)
+         pour aérer le texte sans casser la lisibilité.
+       - Médaillon photo + bio Nicolas Goarant déplacé du bas vers le
+         tout début (juste après le hero), avant la lettrine. Logique
+         narrative : on présente l'auteur avant qu'il parle.
+       - Ajout d'un encart "Pourquoi Lauze ?" en coda, juste avant le
+         CTA final, qui explique le mot lauze (pierre plate de toiture
+         traditionnelle) et son sens dans le projet.
+
+     Refonte v5 (rappel) :
        - Auto-référence resserrée : un seul paragraphe d'origine
          personnelle (au lieu de deux), puis bascule rapide sur "vous"
          et "l'habitant".
@@ -87,6 +97,36 @@
     object-fit: cover;
     display: block;
   }
+  /* Coda "Pourquoi Lauze ?" en fin d'article : ton plus intime,
+     italique, retrait gauche emerald comme la pull-quote mais plus
+     discret. */
+  .lauze-letter .lauze-coda {
+    margin-top: 4rem;
+    padding: 1.5rem 0 1.5rem 1.75rem;
+    border-left: 3px solid #10b981;
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-style: italic;
+    color: #475569;
+  }
+  .lauze-letter .lauze-coda .coda-eyebrow {
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #047857;
+    display: block;
+    margin-bottom: 0.6rem;
+  }
+  .lauze-letter .lauze-coda p {
+    font-size: 1.25rem;
+    line-height: 1.65;
+    margin-bottom: 1rem;
+  }
+  .lauze-letter .lauze-coda p:last-child {
+    margin-bottom: 0;
+  }
   @media (max-width: 640px) {
     .lauze-letter p { font-size: 1.3rem; line-height: 1.65; }
     .lauze-letter h2 { font-size: 2rem; }
@@ -95,6 +135,8 @@
     .lauze-letter .essay-image { margin: 2rem 0; }
     .lauze-letter .essay-image img { height: 220px; }
     .lauze-letter .diff-emoji { font-size: 1.6rem; }
+    .lauze-letter .lauze-coda p { font-size: 1.1rem; }
+    .lauze-letter .lauze-coda { padding-left: 1rem; }
   }
 </style>
 
@@ -111,8 +153,29 @@
   </div>
 </div>
 
-<%# ── Corps de la lettre ── %>
-<article class="lauze-letter max-w-2xl mx-auto px-6 py-16">
+<%# ── Corps de la lettre ──
+    v6 : largeur élargie en desktop (lg:max-w-4xl xl:max-w-5xl), médaillon auteur
+    déplacé en tête, encart "Pourquoi Lauze ?" en coda. %>
+<article class="lauze-letter max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto px-6 py-16">
+
+  <%# ── Médaillon auteur en tête (déplacé du bas vers le haut en v6) ──
+      Place l'auteur avant qu'il parle : on signe la lettre dès l'ouverture. %>
+  <div class="mb-14 pb-10 border-b border-gray-200 flex items-center gap-7 flex-wrap sm:flex-nowrap">
+    <%= image_tag "NG.png",
+        alt: "Nicolas Goarant",
+        class: "rounded-full object-cover shrink-0",
+        style: "width:140px; height:140px; border:4px solid #10b981; box-shadow: 0 8px 24px rgba(16,185,129,0.15);" %>
+    <div>
+      <p style="font-family:'Fraunces',Georgia,serif; font-size:1.6rem; font-weight:900; color:#0f172a; margin:0 0 6px;">
+        Nicolas Goarant
+      </p>
+      <p style="font-family:'Crimson Pro',Georgia,serif; font-size:1.15rem; color:#475569; margin:0; line-height:1.55;">
+        Fondateur de Lauze.<br>
+        Quinze ans en cabinet politique territorial<br>
+        (Métropole du Grand Nancy, Ville de Paris, Assemblée nationale).
+      </p>
+    </div>
+  </div>
 
   <%# Un seul paragraphe d'origine personnelle, court. La suite bascule
       immédiatement sur "vous". %>
@@ -184,23 +247,19 @@
     Voilà l'idée. Si vous êtes propriétaire d'un logement à rénover, je vous invite à essayer. Si vous êtes élu local ou agent de collectivité et que ce que vous lisez résonne avec ce que vous observez, écrivez-moi.
   </p>
 
-  <%# ── Médaillon signature ── %>
-  <div class="mt-16 pt-12 border-t border-gray-200 flex items-center gap-7 flex-wrap sm:flex-nowrap">
-    <%= image_tag "NG.png",
-        alt: "Nicolas Goarant",
-        class: "rounded-full object-cover shrink-0",
-        style: "width:140px; height:140px; border:4px solid #10b981; box-shadow: 0 8px 24px rgba(16,185,129,0.15);" %>
-    <div>
-      <p style="font-family:'Fraunces',Georgia,serif; font-size:1.6rem; font-weight:900; color:#0f172a; margin:0 0 6px;">
-        Nicolas Goarant
-      </p>
-      <p style="font-family:'Crimson Pro',Georgia,serif; font-size:1.15rem; color:#475569; margin:0; line-height:1.55;">
-        Fondateur de Lauze.<br>
-        Quinze ans en cabinet politique territorial<br>
-        (Métropole du Grand Nancy, Ville de Paris, Assemblée nationale).
-      </p>
-    </div>
-  </div>
+  <%# ── Coda "Pourquoi Lauze ?" (ajout v6) ──
+      Aparté en fin d'article, ton intime. Explique le mot et son sens.
+      Style sobre : italique, border-left emerald, plus discret que la
+      pull-quote. %>
+  <aside class="lauze-coda">
+    <span class="coda-eyebrow">Et ce nom, au fait ?</span>
+    <p>
+      Une lauze, c'est une pierre plate qui sert de tuile sur les toits traditionnels de Lozère, des Causses, de l'Auvergne ou de la Dordogne. Elle protège, elle dure des siècles, elle est posée par des artisans qui connaissent leur territoire. C'est un objet de patrimoine et de bon sens.
+    </p>
+    <p>
+      C'est ce sens qu'on a voulu donner au nom : un outil au service de la rénovation, ancré dans les territoires, fait pour durer.
+    </p>
+  </aside>
 
 </article>
 
