@@ -11,7 +11,7 @@ class GeocodingService
     query = "#{@property.address}, #{@property.city}, France"
     response = HTTParty.get(NOMINATIM, query: {
       q: query, format: "json", limit: 1
-    }, headers: { "User-Agent" => "Lauze/1.0 contact@lauze.fr" }, timeout: 5)
+    }, headers: { "User-Agent" => "Lauze/1.0 contact@lauze.eu" }, timeout: 5)
 
     results = JSON.parse(response.body) rescue []
     return if results.empty?

@@ -1,9 +1,9 @@
 puts "Nettoyage des seeds précédents..."
 Property.where(source: "seed").each(&:destroy)
-User.where(email: "demo@lauze.fr").destroy_all
+User.where(email: "demo@lauze.eu").destroy_all
 
 user = User.create!(
-  email: "demo@lauze.fr",
+  email: "demo@lauze.eu",
   password: "password123",
   password_confirmation: "password123",
   role: :proprietaire

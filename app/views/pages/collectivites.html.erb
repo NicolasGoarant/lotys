@@ -1,4 +1,10 @@
-<%# collectivites.html.erb — page B2G EPCI (v3 : pitch resserré, sans PDF) %>
+<%# collectivites.html.erb — page B2G EPCI (v4 : ajout bloc Diagnostic I4CE)
+    Changements vs v3 :
+      - Ajout d'un bloc "Diagnostic — Données I4CE 2026" entre la vignette
+        "Et demain" (loi Lecornu) et le cas pratique Grand Nancy. Trois
+        chiffres clés issus de la note I4CE du 7 mai 2026 + source citée.
+      - Justification du placement : narration "promesse → contexte
+        législatif → diagnostic chiffré → preuve produit → CTA". %>
 
 <%# ── Hero ── %>
 <div class="relative w-full overflow-hidden" style="min-height:480px;">
@@ -22,7 +28,7 @@
       <strong>vos dispositifs locaux</strong> dans un seul parcours, pour les
       propriétaires de votre territoire.
     </p>
-    <%= link_to "Échangeons 30 minutes", "mailto:contact@lauze.fr",
+    <%= link_to "Échangeons 30 minutes", "mailto:contact@lauze.eu",
         class: "inline-flex items-center gap-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold px-8 py-4 rounded-2xl transition-colors",
         style: "font-size:1.15rem;" %>
   </div>
@@ -91,6 +97,92 @@
   </div>
 </section>
 
+<%# ── Diagnostic I4CE — données externes qui contextualisent l'enjeu ── %>
+<%# Note : placé entre la vignette "Et demain" et le cas pratique Grand
+    Nancy. Sert de pont narratif : on vient de parler de ce que fait
+    Lauze + de la trajectoire législative ; on enchaîne avec le diagnostic
+    chiffré qui justifie le besoin d'un outil territorial ; on conclut
+    avec la preuve produit (Grand Nancy). %>
+<section class="py-14 px-6 border-t border-gray-100">
+  <div class="max-w-5xl mx-auto">
+
+    <div class="text-center mb-10">
+      <span class="inline-block text-emerald-700 text-xs font-black uppercase tracking-widest mb-3">Diagnostic</span>
+      <h2 class="font-black text-gray-900 mb-3" style="font-size:2rem;">L'enjeu, en chiffres</h2>
+      <p class="text-gray-500 max-w-2xl mx-auto" style="font-size:1.1rem;">
+        Trois données extraites de la note publiée par l'Institut de
+        l'économie pour le climat (I4CE) le 7 mai 2026, qui éclairent
+        le besoin d'un outil territorial intégré.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+      <%# Stat 1 — baisse d'aides 2026 %>
+      <div class="rounded-3xl border border-gray-100 bg-white p-7 shadow-sm">
+        <div class="font-black text-emerald-600 mb-2" style="font-size:2.6rem; line-height:1; letter-spacing:-0.03em;">
+          − 19 000 €
+        </div>
+        <p class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">
+          d'aides en moins en 2026
+        </p>
+        <p class="text-gray-700 leading-relaxed" style="font-size:1.02rem;">
+          Pour un ménage rural modeste rénovant globalement sa maison fioul DPE G,
+          le reste à charge passe de 22 000 € à 41 000 € entre 2025 et 2026.
+          I4CE qualifie cette baisse de recul de dix ans.
+        </p>
+      </div>
+
+      <%# Stat 2 — écart objectif vs réalité %>
+      <div class="rounded-3xl border border-gray-100 bg-white p-7 shadow-sm">
+        <div class="font-black text-emerald-600 mb-2" style="font-size:2.6rem; line-height:1; letter-spacing:-0.03em;">
+          250 000
+        </div>
+        <p class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">
+          rénovations d'ampleur visées par an
+        </p>
+        <p class="text-gray-700 leading-relaxed" style="font-size:1.02rem;">
+          Objectif fixé d'ici 2030 par le projet de stratégie nationale bas carbone,
+          contre 120 000 réalisées en 2024. Un écart annuel d'environ 130 000 chantiers
+          que les territoires devront contribuer à combler.
+        </p>
+      </div>
+
+      <%# Stat 3 — économie nette post-travaux %>
+      <div class="rounded-3xl border border-gray-100 bg-white p-7 shadow-sm">
+        <div class="font-black text-emerald-600 mb-2" style="font-size:2.6rem; line-height:1; letter-spacing:-0.03em;">
+          120 €/mois
+        </div>
+        <p class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">
+          d'économies nettes après travaux
+        </p>
+        <p class="text-gray-700 leading-relaxed" style="font-size:1.02rem;">
+          Pour ce même ménage, mensualités de prêts incluses : la rénovation
+          reste rentable malgré la baisse des aides, grâce à la flambée du fioul.
+          La rentabilité existe : reste à la rendre lisible et finançable.
+        </p>
+      </div>
+
+    </div>
+
+    <%# Source + lien vers ce que Lauze apporte face à ce diagnostic %>
+    <div class="max-w-3xl mx-auto mt-10 text-center">
+      <p class="text-gray-500" style="font-size:0.92rem;">
+        Source : Institut de l'économie pour le climat (I4CE), Observatoire des conditions
+        d'accès à la transition écologique, note du 7 mai 2026.
+      </p>
+      <p class="text-gray-700 leading-relaxed mt-4" style="font-size:1.08rem;">
+        I4CE identifie deux freins persistants : <strong>l'avance de trésorerie</strong>
+        et <strong>la difficulté à trouver un artisan certifié</strong>.
+        Ce sont précisément les deux leviers que Lauze adresse pour les habitants
+        de votre territoire : simulation à l'euro près des aides mobilisables,
+        et mise en relation avec un réseau d'artisans RGE qualifiés.
+      </p>
+    </div>
+
+  </div>
+</section>
+
 <%# ── Cas pratique Grand Nancy ── %>
 <section class="py-14 px-6 bg-gray-50 border-y border-gray-100">
   <div class="max-w-5xl mx-auto">
@@ -113,7 +205,7 @@
         <div class="aspect-video bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center">
           <div class="text-center p-6">
             <div class="text-5xl mb-3">🗺️</div>
-            <p class="text-gray-600 font-semibold">Démonstration disponible<br>sur lauze.fr</p>
+            <p class="text-gray-600 font-semibold">Démonstration disponible<br>sur lauze.eu</p>
           </div>
         </div>
       </div>
@@ -129,7 +221,7 @@
       Présentation de l'outil, modèle économique, conditions de déploiement.
       Un échange de 30 minutes pour voir si Lauze correspond à vos besoins.
     </p>
-    <%= link_to "contact@lauze.fr", "mailto:contact@lauze.fr",
+    <%= link_to "contact@lauze.eu", "mailto:contact@lauze.eu",
         class: "inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-10 py-4 rounded-2xl transition-colors",
         style: "font-size:1.15rem;" %>
   </div>

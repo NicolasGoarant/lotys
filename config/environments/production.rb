@@ -74,7 +74,7 @@ Rails.application.configure do
 
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.raise_delivery_errors = true
-  config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "lauze-3f0c82772cf8.herokuapp.com") }
+  # config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "lauze-3f0c82772cf8.herokuapp.com") }
   config.action_mailer.smtp_settings = {
     address:              ENV.fetch("SMTP_ADDRESS"),
     port:                 ENV.fetch("SMTP_PORT", 587).to_i,
@@ -107,4 +107,14 @@ Rails.application.configure do
   # ]
   # Skip DNS rebinding protection for the default health check endpoint.
   # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+# Rebrand .eu — hosts autorisés et URL host des mails
+config.hosts << "lauze.eu"
+config.hosts << "www.lauze.eu"
+config.hosts << /.*\.herokuapp\.com/
+
+config.action_mailer.default_url_options = {
+  host: "www.lauze.eu",
+  protocol: "https"
+}
+
 end
