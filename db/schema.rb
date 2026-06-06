@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_04_19_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_06_194323) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -299,6 +299,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_19_120000) do
     t.float "lng"
     t.jsonb "equipements_selection", default: {}, null: false
     t.jsonb "travaux_selection", default: {}, null: false
+    t.string "code_insee"
     t.index ["user_id"], name: "index_properties_on_user_id"
   end
 

@@ -8,11 +8,20 @@ class DvfEstimationService
   CACHE_MAX_AGE = 7.days
   LOCAL_CACHE  = Rails.root.join("tmp", "dvf54_cache.csv.gz")
 
+  # Le pipeline DVF n'exploite que la commune de Nancy (INSEE 54395) :
+  # le filtre de comparables ne match que ce code. Hors Nancy, l'ancienne
+  # logique tombait silencieusement dans "Aucune mutation comparable", ce
+  # qui masquait le vrai motif. On garde-fou explicitement, sans étendre
+  # le périmètre aux 19 autres communes du Grand Nancy.
+  NANCY_INSEE_CODE = "54395"
+
   def initialize(property)
     @property = property
   end
 
   def call
+    return fallback("Estimation DVF indisponible hors Nancy (commune : #{@property.city.presence || 'inconnue'})") unless nancy?
+
     mutations = load_mutations
     return fallback("CSV vide ou inaccessible") if mutations.empty?
 
@@ -123,6 +132,12 @@ class DvfEstimationService
 
   def s3_available?
     ENV["AWS_ACCESS_KEY_ID"].present? && ENV["S3_BUCKET"].present?
+  end
+
+  # Identification de la commune de Nancy par code INSEE (renseigné par
+  # GeocodingService via l'API Adresse / BAN).
+  def nancy?
+    @property.code_insee == NANCY_INSEE_CODE
   end
 
   def fallback(reason)

@@ -716,12 +716,7 @@ class AidCalculatorService
   end
 
   def territory_grand_nancy?
-    cp = @p.zipcode.to_s
-    grand_nancy_zipcodes = %w[
-      54000 54100 54200 54300 54500 54510 54520
-      54600 54700 54710 54140 54180 54230 54340 54400
-    ]
-    grand_nancy_zipcodes.include?(cp)
+    GrandNancy.include?(@p.code_insee)
   end
 
   def maison_individuelle?
