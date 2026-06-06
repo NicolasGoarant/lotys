@@ -1,4 +1,7 @@
 fr:
+  lauze:
+    tagline: "Rénover, sans se perdre."
+
   # ─── Noms des modèles (singulier + pluriel) ──────────────────────────
   # Utilisés dans les messages d'erreur, les flashs, et Property.model_name.human.
   activerecord:
