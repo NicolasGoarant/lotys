@@ -72,7 +72,6 @@ group :development, :test do
   gem "faker"
 end
 
-gem "httparty"
 gem "redcarpet"
 
 gem "good_job"
