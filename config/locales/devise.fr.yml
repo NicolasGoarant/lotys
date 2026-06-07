@@ -17,3 +17,7 @@ fr:
       send_paranoid_instructions: "Si votre email est dans notre base, vous recevrez un email de confirmation."
     registrations:
       signed_up_but_unconfirmed: "Compte créé ! Consultez votre boîte mail pour confirmer votre adresse."
+    failure:
+      unauthenticated: "Vous devez vous connecter ou vous inscrire pour continuer."
+      invalid: "Email ou mot de passe incorrect."
+      unconfirmed: "Vous devez confirmer votre adresse e-mail pour continuer."
