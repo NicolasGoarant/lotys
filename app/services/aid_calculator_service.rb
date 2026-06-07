@@ -727,35 +727,50 @@ class AidCalculatorService
     %w[tres_modeste modeste].include?(@p.income_bracket)
   end
 
-  # Liste descriptive des travaux prévus (codes simples) — utilisée par
-  # eligible_parcours_accompagne? et calculate_eco_ptz.
-  # Conserve la logique historique (détection via description + colonnes surface_*).
+  # Liste des postes de travaux réellement sélectionnés — utilisée par
+  # eligible_parcours_accompagne? (filtré) et calculate_eco_ptz (taille brute).
+  #
+  # Dérive uniquement des champs structurés de la propriété :
+  #   - colonnes surface_* > 0 → postes d'isolation correspondants ;
+  #   - vmc_double_flux true → "vmc" ;
+  #   - nb_parois_vitrees > 0 → "menuiseries" ;
+  #   - au moins un équipement chauffage coché → macro "chauffage" ;
+  #   - au moins un équipement chauffe-eau coché → macro "chauffe_eau".
+  #
+  # Plus de parse de description, plus de fallback F/G qui fabriquait
+  # ["ite", "vmc"] artificiellement (et surévaluait l'éco-PTZ à 2 postes).
   def travaux_prevus
     travaux = []
-    desc = @p.description.to_s.downcase
 
-    travaux << "ite"              if desc.include?("ite") || desc.include?("extérieur") || surface_poste("ite") > 0
-    travaux << "iti"              if desc.include?("iti") || (desc.include?("intérieur") && desc.include?("isol")) || surface_poste("iti") > 0
-    travaux << "sarking"          if desc.include?("sarking") || surface_poste("sarking") > 0
-    travaux << "combles_perdus"   if desc.include?("combles perdus") || surface_poste("combles_perdus") > 0
-    travaux << "toiture_terrasse" if desc.include?("toiture terrasse") || surface_poste("toiture_terrasse") > 0
-    travaux << "plancher_bas"     if desc.include?("plancher") || desc.include?("dalle") || surface_poste("plancher_bas") > 0
-    travaux << "vmc"              if desc.include?("vmc") || desc.include?("ventilation") || @p.vmc_double_flux == true
-    travaux << "menuiseries"      if desc.include?("fenêtre") || desc.include?("menuiserie") || @p.nb_parois_vitrees.to_i > 0
+    travaux << "ite"              if surface_poste("ite") > 0
+    travaux << "iti"              if surface_poste("iti") > 0
+    travaux << "sarking"          if surface_poste("sarking") > 0
+    travaux << "combles_perdus"   if surface_poste("combles_perdus") > 0
+    travaux << "toiture_terrasse" if surface_poste("toiture_terrasse") > 0
+    travaux << "plancher_bas"     if surface_poste("plancher_bas") > 0
 
-    dpe = @p.dpe_class&.upcase
-    if travaux.empty? && %w[F G].include?(dpe)
-      travaux = ["ite", "vmc"]
+    travaux << "vmc"              if truthy?(@p.vmc_double_flux)
+    travaux << "menuiseries"      if @p.nb_parois_vitrees.to_i > 0
+
+    # Macros chauffage / chauffe-eau : un seul poste par macro, peu importe
+    # combien d'équipements sont cochés à l'intérieur (un poste éco-PTZ =
+    # un type de travaux). On réutilise le mapping macro→équipements du
+    # mapper pour rester en cohérence avec MPR Par geste / CEE.
+    if TravauxMapperService::MACRO_TO_EQUIPEMENTS["chauffage"].any? { |code| truthy?(@p.send(code)) }
+      travaux << "chauffage"
+    end
+    if TravauxMapperService::MACRO_TO_EQUIPEMENTS["chauffe_eau"].any? { |code| truthy?(@p.send(code)) }
+      travaux << "chauffe_eau"
     end
 
     # Filtre final : si un filtre macro est actif, ne garder que les
-    # postes dont le macro parent est coché. Cela affecte notamment
-    # Grand Nancy Isolation (nb_gestes) et le calcul du forfait rénovation
-    # globale local.
+    # postes dont le macro parent est coché. POSTE_TO_MACRO ne contient
+    # pas "chauffage"/"chauffe_eau" (ce sont déjà des macros) : on les
+    # mappe à eux-mêmes.
     if @travaux_actifs
       travaux = travaux.select do |poste|
-        macro = TravauxMapperService::POSTE_TO_MACRO[poste]
-        macro && @travaux_actifs.include?(macro)
+        macro = TravauxMapperService::POSTE_TO_MACRO[poste] || poste
+        @travaux_actifs.include?(macro)
       end
     end
 
