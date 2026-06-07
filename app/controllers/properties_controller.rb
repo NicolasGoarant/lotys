@@ -101,8 +101,12 @@ class PropertiesController < ApplicationController
   end
 
   def publish
-    @property.update(status: :published)
-    redirect_to @property, notice: "Votre dossier est maintenant visible par les prestataires."
+    if @property.update(status: :published)
+      redirect_to @property, notice: "Votre dossier est maintenant visible par les prestataires."
+    else
+      redirect_to @property,
+                  alert: "Pour publier votre bien, complétez : #{@property.errors.full_messages.to_sentence}."
+    end
   end
 
   def unpublish

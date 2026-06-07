@@ -11,4 +11,19 @@
     </div>
   </div>
   <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<% elsif property.draft? && (property.surface.blank? || property.dpe_class.blank?) %>
+  <% manquants = [] %>
+  <% manquants << "surface" if property.surface.blank? %>
+  <% manquants << "classe DPE" if property.dpe_class.blank? %>
+  <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:flex-start;gap:12px;">
+    <div style="font-size:1.4rem;flex-shrink:0;line-height:1;">⚠️</div>
+    <div style="flex:1;">
+      <p style="font-weight:800;font-size:.9rem;color:#9a3412;margin:0 0 4px;">Analyse incomplète</p>
+      <p style="font-size:.78rem;color:#c2410c;margin:0 0 8px;">
+        L'extraction automatique n'a pas pu déterminer <%= manquants.to_sentence %>. Complétez ces champs pour débloquer le calcul des aides et la publication.
+      </p>
+      <%= link_to "Compléter manuellement", edit_property_path(property),
+                  style: "display:inline-block;font-size:.78rem;font-weight:700;padding:6px 12px;border-radius:8px;background:#c2410c;color:#fff;text-decoration:none;" %>
+    </div>
+  </div>
 <% end %>

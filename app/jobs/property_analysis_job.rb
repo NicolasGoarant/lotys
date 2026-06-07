@@ -35,7 +35,13 @@ class PropertyAnalysisJob < ApplicationJob
     LocalAidCalculator.new(property).call
     sync_analysis_fields(property)
 
-    property.update(status: :analyzed)
+    # Extraction incomplète : si Claude n'a pas pu remplir surface ou
+    # dpe_class à partir des documents fournis, on remet en :draft plutôt
+    # qu'en :analyzed. La vue affichera un bandeau "complétez ces champs"
+    # et la publication restera bloquée tant que le bien n'est pas complet.
+    property.reload
+    next_status = (property.surface.blank? || property.dpe_class.blank?) ? :draft : :analyzed
+    property.update(status: next_status)
 
     # ─────────────────────────────────────────────────────────────────
     # Purge des documents juridiques après extraction.

@@ -26,11 +26,15 @@ class Property < ApplicationRecord
     message: "doit être un code postal à 5 chiffres"
   }
 
-  # Surface : obligatoire, strictement positive, plafond à 10 000 m²
-  # (au-delà c'est probablement une saisie erronée).
+  # Surface : optionnelle tant que le bien n'est pas publié — le parcours
+  # "adresse seule" la remplit via l'analyse Claude après la création.
+  # Si une valeur est fournie, elle doit être strictement positive (plafond
+  # 10 000 m² au-delà duquel c'est probablement une saisie erronée).
+  # Exigée au moment de la publication (cf. validation conditionnelle ci-dessous).
   validates :surface,
-            presence: true,
-            numericality: { greater_than: 0, less_than: 10_000 }
+            numericality: { greater_than: 0, less_than: 10_000 },
+            allow_nil: true
+  validates :surface, presence: true, if: :published?
 
   # Année de construction : optionnelle (certains DPE anciens n'en ont pas),
   # mais si fournie, doit être entre 1500 et l'année courante.
@@ -42,8 +46,12 @@ class Property < ApplicationRecord
             },
             allow_nil: true
 
-  # DPE : classe actuelle obligatoire (A→G), classe cible optionnelle.
-  validates :dpe_class,  inclusion: { in: DPE_CLASSES }
+  # DPE : classe actuelle optionnelle tant que le bien n'est pas publié
+  # (le parcours "adresse seule" la renseigne via l'analyse Claude). Si
+  # une valeur est fournie elle doit être dans A→G. Exigée à la publication.
+  # Classe cible toujours optionnelle.
+  validates :dpe_class,  inclusion: { in: DPE_CLASSES }, allow_nil: true
+  validates :dpe_class,  presence: true, if: :published?
   validates :dpe_target, inclusion: { in: DPE_CLASSES }, allow_nil: true
 
   # Nombre de pièces : optionnel mais > 0 si fourni.
