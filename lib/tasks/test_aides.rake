@@ -73,15 +73,13 @@ module Aides
           surface_ite: 100,
           description: "ITE seule"
         },
-        # SUP : MPR par-geste vide par design (Fiche 07). ITE n'est pas
-        # mappé MPR ni CEE en par-geste. GN Isolation refuse cible D
-        # (règlement Grand Nancy : cible ≥ C requise). Résultat attendu :
-        # AUCUNE subvention, seul l'éco-PTZ tombe. C'est un cas métier
-        # surprenant (un SUP qui fait juste de l'ITE F→D n'a aucune aide
-        # nationale, seulement du prêt) à remonter à l'équipe produit.
-        attendus: %w[eco_ptz],
-        non_attendus: %w[mpr_par_geste cee grand_nancy_isolation],
-        commentaire: "Monogeste MPR exclu en SUP. ITE pas dans grille par-geste. GN Isolation refusé (cible D < C). Seul éco-PTZ tombe."
+        # SUP : MPR par-geste vide par design (Fiche 07), donc ITE ne
+        # déclenche aucun MPR. CEE sur ITE oui (BAR-EN-102, 12 €/m² en
+        # SUP). GN Isolation refuse cible D (règlement Grand Nancy :
+        # cible ≥ C requise).
+        attendus: %w[cee eco_ptz],
+        non_attendus: %w[mpr_par_geste grand_nancy_isolation],
+        commentaire: "Monogeste MPR exclu en SUP. GN Isolation refusé (cible D < C). Seuls CEE (sur ITE) et éco-PTZ tombent."
       },
       {
         titre: "Nancy G→B, intermédiaire — mix isolation + équipements (rénovation d'ampleur)",
