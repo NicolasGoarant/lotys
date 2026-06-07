@@ -123,6 +123,9 @@ GEM
       railties (>= 7.0)
       responders
       warden (~> 1.2.3)
+    devise-i18n (1.16.0)
+      devise (>= 5.0.0)
+      rails-i18n
     dotenv (3.2.0)
     dotenv-rails (3.2.0)
       dotenv (= 3.2.0)
@@ -423,6 +426,7 @@ DEPENDENCIES
   brakeman
   debug
   devise
+  devise-i18n
   dotenv-rails
   faker
   good_job

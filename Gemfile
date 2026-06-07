@@ -54,6 +54,7 @@ group :development do
 end
 
 gem "devise"
+gem "devise-i18n"
 
 # API Claude
 gem "httparty"           # pour DVF API
