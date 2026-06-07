@@ -91,9 +91,9 @@ module Aides
           pac_air_eau: true, vmc_double_flux: true, audit_energetique: true,
           description: "ITE + isolation combles perdus + PAC air/eau + VMC double flux + audit"
         },
-        attendus: %w[mpr_parcours_accompagne cee grand_nancy_renovation_globale eco_ptz],
-        non_attendus: %w[mpr_par_geste grand_nancy_isolation],
-        commentaire: "Saut 5 + 2 isolations + VMC → ampleur. dpe_target B → GN Reno Globale activée."
+        attendus: %w[mpr_parcours_accompagne grand_nancy_renovation_globale eco_ptz],
+        non_attendus: %w[mpr_par_geste cee grand_nancy_isolation],
+        commentaire: "Saut 5 + 2 isolations + VMC → ampleur. CEE non cumulé (intégré au dossier Anah). dpe_target B → GN Reno Globale activée."
       },
       {
         titre: "Laxou F→D, modeste — UN seul geste (PAC air/eau)",

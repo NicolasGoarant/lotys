@@ -403,19 +403,25 @@ class AidCalculatorService
       basis:       "#{(taux * 100).to_i} % × #{base_ht.to_i} € HT (plafond #{plafond_ht.to_i} € HT, saut #{saut} classes)",
       source:      rule.source_label,
       valid_until: rule.valid_until,
-      confidence:  :medium
+      confidence:  :medium,
+      note:        "Le CEE est intégré au parcours accompagné (dossier Anah) et n'est pas cumulé séparément. Les aides locales restent cumulables."
     }
 
-    # CEE cumulable avec MPR Parcours Accompagné : dispositif fournisseurs
-    # d'énergie indépendant du parcours MPR. On l'ajoute systématiquement.
-    calculate_cee_standalone
+    # NB : pas d'appel à calculate_cee_standalone ici. En rénovation
+    # d'ampleur, le CEE est intégré au dossier MaPrimeRénov' (Anah) et
+    # n'est pas cumulable séparément — l'ajouter à @subventions
+    # surévaluerait le total. Le CEE séparé reste cumulé en par-geste,
+    # via calculate_mpr_par_geste_and_cee.
   end
 
   # ================================================================
-  # CEE seul : calcul indépendant du parcours MPR choisi.
-  # Additionne les forfaits CEE des travaux structurés selon le profil revenus.
-  # Appelé par calculate_mpr_ampleur (Parcours Accompagné) pour que le CEE
-  # ne soit pas oublié, car il est cumulable avec MPR Ampleur.
+  # CEE seul : additionne les forfaits CEE des travaux structurés selon
+  # le profil revenus. Méthode conservée pour usage potentiel futur ;
+  # plus appelée depuis aucune branche aujourd'hui :
+  #   - En par-geste, calculate_mpr_par_geste_and_cee calcule MPR et CEE
+  #     en une seule passe sur structured_travaux.
+  #   - En ampleur (parcours accompagné), le CEE est intégré au dossier
+  #     Anah et n'est pas cumulable séparément, donc pas ajouté.
   # ================================================================
   def calculate_cee_standalone
     bracket      = @p.income_bracket
