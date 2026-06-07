@@ -92,7 +92,10 @@ class PropertiesController < ApplicationController
   end
 
   def analyze
-    if @property.analyses.count >= 2
+    # Property déclare `has_one :analysis` (singulier) : on n'a pas
+    # d'association `.analyses`. On compte directement les lignes en DB
+    # pour conserver le garde-fou "max 2 analyses par bien".
+    if Analysis.where(property_id: @property.id).count >= 2
       redirect_to @property, alert: "Nombre maximum d'analyses atteint pour ce bien."
       return
     end
