@@ -147,6 +147,11 @@ class AidCalculatorService
   # Forfaits CEE indicatifs — Fiches 01/03/05/07 colonne "Montants approximatifs des CEE"
   # Les valeurs varient selon le profil (Coup de pouce TMO/MO, standards INT/SUP)
   CEE_FORFAITS = {
+    # surface_ite / surface_iti : opérations standardisées BAR-EN-102 (ITE)
+    # et BAR-EN-101 (ITI). Montants indicatifs, cohérents avec les autres
+    # postes surfaciques de la grille. ITE > ITI partout (conformément à
+    # l'écart d'efficacité thermique et de rémunération CEE observé en
+    # pratique sur ces deux opérations).
     "tres_modeste" => {
       "raccordement_reseau_chaleur" => 700,
       "chauffe_eau_thermo"          => 110,
@@ -160,6 +165,8 @@ class AidCalculatorService
       "insert_foyer"                => 800,
       "surface_rampants"            => 12,
       "surface_toiture_terrasse"    => 9,
+      "surface_ite"                 => 15,
+      "surface_iti"                 => 9,
       "nb_parois_vitrees"           => 44,
       "vmc_double_flux"             => 300
     }.freeze,
@@ -177,6 +184,8 @@ class AidCalculatorService
       "insert_foyer"                => 800,
       "surface_rampants"            => 11,
       "surface_toiture_terrasse"    => 7.50,
+      "surface_ite"                 => 12,
+      "surface_iti"                 => 7,
       "nb_parois_vitrees"           => 38,
       "vmc_double_flux"             => 260
     }.freeze,
@@ -194,6 +203,8 @@ class AidCalculatorService
       "insert_foyer"                => 500,
       "surface_rampants"            => 11,
       "surface_toiture_terrasse"    => 7.50,
+      "surface_ite"                 => 12,
+      "surface_iti"                 => 7,
       "nb_parois_vitrees"           => 38,
       "vmc_double_flux"             => 260
     }.freeze,
@@ -212,6 +223,8 @@ class AidCalculatorService
       "insert_foyer"                => 500,
       "surface_rampants"            => 11,
       "surface_toiture_terrasse"    => 7.50,
+      "surface_ite"                 => 12,
+      "surface_iti"                 => 7,
       "nb_parois_vitrees"           => 38,
       "vmc_double_flux"             => 260
     }.freeze
@@ -805,9 +818,22 @@ class AidCalculatorService
       travaux["surface_toiture_terrasse"] = { quantite: surface_poste("toiture_terrasse"), unite: "m²" }
     end
 
-    # ITE / ITI / plancher bas : pas directement dans la grille MPR Par geste
-    # (seulement dans les postes "rénovation d'ampleur") mais on les liste
-    # pour les aides locales. Pour MPR Par geste, on n'ajoute rien ici.
+    # ITE / ITI : éligibles au CEE (opérations BAR-EN-102 et BAR-EN-101)
+    # mais PAS à MPR Par geste (la grille MPR ne couvre que rampants et
+    # toiture terrasse côté isolation). On les liste ici : le côté CEE
+    # les compte via CEE_FORFAITS, le côté MPR Par geste les ignore
+    # automatiquement faute d'entrée dans MPR_PAR_GESTE_FORFAITS.
+    if surface_poste("ite") > 0
+      travaux["surface_ite"] = { quantite: surface_poste("ite"), unite: "m²" }
+    end
+
+    if surface_poste("iti") > 0
+      travaux["surface_iti"] = { quantite: surface_poste("iti"), unite: "m²" }
+    end
+
+    # Plancher bas : pas encore modélisé côté CEE (BAR-EN-103) ni MPR
+    # par-geste. Listé uniquement pour Grand Nancy Isolation via les
+    # surfaces directes.
 
     # ---- Équipements (booléens / compteurs dans equipements_selection jsonb) ----
     # Si @travaux_actifs est défini, seuls les équipements rattachés à un
