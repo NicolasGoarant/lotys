@@ -113,6 +113,6 @@ config.hosts << "lauze.eu"
 config.hosts << "www.lauze.eu"
 config.hosts << /.*\.herokuapp\.com/
 
-# config.action_mailer.default_url_options = {  host: "www.lauze.eu",  protocol: "https"}
+config.action_mailer.default_url_options = {  host: "www.lauze.eu",  protocol: "https"}
 
 end
