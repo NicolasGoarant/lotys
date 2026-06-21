@@ -386,7 +386,15 @@ function setOccupation(isVacant) {
   document.addEventListener('DOMContentLoaded', () => setOccupation(true));
 <% end %>
 
+// Accumulateur de fichiers : un <input type="file"> natif REMPLACE sa FileList à
+// chaque ouverture du picker. Sans accumulation, sélectionner un 2e fichier en
+// rouvrant la dropzone écrase le 1er → un seul Document est créé côté serveur.
+const _documentsAccumulator = new DataTransfer();
+
 function showFileList(input) {
+  Array.from(input.files).forEach(f => _documentsAccumulator.items.add(f));
+  input.files = _documentsAccumulator.files;
+
   const list = document.getElementById('file-list');
   list.innerHTML = '<p class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Fichiers sélectionnés (' + input.files.length + ')</p>';
   list.classList.remove('hidden');
