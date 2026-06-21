@@ -25,13 +25,16 @@ class DocumentsController < ApplicationController
       render :new, status: :unprocessable_entity and return
     end
 
+    # Analyse déportée en tâche de fond (GoodJob) : la requête web rend la
+    # main immédiatement après l'upload S3, sous les 30 s du routeur Heroku.
+    # Le job exécute le pipeline complet (DocumentAnalysisService, extraction,
+    # sync des champs) PUIS purge les fichiers — ce que le chemin synchrone
+    # précédent ne faisait pas (docs non lus + non purgés).
     Analysis.where(property: @property).delete_all
     @property.update!(status: :analyzing)
-    PropertyAnalysisService.new(@property).call
-    LocalAidCalculator.new(@property).call
-    @property.update!(status: :analyzed)
+    PropertyAnalysisJob.perform_later(@property.id)
 
-    redirect_to @property, notice: "#{saved} document(s) ajouté(s) · Analyse IA relancée."
+    redirect_to @property, notice: "#{saved} document(s) ajouté(s) · Analyse IA en cours…"
   rescue => e
     @document = @property.documents.build
     flash.now[:alert] = "Erreur : #{e.message}"
