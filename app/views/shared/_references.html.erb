@@ -1,0 +1,53 @@
+<%# ═══════════════════════════════════════════════════════════════════════
+     _references.html.erb — bande sobre des sources/cadres utilisés
+
+     Annonce les références publiques sur lesquelles Lauze s'appuie
+     (barèmes ADEME, notes I4CE, dispositifs France Rénov'). Formulée
+     comme cadre/sources, JAMAIS comme partenariat ou endorsement.
+
+     Pas de logos par défaut : libellés texte sobres, en petites capitales.
+     Si un jour des logos libres de droit sont fournis, les ajouter dans
+     l'array `references` avec une clé `image:`.
+
+     Locals (facultatifs) :
+       - eyebrow    : sur-titre court (défaut : "Lauze s'appuie sur")
+       - title      : H3 court (défaut : suite de l'eyebrow en clair)
+       - references : Array de Hash { label:, sublabel: }
+     ═══════════════════════════════════════════════════════════════════════ %>
+<%
+  eyebrow_text = local_assigns[:eyebrow].presence || "Lauze s'appuie sur"
+  refs = local_assigns[:references].presence || [
+    { label: "ADEME",        sublabel: "barèmes & guides techniques" },
+    { label: "I4CE",         sublabel: "observatoire des conditions d'accès" },
+    { label: "France Rénov'", sublabel: "parcours d'aides nationales" }
+  ]
+%>
+<section style="background:#ffffff; padding:64px 24px; border-top:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb;">
+  <div style="max-width:1100px; margin:0 auto;">
+    <p style="font-size:.8125rem; font-weight:800; color:#059669;
+              text-transform:uppercase; letter-spacing:.14em; margin:0 0 24px;">
+      <%= eyebrow_text %>
+    </p>
+    <div style="display:grid;
+                grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+                gap:32px 40px; align-items:start;">
+      <% refs.each do |ref| %>
+        <div>
+          <p style="font-family:'Fraunces',Georgia,serif;
+                    font-size:1.5rem; font-weight:700; color:#0f172a;
+                    margin:0 0 6px; line-height:1.1;">
+            <%= ref[:label] %>
+          </p>
+          <p style="font-size:.9375rem; color:#525252; line-height:1.55; margin:0;">
+            <%= ref[:sublabel] %>
+          </p>
+        </div>
+      <% end %>
+    </div>
+    <p style="font-size:.875rem; color:#9ca3af; margin:28px 0 0;
+              line-height:1.65; max-width:60ch;">
+      Sources et cadres publics utilisés pour construire le parcours et calculer
+      les aides. Lauze n'est pas affilié à ces institutions.
+    </p>
+  </div>
+</section>

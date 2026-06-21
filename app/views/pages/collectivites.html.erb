@@ -1,15 +1,4 @@
-<%# collectivites.html.erb — page B2G EPCI (v5 : refonte vitrine éditoriale)
-    Changements vs v4 :
-      - Triptyque "Ce que Lauze fait" : pastilles emoji supprimées au profit
-        de colonnes à filet vert + numérotation 01/02/03 (cf. shared/_feature_columns).
-      - Diagnostic I4CE : passé en bande pleine largeur sur fond encre
-        (shared/_stat_band) pour casser le rythme blanc des sections.
-      - Encart "Et demain" : filet latéral gauche vert, plus d'alert box
-        jaune arrondie.
-      - Cas pratique Grand Nancy : l'icône image-cassée 🗺️ remplacée par
-        un cadre neutre légendé ; un vrai screenshot prendra sa place
-        quand l'asset parcours-nancy.png sera fourni.
-      - Fil de marque : motif DPE A→G (shared/_dpe_scale) en accent. %>
+<%# collectivites.html.erb — page B2G EPCI %>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,7 +9,8 @@
 <div class="relative w-full overflow-hidden" style="min-height:480px;">
   <img src="https://images.unsplash.com/photo-1577415124269-fc1140a69e91?w=1600&q=85"
        alt="Hôtel de ville"
-       class="absolute inset-0 w-full h-full object-cover">
+       class="absolute inset-0 w-full h-full object-cover"
+       style="filter:saturate(.7);">
   <div class="absolute inset-0"
        style="background:linear-gradient(90deg,rgba(15,23,42,0.96) 0%,rgba(15,23,42,0.85) 50%,rgba(15,23,42,0.55) 100%);"></div>
   <div class="relative max-w-5xl mx-auto px-6 py-20">
@@ -34,8 +24,8 @@
       Vos aides locales,<br>
       <span class="text-emerald-400">intégrées au parcours rénovation.</span>
     </h1>
-    <p class="text-gray-100 leading-relaxed mb-8 max-w-2xl"
-       style="font-size:1.15rem; text-shadow:0 2px 8px rgba(0,0,0,0.4);">
+    <p class="text-gray-100 mb-8 max-w-2xl"
+       style="font-size:1.1875rem; line-height:1.75; text-shadow:0 2px 8px rgba(0,0,0,0.4);">
       Lauze est la plateforme qui articule MaPrimeRénov', CEE, éco-PTZ et
       <strong>vos dispositifs locaux</strong> dans un seul parcours, pour les
       propriétaires de votre territoire.
@@ -52,8 +42,8 @@
 
     <div class="mb-12" style="display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap;">
       <div>
-        <p style="font-size:.75rem; font-weight:800; color:#059669;
-                  text-transform:uppercase; letter-spacing:.14em; margin:0 0 12px;">
+        <p style="font-size:.8125rem; font-weight:800; color:#059669;
+                  text-transform:uppercase; letter-spacing:.14em; margin:0 0 14px;">
           Ce que Lauze fait pour votre territoire
         </p>
         <h2 style="font-family:'Fraunces',Georgia,serif;
@@ -85,7 +75,7 @@
                 text-transform:uppercase; letter-spacing:.14em; margin:0 0 10px;">
         Et demain
       </p>
-      <p style="font-size:1.08rem; color:#334155; line-height:1.65; margin:0;
+      <p style="font-size:1.0625rem; color:#334155; line-height:1.75; margin:0;
                 max-width:60ch;">
         Le projet de loi « relance logement » présenté en avril 2026 prévoit de confier
         aux intercommunalités la gestion de MaPrimeRénov'. Lauze, déjà construit autour
@@ -123,7 +113,7 @@
     le cas pratique Grand Nancy juste en dessous. %>
 <section class="px-6" style="padding-top:64px; padding-bottom:24px;">
   <div class="max-w-3xl mx-auto">
-    <p style="font-size:1.08rem; color:#334155; line-height:1.65; margin:0;">
+    <p style="font-size:1.0625rem; color:#334155; line-height:1.75; margin:0;">
       I4CE identifie deux freins persistants : <strong>l'avance de trésorerie</strong>
       et <strong>la difficulté à trouver un artisan certifié</strong>.
       Ce sont précisément les deux leviers que Lauze adresse pour les habitants
@@ -138,8 +128,8 @@
   <div class="max-w-5xl mx-auto">
     <div class="grid md:grid-cols-2 gap-12 items-center">
       <div>
-        <p style="font-size:.75rem; font-weight:800; color:#059669;
-                  text-transform:uppercase; letter-spacing:.14em; margin:0 0 12px;">
+        <p style="font-size:.8125rem; font-weight:800; color:#059669;
+                  text-transform:uppercase; letter-spacing:.14em; margin:0 0 14px;">
           Cas pratique
         </p>
         <h2 style="font-family:'Fraunces',Georgia,serif;
@@ -148,77 +138,69 @@
                    max-width:18ch;">
           Métropole du Grand Nancy
         </h2>
-        <p style="font-size:1.1rem; color:#334155; line-height:1.65; margin:0 0 16px;
+        <p style="font-size:1.0625rem; color:#334155; line-height:1.75; margin:0 0 16px;
                   max-width:60ch;">
           Lauze intègre déjà les dispositifs spécifiques de la Métropole du Grand Nancy :
           <strong>Rénovation Globale</strong> (active sous condition selon le cumul avec MPR Parcours
           Accompagné), <strong>CEE bonifiés territoriaux</strong>, et <strong>aides ciblées passoires thermiques</strong>.
         </p>
-        <p style="font-size:1.1rem; color:#334155; line-height:1.65; margin:0;
+        <p style="font-size:1.0625rem; color:#334155; line-height:1.75; margin:0;
                   max-width:60ch;">
           Quand un propriétaire de Nancy déclenche une simulation, il voit en temps réel
           comment l'aide locale s'articule avec les dispositifs nationaux.
           C'est ce niveau d'intégration territoriale que Lauze peut déployer pour votre EPCI.
         </p>
       </div>
-      <%# Cadre neutre en attendant l'asset screenshots/parcours-nancy.png.
-          Quand l'image sera fournie, remplacer le bloc par :
-            <%= image_tag "screenshots/parcours-nancy.png", alt: "...", class: "w-full h-auto" %>
-          Pas d'icône image-cassée ici — c'est précisément le marqueur que
-          la refonte cherche à éliminer. %>
-      <figure style="margin:0; border-left:3px solid #059669; padding-left:24px;">
-        <div style="aspect-ratio:16/10; background:#0c1f1a;
-                    display:flex; align-items:flex-end; padding:24px;">
-          <div>
-            <p style="font-size:.7rem; font-weight:800; color:#34d399;
-                      text-transform:uppercase; letter-spacing:.14em; margin:0 0 8px;">
-              Aperçu produit
-            </p>
-            <p style="font-family:'Fraunces',Georgia,serif;
-                      font-size:1.35rem; font-weight:700; color:#f5f5f4;
-                      line-height:1.25; margin:0; max-width:24ch;">
-              Le parcours intégré Grand Nancy, vu côté propriétaire.
-            </p>
-          </div>
-        </div>
-        <figcaption style="font-size:.85rem; color:#525252;
-                          line-height:1.55; margin-top:14px; max-width:60ch;">
-          Démonstration interactive disponible sur
-          <a href="https://www.lauze.eu" style="color:#059669; font-weight:600; text-decoration:none;">lauze.eu</a> —
-          contactez-nous pour une mise en situation avec un dossier de votre EPCI.
-        </figcaption>
-      </figure>
+      <%= render "shared/screenshot",
+            path:    "screenshots/parcours-nancy.png",
+            eyebrow: "Aperçu produit",
+            title:   "Le parcours intégré Grand Nancy, vu côté propriétaire.",
+            caption: "Démonstration interactive disponible sur <a href=\"https://www.lauze.eu\" style=\"color:#059669; font-weight:600; text-decoration:none;\">lauze.eu</a> — contactez-nous pour une mise en situation avec un dossier de votre EPCI.".html_safe %>
     </div>
   </div>
 </section>
 
-<%# ── CTA final + profil intégrés sur fond uni ── %>
-<section class="py-14 px-6">
-  <div class="max-w-3xl mx-auto text-center mb-10">
-    <h2 class="font-black text-gray-900 mb-4" style="font-size:1.8rem;">Discutons de votre territoire</h2>
-    <p class="text-gray-600 leading-relaxed mb-6" style="font-size:1.15rem;">
+<%# ── Pull-quote : thèse produit, voix du fondateur ── %>
+<%= render "shared/pull_quote",
+      quote:       "Faire avancer la rénovation thermique, c'est lever deux freins : l'avance de trésorerie et l'accès à un artisan certifié. Lauze branche votre dispositif local sur MaPrimeRénov' et le réseau RGE, pour que vos habitants voient un parcours, pas une administration.",
+      attribution: "Nicolas Goarant",
+      role:        "Fondateur de Lauze" %>
+
+<%# ── Références publiques (sources, pas partenariats) ── %>
+<%= render "shared/references" %>
+
+<%# ── Le fondateur — sorti du pied de page, en section à part entière ── %>
+<%= render "shared/founder",
+      eyebrow:   "Le fondateur",
+      citation:  "Quinze ans en cabinet à voir des dispositifs locaux pertinents rester invisibles pour les habitants. Lauze est ce qui m'a manqué côté collectivité.",
+      name:      "Nicolas Goarant",
+      bio_lines: [
+        "Fondateur de Lauze",
+        "15 ans en cabinet politique territorial (Métropole du Grand Nancy, Assemblée nationale, Ville de Paris)",
+        "Formation data science (Le Wagon, 2026)"
+      ],
+      photo_path: "NG.png" %>
+
+<%# ── CTA final ── %>
+<section class="px-6" style="padding-top:96px; padding-bottom:112px;">
+  <div class="max-w-3xl mx-auto">
+    <p style="font-size:.8125rem; font-weight:800; color:#059669;
+              text-transform:uppercase; letter-spacing:.14em; margin:0 0 16px;">
+      Prendre contact
+    </p>
+    <h2 style="font-family:'Fraunces',Georgia,serif;
+               font-size:clamp(2rem,3.8vw,2.75rem); font-weight:700;
+               color:#0f172a; margin:0 0 20px; letter-spacing:-0.02em;
+               line-height:1.15; max-width:22ch;">
+      Discutons de votre territoire
+    </h2>
+    <p style="font-size:1.0625rem; color:#334155; line-height:1.75;
+              margin:0 0 32px; max-width:60ch;">
       Présentation de l'outil, modèle économique, conditions de déploiement.
       Un échange de 30 minutes pour voir si Lauze correspond à vos besoins.
     </p>
     <%= link_to "contact@lauze.eu", "mailto:contact@lauze.eu",
         class: "inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-10 py-4 rounded-2xl transition-colors",
-        style: "font-size:1.15rem;" %>
-  </div>
-
-  <%# Profil discret %>
-  <div class="max-w-3xl mx-auto">
-    <div class="flex items-center gap-5 p-6 rounded-2xl border border-gray-100 bg-gray-50">
-      <%= image_tag "NG.png",
-          alt: "Nicolas Goarant",
-          class: "w-16 h-16 rounded-full object-cover shrink-0 border-2 border-white shadow-sm" %>
-      <div>
-        <p class="font-bold text-gray-900">Nicolas Goarant</p>
-        <p class="text-base text-gray-600 leading-relaxed">
-          Fondateur de Lauze. 15 ans en cabinet politique territorial
-          (Métropole du Grand Nancy, Assemblée nationale, Ville de Paris).
-          Formation data science (Le Wagon, 2026).
-        </p>
-      </div>
-    </div>
+        style: "font-size:1.0625rem;" %>
   </div>
 </section>

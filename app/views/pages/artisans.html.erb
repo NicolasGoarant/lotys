@@ -30,7 +30,7 @@
         chantier sans nuire à la lisibilité du titre. %>
     <div style="position:absolute; inset:0; z-index:0;">
       <img src="<%= asset_path("personae/artisans-hero.jpg") %>"
-           alt="" style="width:100%; height:100%; object-fit:cover;">
+           alt="" style="width:100%; height:100%; object-fit:cover; filter:saturate(.7);">
       <div style="position:absolute; inset:0;
                   background:linear-gradient(90deg,rgba(15,23,42,.92) 0%,rgba(15,23,42,.78) 55%,rgba(15,23,42,.55) 100%);"></div>
     </div>
@@ -70,8 +70,8 @@
       <div style="margin-bottom:48px; display:flex; align-items:center;
                   justify-content:space-between; gap:24px; flex-wrap:wrap;">
         <div>
-          <p style="font-size:.75rem; font-weight:800; color:#059669;
-                    text-transform:uppercase; letter-spacing:.14em; margin:0 0 12px;">
+          <p style="font-size:.8125rem; font-weight:800; color:#059669;
+                    text-transform:uppercase; letter-spacing:.14em; margin:0 0 14px;">
             Ce que vous trouvez sur Lauze
           </p>
           <h2 style="font-family:'Fraunces',Georgia,serif;
@@ -98,6 +98,26 @@
             ] %>
     </div>
   </section>
+
+  <%# ── Comment ça marche : 3 étapes du parcours artisan ──────── %>
+  <%= render "shared/comment_ca_marche",
+        eyebrow: "Comment ça marche",
+        title:   "Trois étapes du parcours, côté artisan",
+        intro:   "Pas d'inscription requise pour parcourir les dossiers. Vous ne créez un compte que pour envoyer une proposition à un propriétaire.",
+        steps: [
+          { numero: "01",
+            titre:  "Parcourez les dossiers publiés",
+            corps:  "Filtrez par commune, distance ou type de travaux. Chaque dossier indique DPE, surface et budget estimé.",
+            image:  "screenshots/artisan-etape-1.png" },
+          { numero: "02",
+            titre:  "Lisez l'analyse complète",
+            corps:  "Plan de travaux priorisé, aides mobilisables, reste à charge calculé. <strong>Vous savez à qui vous parlez</strong>.",
+            image:  "screenshots/artisan-etape-2.png" },
+          { numero: "03",
+            titre:  "Envoyez une proposition",
+            corps:  "Le propriétaire vous répond depuis Lauze, vous traitez ensuite directement, sur devis, <strong>sans commission</strong>.",
+            image:  "screenshots/artisan-etape-3.png" }
+        ] %>
 
   <%# ── Carte des dossiers publiés — preuve concrète des 3 apports.
         Fond gris très clair pour rompre avec le blanc précédent

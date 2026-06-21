@@ -1,0 +1,82 @@
+<%# ═══════════════════════════════════════════════════════════════════════
+     _comment_ca_marche.html.erb — section "Comment ça marche"
+
+     Une section éditoriale qui montre concrètement le parcours produit
+     en 3 ou 4 étapes, chacune accompagnée d'une capture d'écran réelle
+     (asset images/screenshots/etape-N.png) — ou d'un cadre neutre légendé
+     en attendant les vraies images. Jamais d'icône image-cassée.
+
+     Locals :
+       - eyebrow : sur-titre court ("Comment ça marche")
+       - title   : H2 court
+       - intro   : paragraphe d'amorce (HTML simple toléré)
+       - steps   : Array de Hash {
+           numero:    "01" .. "04"
+           titre:     "Téléversez votre DPE"
+           corps:     "Texte court, 1-2 phrases (HTML toléré)"
+           image:     chemin de l'asset (ex. "screenshots/etape-1.png")
+           image_alt: texte alternatif court
+         }
+     ═══════════════════════════════════════════════════════════════════════ %>
+<section class="full-bleed" style="background:#fafaf9;">
+  <div style="max-width:1100px; margin:0 auto; padding:112px 24px;">
+
+    <div style="margin-bottom:64px;">
+      <% if local_assigns[:eyebrow].present? %>
+        <p style="font-size:.8125rem; font-weight:800; color:#059669;
+                  text-transform:uppercase; letter-spacing:.14em; margin:0 0 16px;">
+          <%= eyebrow %>
+        </p>
+      <% end %>
+      <h2 style="font-family:'Fraunces',Georgia,serif;
+                 font-size:clamp(2rem,3.8vw,2.75rem); font-weight:700;
+                 color:#0f172a; margin:0 0 20px; letter-spacing:-0.02em;
+                 line-height:1.15; max-width:24ch;">
+        <%= title %>
+      </h2>
+      <% if local_assigns[:intro].present? %>
+        <p style="font-size:1.0625rem; color:#334155; line-height:1.75;
+                  margin:0; max-width:60ch;">
+          <%= intro.html_safe %>
+        </p>
+      <% end %>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:80px;">
+      <% steps.each_with_index do |step, idx| %>
+        <%# Alternance gauche/droite pour rythmer la page :
+            étapes impaires → texte à gauche, capture à droite. %>
+        <% reverse = idx.odd? %>
+        <div style="display:grid;
+                    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+                    gap:48px; align-items:center;
+                    <%= reverse ? 'direction:rtl;' : '' %>">
+          <div style="<%= reverse ? 'direction:ltr;' : '' %>">
+            <p style="font-family:'Fraunces',Georgia,serif;
+                      font-size:1.375rem; font-weight:700; color:#059669;
+                      font-feature-settings:'tnum'; letter-spacing:.02em;
+                      line-height:1; margin:0 0 18px;">
+              <%= step[:numero] %>
+            </p>
+            <h3 style="font-family:'Fraunces',Georgia,serif;
+                       font-size:1.625rem; font-weight:700; color:#0f172a;
+                       line-height:1.2; letter-spacing:-0.01em; margin:0 0 16px;
+                       max-width:18ch;">
+              <%= step[:titre] %>
+            </h3>
+            <p style="font-size:1.0625rem; color:#334155; line-height:1.75;
+                      margin:0; max-width:46ch;">
+              <%= step[:corps].html_safe %>
+            </p>
+          </div>
+          <div style="<%= reverse ? 'direction:ltr;' : '' %>">
+            <%= render "shared/screenshot",
+                  path:    step[:image],
+                  eyebrow: "Étape #{step[:numero]}",
+                  title:   step[:titre] %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</section>

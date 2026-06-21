@@ -1,0 +1,60 @@
+<%# ═══════════════════════════════════════════════════════════════════════
+     _founder.html.erb — section fondateur, en page entière
+
+     Sort le bloc Nicolas Goarant du pied de page collectivites. Photo
+     96px, citation de positionnement éditoriale à côté, biographie en
+     pied. Fond clair, aligné à gauche.
+
+     Locals (tous facultatifs sauf citation/name) :
+       - eyebrow    : sur-titre court (défaut : "Le fondateur")
+       - citation   : citation forte attribuée au fondateur (texte plat,
+                      pas de guillemets — ils sont ajoutés visuellement)
+       - name       : "Nicolas Goarant"
+       - bio_lines  : Array de lignes courtes (parcours, formation…)
+       - photo_path : asset, défaut "NG.png"
+     ═══════════════════════════════════════════════════════════════════════ %>
+<%
+  eyebrow_text = local_assigns[:eyebrow].presence || "Le fondateur"
+  photo_path   = local_assigns[:photo_path].presence || "NG.png"
+%>
+<section class="full-bleed" style="background:#ffffff;">
+  <div style="max-width:1100px; margin:0 auto; padding:104px 24px;">
+    <p style="font-size:.8125rem; font-weight:800; color:#059669;
+              text-transform:uppercase; letter-spacing:.14em; margin:0 0 28px;">
+      <%= eyebrow_text %>
+    </p>
+
+    <div style="display:grid;
+                grid-template-columns:120px 1fr;
+                gap:36px; align-items:flex-start;">
+      <%= image_tag photo_path,
+            alt: name,
+            style: "width:96px; height:96px; border-radius:50%; object-fit:cover;
+                    box-shadow:0 8px 24px rgba(15,23,42,.10);
+                    border:3px solid #fff; margin-top:6px;" %>
+      <div>
+        <% if local_assigns[:citation].present? %>
+          <blockquote style="font-family:'Fraunces',Georgia,serif;
+                             font-size:clamp(1.4rem,2.4vw,1.75rem); font-weight:600;
+                             color:#0f172a; line-height:1.35; letter-spacing:-0.01em;
+                             margin:0 0 28px; max-width:36ch;
+                             border-left:3px solid #059669; padding-left:24px;">
+            « <%= citation %> »
+          </blockquote>
+        <% end %>
+        <p style="font-size:1.125rem; font-weight:700; color:#0f172a;
+                  margin:0 0 6px;">
+          <%= name %>
+        </p>
+        <% if local_assigns[:bio_lines].present? %>
+          <p style="font-size:1.0625rem; color:#525252; line-height:1.75;
+                    margin:0; max-width:60ch;">
+            <% bio_lines.each_with_index do |line, i| %>
+              <%= line %><%= " · " if i < bio_lines.size - 1 %>
+            <% end %>
+          </p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</section>

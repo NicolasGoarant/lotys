@@ -1,0 +1,54 @@
+<%# ═══════════════════════════════════════════════════════════════════════
+     _screenshot.html.erb — image réelle OU cadre neutre légendé
+
+     Affiche un screenshot produit quand l'asset existe, sinon un cadre
+     neutre sombre encadré avec eyebrow + titre + caption. Jamais
+     d'icône image-cassée à l'écran.
+
+     Locals :
+       - path    : chemin de l'asset, ex. "screenshots/etape-1.png"
+       - eyebrow : sur-titre court (affiché sur le cadre neutre)
+       - title   : titre éditorial (affiché sur le cadre neutre)
+       - caption : légende HTML (affichée systématiquement sous le bloc,
+                   image présente ou non)
+     ═══════════════════════════════════════════════════════════════════════ %>
+<%
+  asset_full = Rails.root.join("app", "assets", "images", path.to_s)
+  has_image  = File.exist?(asset_full)
+%>
+<figure style="margin:0;">
+  <% if has_image %>
+    <%= image_tag path, alt: (local_assigns[:title] || ""),
+          style: "display:block; width:100%; height:auto; border-radius:18px;
+                  box-shadow:0 12px 40px rgba(15,23,42,.10);
+                  border:1px solid rgba(15,23,42,.06);" %>
+  <% else %>
+    <div style="border-left:3px solid #059669; padding-left:24px;">
+      <div style="aspect-ratio:16/10; background:#0c1f1a;
+                  border-radius:0 18px 18px 0;
+                  display:flex; align-items:flex-end; padding:28px;">
+        <div>
+          <% if local_assigns[:eyebrow].present? %>
+            <p style="font-size:.82rem; font-weight:800; color:#34d399;
+                      text-transform:uppercase; letter-spacing:.14em; margin:0 0 10px;">
+              <%= eyebrow %>
+            </p>
+          <% end %>
+          <% if local_assigns[:title].present? %>
+            <p style="font-family:'Fraunces',Georgia,serif;
+                      font-size:1.5rem; font-weight:700; color:#f5f5f4;
+                      line-height:1.25; margin:0; max-width:28ch;">
+              <%= title %>
+            </p>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+  <% if local_assigns[:caption].present? %>
+    <figcaption style="font-size:1rem; color:#525252; line-height:1.65;
+                       margin-top:18px; max-width:60ch;">
+      <%= caption.html_safe %>
+    </figcaption>
+  <% end %>
+</figure>

@@ -19,7 +19,7 @@
     <%# Photo intérieur chaleureux — salon lumineux %>
     <div style="position:absolute; inset:0; z-index:0;">
       <img src="<%= asset_path("personae/proprietaires-hero.jpg") %>"
-           alt="" style="width:100%; height:100%; object-fit:cover;">
+           alt="" style="width:100%; height:100%; object-fit:cover; filter:saturate(.7);">
       <%# Voile allégé en gradient horizontal — la photo respire à droite. %>
       <div style="position:absolute; inset:0;
                   background:linear-gradient(90deg,rgba(15,23,42,.92) 0%,rgba(15,23,42,.78) 55%,rgba(15,23,42,.55) 100%);"></div>
@@ -58,8 +58,8 @@
       <div style="margin-bottom:48px; display:flex; align-items:center;
                   justify-content:space-between; gap:24px; flex-wrap:wrap;">
         <div>
-          <p style="font-size:.75rem; font-weight:800; color:#059669;
-                    text-transform:uppercase; letter-spacing:.14em; margin:0 0 12px;">
+          <p style="font-size:.8125rem; font-weight:800; color:#059669;
+                    text-transform:uppercase; letter-spacing:.14em; margin:0 0 14px;">
             Ce que Lauze fait pour vous
           </p>
           <h2 style="font-family:'Fraunces',Georgia,serif;
@@ -93,8 +93,8 @@
         l'effort. L'infographie SVG porte déjà son propre titre interne. %>
   <section style="background:#f8fafc; padding:96px 24px;">
     <div class="max-w-3xl mx-auto">
-      <p style="text-align:center; font-size:1.05rem; color:#475569;
-                line-height:1.65; margin:0 0 32px;">
+      <p style="text-align:center; font-size:1.0625rem; color:#475569;
+                line-height:1.75; margin:0 0 40px;">
         C'est sur ces postes que Lauze concentre votre plan de travaux.
       </p>
       <%= image_tag "deperditions_thermiques.svg",
@@ -102,6 +102,30 @@
             class: "w-full h-auto" %>
     </div>
   </section>
+
+  <%# ── Comment ça marche : 4 étapes du parcours propriétaire ─── %>
+  <%= render "shared/comment_ca_marche",
+        eyebrow: "Comment ça marche",
+        title:   "Quatre étapes, pas dix",
+        intro:   "Lauze vous guide du téléversement de votre DPE jusqu'à la mise en relation avec un artisan RGE. Aucune étape n'exige un appel téléphonique ni la saisie manuelle d'un formulaire d'aide.",
+        steps: [
+          { numero: "01",
+            titre:  "Téléversez votre DPE",
+            corps:  "Lauze lit votre diagnostic et en extrait classe énergétique, surface, année et système de chauffage. Plus de re-saisie.",
+            image:  "screenshots/etape-1.png" },
+          { numero: "02",
+            titre:  "Découvrez votre plan de travaux",
+            corps:  "Un plan d'action priorisé poste par poste : isolation, chauffage, ventilation. <strong>Quel ordre, quel saut de classe</strong>.",
+            image:  "screenshots/etape-2.png" },
+          { numero: "03",
+            titre:  "Voyez vos aides à l'euro près",
+            corps:  "MaPrimeRénov', CEE, éco-PTZ <strong>et les aides de votre intercommunalité</strong>, calculés selon votre foyer fiscal.",
+            image:  "screenshots/etape-3.png" },
+          { numero: "04",
+            titre:  "Choisissez un artisan RGE",
+            corps:  "Publiez votre dossier si vous le souhaitez. Les artisans RGE de votre territoire vous contactent avec leurs propositions.",
+            image:  "screenshots/etape-4.png" }
+        ] %>
 
   <%# ── CTA final en carte arrondie ──────────────────────────── %>
   <section style="position:relative; padding:0; overflow:hidden;">

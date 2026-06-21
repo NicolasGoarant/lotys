@@ -1,0 +1,36 @@
+<%# ═══════════════════════════════════════════════════════════════════════
+     _pull_quote.html.erb — citation éditoriale pleine page
+
+     Une citation forte en gros serif, alignée à gauche, sur fond stone-50.
+     Attribuée à une personne nommée (jamais un client anonyme — pas de
+     faux social proof).
+
+     Locals :
+       - quote      : le texte (sans guillemets — ajoutés visuellement)
+       - attribution: nom de l'auteur
+       - role       : fonction (ex. "Fondateur de Lauze")
+     ═══════════════════════════════════════════════════════════════════════ %>
+<section class="full-bleed" style="background:#fafaf9;">
+  <div style="max-width:1100px; margin:0 auto; padding:104px 24px;">
+    <blockquote style="margin:0; max-width:48ch;
+                       border-left:3px solid #059669; padding-left:32px;">
+      <p style="font-family:'Fraunces',Georgia,serif;
+                font-size:clamp(1.6rem,3.2vw,2.25rem); font-weight:600;
+                color:#0f172a; line-height:1.35; letter-spacing:-0.015em;
+                margin:0 0 28px;">
+        « <%= quote %> »
+      </p>
+      <footer style="display:flex; flex-direction:column; gap:4px;">
+        <cite style="font-style:normal; font-size:1.0625rem; font-weight:700;
+                     color:#0f172a;">
+          <%= attribution %>
+        </cite>
+        <% if local_assigns[:role].present? %>
+          <span style="font-size:.9375rem; color:#525252;">
+            <%= role %>
+          </span>
+        <% end %>
+      </footer>
+    </blockquote>
+  </div>
+</section>

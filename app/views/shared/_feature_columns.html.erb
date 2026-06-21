@@ -31,11 +31,11 @@
   link_color   = ink ? "#34d399" : "#059669"
 %>
 <div style="display:grid;
-            grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-            gap:36px 40px;">
+            grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+            gap:56px 48px;">
   <% items.each do |item| %>
     <%
-      wrapper_style = "border-top:2px solid #{rule_color}; padding-top:22px; text-align:left;"
+      wrapper_style = "border-top:2px solid #{rule_color}; padding-top:28px; text-align:left;"
       wrapper_style += " text-decoration:none; display:block;" if item[:link].present?
     %>
     <% if item[:link].present? %>
