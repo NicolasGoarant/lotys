@@ -89,10 +89,13 @@ class PropertyAnalysisJob < ApplicationJob
   end
 
   # Sync des champs depuis le JSON d'analyse Claude vers les colonnes dédiées.
-  # 3 groupes :
+  # 4 groupes :
   #   1. DPE (dpe_class, dpe_target) — si non renseignés par l'utilisateur
   #   2. Surfaces d'isolation (6 colonnes decimal)
   #   3. Équipements choisis (jsonb equipements_selection + nb_parois_vitrees)
+  #   4. travaux_selection (jsonb) — dérivé des deux précédents pour que
+  #      les cards Aides et Financement aient bien des cases cochées dès
+  #      la fin de l'analyse. Préserve un choix utilisateur antérieur.
   def sync_analysis_fields(property)
     return unless property.analysis&.content.present?
     parsed = JSON.parse(property.analysis.content) rescue nil
@@ -137,7 +140,55 @@ class PropertyAnalysisJob < ApplicationJob
 
     property.update(updates) if updates.any?
     Rails.logger.info("sync_analysis_fields updated: #{updates.keys.join(', ')}")
+
+    persist_derived_travaux_selection(property)
   rescue => e
     Rails.logger.error("sync_analysis_fields failed: #{e.message}")
+  end
+
+  # ─── 4. Pré-remplissage server-side de travaux_selection ─────────────
+  # Sans cette étape, les cards Aides et Financement affichaient des
+  # états vides juste après l'analyse, alors que les équipements et
+  # surfaces étaient bien posés : le JS de la card Rénovation cochait
+  # les bonnes cases visuellement, mais rien n'était persisté tant que
+  # l'utilisateur n'avait pas re-soumis le formulaire update_travaux_selection.
+  #
+  # Réutilise les mappings MACRO_TO_EQUIPEMENTS / MACRO_TO_SURFACES de
+  # TravauxMapperService — pas de duplication de la table de vérité.
+  #
+  # update_column (et non update) : bypass des store_accessor et des
+  # callbacks, comme le fait déjà update_travaux_selection dans le
+  # controller (écriture atomique du hash complet).
+  def persist_derived_travaux_selection(property)
+    return if property.travaux_selection.present?
+
+    derived = derive_travaux_selection(property)
+    property.update_column(:travaux_selection, derived)
+
+    actifs = derived.select { |_, v| v }.keys
+    Rails.logger.info("travaux_selection dérivé: #{actifs.empty? ? 'aucun' : actifs.join(', ')}")
+  end
+
+  def derive_travaux_selection(property)
+    equipements = property.equipements_selection || {}
+    bool_cast   = ActiveModel::Type::Boolean.new
+
+    TravauxMapperService::CANONICAL_CODES.each_with_object({}) do |code, h|
+      equip_keys   = TravauxMapperService::MACRO_TO_EQUIPEMENTS[code]
+      surface_keys = TravauxMapperService::MACRO_TO_SURFACES[code]
+
+      equip_active = equip_keys.any? do |key|
+        val = equipements[key]
+        # nb_parois_vitrees est un entier (nombre de fenêtres simple→double
+        # vitrage), tous les autres équipements sont des booléens.
+        key == "nb_parois_vitrees" ? val.to_i > 0 : bool_cast.cast(val)
+      end
+
+      surface_active = surface_keys.any? do |key|
+        property.public_send("surface_#{key}").to_f > 0
+      end
+
+      h[code] = equip_active || surface_active
+    end
   end
 end

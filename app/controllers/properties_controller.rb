@@ -65,7 +65,7 @@ class PropertiesController < ApplicationController
       if @property.save
         attach_uploaded_documents
         PropertyAnalysisJob.perform_later(@property.id)
-        redirect_to @property, notice: "Analyse complète générée."
+        redirect_to @property, notice: "Analyse lancée — la page se met à jour automatiquement."
       else
         render :new, status: :unprocessable_entity
       end

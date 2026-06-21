@@ -158,7 +158,15 @@
       </div>
 
     <% else %>
-      <p class="bod" style="color:#9ca3af;font-style:italic;">Aucune aide calculable — vérifiez que l'analyse IA a bien été lancée.</p>
+      <% if property.draft? || property.analyzing? %>
+        <%# Analyse pas (encore) terminée → l'absence d'aides est suspecte,
+            on guide l'utilisateur vers la cause probable. %>
+        <p class="bod" style="color:#9ca3af;font-style:italic;">Aucune aide calculable — vérifiez que l'analyse IA a bien été lancée.</p>
+      <% else %>
+        <%# Bien analysé/publié sans aides : pas d'inquiétude à transmettre,
+            juste un message neutre invitant à ajuster la sélection. %>
+        <p class="bod" style="color:#9ca3af;font-style:italic;">Aucune aide retenue pour le moment — ajustez la jauge ci-dessus.</p>
+      <% end %>
     <% end %>
 
     <%# Errors / warnings du calculateur, si existants %>

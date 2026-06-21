@@ -42,14 +42,24 @@
 
   <div style="padding:20px;">
     <% if travaux_coches.empty? %>
-      <%# Aucun travail coché — rien à financer, rien à célébrer non plus %>
+      <%# Aucun travail coché. Distinction de tonalité selon l'avancement :
+          - analyse en cours (draft/analyzing) → on guide l'utilisateur,
+            ça veut dire que rien n'a encore été pré-rempli côté serveur ;
+          - bien déjà analysé → message neutre, l'absence de travaux est
+            un choix utilisateur, pas un signe d'échec. %>
       <div style="padding:16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;text-align:center;">
-        <p class="bod" style="color:#6b7280;font-style:italic;">
-          Aucun travail sélectionné.
-        </p>
-        <p class="lbl" style="margin-top:6px;color:#9ca3af;text-transform:none;letter-spacing:0;font-weight:500;">
-          Cochez au moins un travail dans la card ci-dessus pour voir votre plan de financement.
-        </p>
+        <% if property.draft? || property.analyzing? %>
+          <p class="bod" style="color:#6b7280;font-style:italic;">
+            Aucun travail sélectionné.
+          </p>
+          <p class="lbl" style="margin-top:6px;color:#9ca3af;text-transform:none;letter-spacing:0;font-weight:500;">
+            Cochez au moins un travail dans la card ci-dessus pour voir votre plan de financement.
+          </p>
+        <% else %>
+          <p class="bod" style="color:#6b7280;font-style:italic;">
+            Aucun travail retenu pour le moment — ajustez la jauge ci-dessus.
+          </p>
+        <% end %>
       </div>
 
     <% elsif reste <= 0 %>
