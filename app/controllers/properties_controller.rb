@@ -125,10 +125,13 @@ class PropertiesController < ApplicationController
     redirect_to @property, notice: "Objectif DPE mis à jour."
   end
 
-  # Change le profil revenus, recalcule les aides, et revient à la fiche
-  # avec une ancre #aides pour que l'utilisateur reste scrollé sur la card Aides.
+  # Met à jour le foyer fiscal (nb personnes + RFR). La tranche
+  # income_bracket est dérivée au before_save du modèle via
+  # IncomeBracketCalculator (plafonds RFR 2026, ALEC Nancy).
+  # Revient à la fiche avec une ancre #aides pour que l'utilisateur
+  # reste scrollé sur la card Aides.
   def update_income_bracket
-    @property.update(income_bracket: params[:income_bracket])
+    @property.update(params.require(:property).permit(:household_size, :rfr))
     redirect_to property_path(@property, anchor: "aides")
   end
 
@@ -272,6 +275,7 @@ class PropertiesController < ApplicationController
       :construction_year, :dpe_class, :nb_rooms, :nb_lots,
       :is_copropriete, :description, :vacant, :source,
       :vacancy_duration, :vacancy_reason, :dpe_target, :income_bracket,
+      :household_size, :rfr,
       photos: []
     )
   end

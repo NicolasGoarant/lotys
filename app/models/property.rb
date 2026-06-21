@@ -61,9 +61,29 @@ class Property < ApplicationRecord
 
   # Revenus : doit correspondre à un des brackets connus (utilisé par
   # AidCalculatorService pour calculer MPR/CEE).
+  # income_bracket n'est plus saisi directement : il est dérivé de
+  # household_size + rfr via IncomeBracketCalculator (cf. before_save).
   validates :income_bracket,
             inclusion: { in: INCOME_BRACKETS },
             allow_nil: true
+  validates :household_size,
+            numericality: { only_integer: true, greater_than: 0, less_than: 20 },
+            allow_nil: true
+  validates :rfr,
+            numericality: { only_integer: true, greater_than_or_equal_to: 0 },
+            allow_nil: true
+
+  # Dérive automatiquement la tranche de revenus depuis le couple
+  # (nombre de personnes du foyer fiscal, revenu fiscal de référence).
+  # Ne touche PAS à income_bracket si la dérivation échoue (rfr/size
+  # vide ou nul) : les biens legacy gardent leur tranche existante
+  # tant que l'utilisateur n'a pas renseigné les nouveaux champs.
+  before_save :derive_income_bracket
+
+  def derive_income_bracket
+    derived = IncomeBracketCalculator.bracket_for(rfr: rfr, household_size: household_size)
+    self.income_bracket = derived if derived.present?
+  end
 
   # ─── equipements_selection : détail MPR Par geste (13 booléens + nb_parois_vitrees) ───
   EQUIPEMENT_BOOL_KEYS = %i[

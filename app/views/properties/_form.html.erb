@@ -120,32 +120,46 @@
     </div>
   </div>
 
-  <%# ── Section : Revenus (aides) ───────────────────────────────── %>
+  <%# ── Section : Foyer fiscal (dérive la tranche pour MPR / Grand Nancy) ─ %>
   <div class="bg-white rounded-2xl border border-emerald-100 shadow-sm mb-6 overflow-hidden">
     <div class="px-5 py-3 bg-emerald-50 border-b border-emerald-100">
-      <p class="text-xs font-bold text-emerald-600 uppercase tracking-wider">💰 Profil de revenus</p>
+      <p class="text-xs font-bold text-emerald-600 uppercase tracking-wider">💰 Foyer fiscal</p>
     </div>
-    <div class="p-5">
-      <%= f.label :income_bracket, "Tranche de revenus du foyer fiscal", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <p class="text-xs text-gray-400 mb-2">Sert à calculer MaPrimeRénov' et les aides Grand Nancy — nous ne transmettons pas ces données.</p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <% [
-          ["tres_modeste",  "Très modestes",  "moins de 21 000 €/an"],
-          ["modeste",       "Modestes",       "21 000 – 30 000 €/an"],
-          ["intermediaire", "Intermédiaires", "30 000 – 45 000 €/an"],
-          ["superieur",     "Supérieurs",     "plus de 45 000 €/an"]
-        ].each do |val, label, sublabel| %>
-          <% active = property.income_bracket == val %>
-          <label class="flex items-center gap-3 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all
-            <%= active ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-emerald-300' %>">
-            <%= f.radio_button :income_bracket, val, class: "accent-emerald-600 w-4 h-4 shrink-0" %>
-            <span>
-              <span class="block text-sm font-semibold <%= active ? 'text-emerald-800' : 'text-gray-700' %>"><%= label %></span>
-              <span class="block text-xs text-gray-400"><%= sublabel %></span>
-            </span>
-          </label>
-        <% end %>
+    <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <%= f.label :household_size, "Nombre de personnes du foyer fiscal",
+              class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.number_field :household_size, min: 1, max: 19,
+              class: "w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent" %>
       </div>
+      <div>
+        <%= f.label :rfr, "Revenu fiscal de référence (€)",
+              class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <p class="text-xs text-gray-400 mb-1.5">Sur votre dernier avis d'imposition.</p>
+        <%= f.number_field :rfr, min: 0, step: 1,
+              class: "w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent" %>
+      </div>
+
+      <% if property.household_size.present? %>
+        <% seuils = IncomeBracketCalculator.plafonds_for(property.household_size) %>
+        <p class="sm:col-span-2 text-xs text-gray-500 leading-relaxed">
+          Pour un foyer de <%= property.household_size %> personne<%= "s" if property.household_size.to_i > 1 %> :
+          très modestes ≤ <%= number_with_delimiter(seuils[:tres_modeste]) %> € ·
+          modestes ≤ <%= number_with_delimiter(seuils[:modeste]) %> € ·
+          intermédiaires ≤ <%= number_with_delimiter(seuils[:intermediaire]) %> € ·
+          au-delà : supérieurs.
+        </p>
+      <% end %>
+
+      <% if property.income_bracket.present? %>
+        <p class="sm:col-span-2 text-sm font-semibold text-emerald-700">
+          Tranche dérivée : <%= property.income_bracket.humanize %>
+        </p>
+      <% else %>
+        <p class="sm:col-span-2 text-sm text-gray-500 italic">
+          Renseignez vos revenus pour calculer vos aides.
+        </p>
+      <% end %>
     </div>
   </div>
 

@@ -12,13 +12,11 @@
        - aid_result : retour de AidCalculatorService
 -%>
 
-<% profil_actuel = property.income_bracket.to_s.presence || "superieur" %>
-<% profils = [
-  { key: "tres_modeste",  label: "Très modestes", sublabel: "< 21 k€" },
-  { key: "modeste",       label: "Modestes",      sublabel: "21–30 k€" },
-  { key: "intermediaire", label: "Intermédiaires", sublabel: "30–45 k€" },
-  { key: "superieur",     label: "Supérieurs",    sublabel: "> 45 k€" }
-] %>
+<%# income_bracket n'est plus saisie directement : on la dérive de
+    household_size + RFR via IncomeBracketCalculator (cf. before_save).
+    Les seuils € sont calculés au runtime selon la taille du foyer — plus
+    de libellés "< 21 k€" figés qui mentaient pour les foyers > 1 personne. %>
+<% seuils_foyer = property.household_size.to_i > 0 ? IncomeBracketCalculator.plafonds_for(property.household_size) : nil %>
 
 <%# Extraction explicite des aides connues %>
 <% subventions  = (aid_result && aid_result[:subventions])        || [] %>
@@ -43,20 +41,46 @@
   </div>
 
   <div style="padding:20px;">
-    <%# Sélecteur de profil revenus : persiste en DB via update_income_bracket %>
-    <p class="lbl" style="margin-bottom:8px;">Revenus annuels de votre foyer fiscal</p>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:20px;">
-      <% profils.each do |p| %>
-        <% actif = profil_actuel == p[:key] %>
-        <%= button_to update_income_bracket_property_path(property),
-              method: :patch,
-              params: { income_bracket: p[:key] },
-              form: { style: "margin:0;", data: { turbo: false } },
-              style: "padding:10px 6px;border-radius:10px;border:2px solid #{actif ? '#5b21b6' : '#e5e7eb'};background:#{actif ? '#faf5ff' : '#fff'};color:#{actif ? '#5b21b6' : '#374151'};font-weight:700;font-size:.78rem;cursor:pointer;text-align:center;width:100%;line-height:1.2;" do %>
-          <%= p[:label] %><br><span style="font-size:.7rem;font-weight:500;opacity:.75;"><%= p[:sublabel] %></span>
-        <% end %>
+    <%# Saisie du foyer fiscal : persiste household_size + rfr en DB via
+        update_income_bracket. income_bracket est dérivé au before_save. %>
+    <%= form_with url: update_income_bracket_property_path(property),
+                  method: :patch,
+                  scope: :property,
+                  data: { turbo: false },
+                  html: { style: "margin:0 0 20px;" } do |f| %>
+      <p class="lbl" style="margin-bottom:8px;">Votre foyer fiscal</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
+        <div>
+          <label style="display:block;font-size:.7rem;font-weight:600;color:#6b7280;margin-bottom:4px;">Nombre de personnes</label>
+          <%= f.number_field :household_size, value: property.household_size, min: 1, max: 19,
+                style: "width:100%;padding:9px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:.85rem;background:#fff;" %>
+        </div>
+        <div>
+          <label style="display:block;font-size:.7rem;font-weight:600;color:#6b7280;margin-bottom:4px;">RFR (€)</label>
+          <%= f.number_field :rfr, value: property.rfr, min: 0, step: 1,
+                placeholder: "Avis d'imposition",
+                style: "width:100%;padding:9px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:.85rem;background:#fff;" %>
+        </div>
+        <%= f.submit "Recalculer",
+              style: "padding:10px 14px;background:#5b21b6;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.78rem;cursor:pointer;white-space:nowrap;" %>
+      </div>
+
+      <% if property.income_bracket.present? && seuils_foyer %>
+        <p class="lbl" style="margin-top:10px;color:#5b21b6;text-transform:none;letter-spacing:0;font-weight:600;font-size:.72rem;">
+          Tranche dérivée : <strong><%= property.income_bracket.humanize %></strong>
+          <span style="color:#9ca3af;font-weight:500;">
+            (foyer de <%= property.household_size %> ·
+            très modestes ≤ <%= number_with_delimiter(seuils_foyer[:tres_modeste]) %> € ·
+            modestes ≤ <%= number_with_delimiter(seuils_foyer[:modeste]) %> € ·
+            intermédiaires ≤ <%= number_with_delimiter(seuils_foyer[:intermediaire]) %> €)
+          </span>
+        </p>
+      <% elsif property.rfr.blank? %>
+        <p class="lbl" style="margin-top:10px;color:#9ca3af;text-transform:none;letter-spacing:0;font-weight:500;font-size:.72rem;font-style:italic;">
+          Renseignez vos revenus pour calculer vos aides.
+        </p>
       <% end %>
-    </div>
+    <% end %>
 
     <% if mpr_aid || cee_aid || gn_aid %>
       <%# Ligne MPR %>
