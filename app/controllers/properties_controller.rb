@@ -233,23 +233,13 @@ class PropertiesController < ApplicationController
     Array(uploaded).each do |file|
       next unless file.respond_to?(:original_filename)
 
-      doc_type = detect_document_type(file.original_filename)
       doc = @property.documents.build(
-        document_type: doc_type,
+        document_type: :autre,
         name: file.original_filename
       )
       doc.file.attach(file)
       doc.save
     end
-  end
-
-  def detect_document_type(filename)
-    name = filename.downcase
-    return :dpe             if name.include?("dpe")
-    return :pv_ag           if name.include?("pv") || name.include?("coprop")
-    return :titre_propriete if name.include?("attestation") || name.include?("acte") || name.include?("vente") || name.include?("aae")
-    return :photo           if name.match?(/\.(jpg|jpeg|png|webp)$/)
-    :autre
   end
 
   # Lecture :
