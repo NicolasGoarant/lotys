@@ -20,23 +20,26 @@
     <div style="position:absolute; inset:0; z-index:0;">
       <img src="<%= asset_path("personae/proprietaires-hero.jpg") %>"
            alt="" style="width:100%; height:100%; object-fit:cover;">
+      <%# Voile allégé en gradient horizontal — la photo respire à droite. %>
       <div style="position:absolute; inset:0;
-                  background:linear-gradient(135deg,rgba(15,23,42,.85) 0%,rgba(30,58,95,.78) 100%);"></div>
+                  background:linear-gradient(90deg,rgba(15,23,42,.92) 0%,rgba(15,23,42,.78) 55%,rgba(15,23,42,.55) 100%);"></div>
     </div>
 
     <div style="position:relative; z-index:1; padding:104px 32px 88px;">
-      <div style="max-width:880px; margin:0 auto; text-align:center; color:#fff;">
+      <div style="max-width:880px; margin:0 auto; text-align:left; color:#fff;">
         <p style="font-size:.85rem; font-weight:700; color:#6ee7b7;
                   text-transform:uppercase; letter-spacing:.14em;
                   margin:0 0 20px;">
           Pour les propriétaires
         </p>
-        <h1 style="font-size:clamp(2.4rem,5vw,4rem); font-weight:900;
-                   line-height:1.1; letter-spacing:-0.02em; margin:0 0 28px;">
+        <h1 style="font-family:'Fraunces',Georgia,serif;
+                   font-size:clamp(2.4rem,5vw,4rem); font-weight:700;
+                   line-height:1.1; letter-spacing:-0.02em; margin:0 0 28px;
+                   max-width:20ch;">
           Votre rénovation, comprise et chiffrée en quelques minutes
         </h1>
-        <p style="font-size:1.2rem; color:#cbd5e1; max-width:680px;
-                  margin:0 auto 40px; line-height:1.65; font-weight:400;">
+        <p style="font-size:1.2rem; color:#cbd5e1; max-width:60ch;
+                  margin:0 0 40px; line-height:1.65; font-weight:400;">
           Téléversez votre DPE. Lauze vous dit quoi faire, combien ça
           coûte vraiment, et qui peut le faire près de chez vous.
         </p>
@@ -49,54 +52,38 @@
     </div>
   </section>
 
-  <%# ── Les 3 apports ──────────────────────────────────────────── %>
+  <%# ── Les 3 apports — colonnes à filet (refonte vitrine) ──────── %>
   <section style="background:#ffffff; padding:96px 24px;">
     <div style="max-width:1100px; margin:0 auto;">
-
-      <div style="display:grid;
-                  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-                  gap:48px;">
-
-        <div style="text-align:center;">
-          <div style="font-size:3.5rem; margin-bottom:24px;">📋</div>
-          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
-                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
-            Comprendre ce qu'il faut faire
-          </h2>
-          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
-            Lauze lit votre DPE et vous propose un plan de travaux clair :
-            quels postes, quel ordre, quel saut de classe énergétique
-            atteignable.
+      <div style="margin-bottom:48px; display:flex; align-items:center;
+                  justify-content:space-between; gap:24px; flex-wrap:wrap;">
+        <div>
+          <p style="font-size:.75rem; font-weight:800; color:#059669;
+                    text-transform:uppercase; letter-spacing:.14em; margin:0 0 12px;">
+            Ce que Lauze fait pour vous
           </p>
-        </div>
-
-        <div style="text-align:center;">
-          <div style="font-size:3.5rem; margin-bottom:24px;">💶</div>
-          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
-                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
-            Savoir combien ça coûte vraiment
+          <h2 style="font-family:'Fraunces',Georgia,serif;
+                     font-size:clamp(1.8rem,3.4vw,2.3rem); font-weight:700;
+                     color:#0f172a; margin:0; letter-spacing:-0.02em; line-height:1.15;
+                     max-width:24ch;">
+            Trois étapes claires, du DPE à l'artisan
           </h2>
-          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
-            MaPrimeRénov', CEE, éco-PTZ, <strong>plus les aides de votre
-            métropole ou intercommunalité</strong>. Lauze calcule tout
-            et vous montre le reste à votre charge.
-          </p>
         </div>
-
-        <div style="text-align:center;">
-          <div style="font-size:3.5rem; margin-bottom:24px;">🤝</div>
-          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
-                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
-            Trouver un artisan, sans démarchage
-          </h2>
-          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
-            Publiez votre dossier si vous le souhaitez. Les artisans RGE
-            de votre territoire <strong>vous contactent</strong> avec
-            leurs propositions. Vous choisissez.
-          </p>
-        </div>
-
+        <%= render "shared/dpe_scale" %>
       </div>
+
+      <%= render "shared/feature_columns",
+            items: [
+              { numero: "01",
+                titre:  "Comprendre ce qu'il faut faire",
+                corps:  "Lauze lit votre DPE et vous propose un plan de travaux clair : quels postes, quel ordre, quel saut de classe énergétique atteignable." },
+              { numero: "02",
+                titre:  "Savoir combien ça coûte vraiment",
+                corps:  "MaPrimeRénov', CEE, éco-PTZ, <strong>plus les aides de votre métropole ou intercommunalité</strong>. Lauze calcule tout et vous montre le reste à votre charge." },
+              { numero: "03",
+                titre:  "Trouver un artisan, sans démarchage",
+                corps:  "Publiez votre dossier si vous le souhaitez. Les artisans RGE de votre territoire <strong>vous contactent</strong> avec leurs propositions. Vous choisissez." }
+            ] %>
     </div>
   </section>
 

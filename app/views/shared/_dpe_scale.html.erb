@@ -1,0 +1,17 @@
+<%# ═══════════════════════════════════════════════════════════════════════
+     _dpe_scale.html.erb — fil de marque
+
+     Sept petites barres horizontales aux couleurs de l'échelle DPE A→G.
+     Accent décoratif uniquement : aria-hidden, non interactif.
+
+     À placer à droite d'un titre de section ou sous un eyebrow comme
+     signature visuelle. Pas de couleur de marque inventée — on réutilise
+     les couleurs déjà associées aux étiquettes DPE dans la fiche bien
+     (cf. show.html.erb / properties/_simple_aids.html.erb).
+     ═══════════════════════════════════════════════════════════════════════ %>
+<div role="presentation" aria-hidden="true"
+     style="display:inline-flex; gap:3px; vertical-align:middle;">
+  <% %w[#2c9b3f #52b04f #a0c93f #f0d836 #f0a02f #e8662a #d62027].each do |color| %>
+    <span style="display:block; width:14px; height:8px; background:<%= color %>;"></span>
+  <% end %>
+</div>

@@ -10,6 +10,11 @@
          (ne change rien au rendu).
      ═══════════════════════════════════════════════════════════════════════ %>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&display=swap">
+
 <div class="relative">
 
   <%# ── Image de fond, fixée au viewport ─────────────────────────── %>
@@ -69,126 +74,47 @@
       </div>
     </section>
 
-    <%# Hub 3 personae — eyebrow + H2. %>
+    <%# Hub 3 personae — colonnes à filet (refonte vitrine).
+        Conservé sur fond sombre (theme :dark du composant) pour rester
+        cohérent avec l'image fixe en arrière-plan. %>
     <section style="background:rgba(0,0,0,0.55); padding:56px 24px 88px;
                     backdrop-filter:blur(4px);
                     -webkit-backdrop-filter:blur(4px);">
       <div style="max-width:1100px; margin:0 auto;">
 
-        <div style="text-align:center; margin-bottom:48px;">
+        <div style="margin-bottom:48px;">
           <p style="font-size:.75rem; font-weight:800; color:#34d399;
                     text-transform:uppercase; letter-spacing:.12em;
                     margin:0 0 12px;">
             Lauze, pour qui ?
           </p>
-          <h2 style="font-size:clamp(1.8rem,4vw,2.6rem); font-weight:900;
-                     color:#fff; margin:0; letter-spacing:-0.02em;
-                     line-height:1.2;">
-            Trois publics,<br class="lauze-mobile-only">
-            <span class="lauze-desktop-space"> </span>un même outil
+          <h2 style="font-family:'Fraunces',Georgia,serif;
+                     font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700;
+                     color:#fff; margin:0; letter-spacing:-0.02em; line-height:1.15;
+                     max-width:18ch;">
+            Trois publics, un même outil
           </h2>
         </div>
 
-        <div style="display:grid;
-                    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-                    gap:24px;">
-
-          <%# Card 1 — Propriétaire %>
-          <%= link_to proprietaires_path,
-              style: "display:block; text-decoration:none;
-                      background:rgba(255,255,255,.06);
-                      border:1px solid rgba(255,255,255,.12);
-                      border-radius:20px; padding:36px 32px;
-                      backdrop-filter:blur(8px); transition:all .2s ease;",
-              onmouseover: "this.style.borderColor='rgba(110,231,183,.5)';
-                            this.style.transform='translateY(-4px)';
-                            this.style.background='rgba(255,255,255,.09)';",
-              onmouseout:  "this.style.borderColor='rgba(255,255,255,.12)';
-                            this.style.transform='';
-                            this.style.background='rgba(255,255,255,.06)';" do %>
-            <div style="font-size:3rem; text-align:center;
-                        margin-bottom:20px;">🏠</div>
-            <h3 style="font-size:1.5rem; font-weight:900; color:#fff;
-                       text-align:center; margin:0 0 14px;
-                       letter-spacing:-0.01em;">
-              Je suis propriétaire
-            </h3>
-            <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
-                      text-align:center; margin:0 0 20px;">
-              Je veux comprendre combien coûte la rénovation thermique de
-              mon logement, quelles aides je peux obtenir, et qui peut
-              faire les travaux.
-            </p>
-            <p style="font-size:1rem; font-weight:700; color:#34d399;
-                      text-align:center; margin:0;">
-              Découvrir le parcours →
-            </p>
-          <% end %>
-
-          <%# Card 2 — Artisan RGE %>
-          <%= link_to artisans_path,
-              style: "display:block; text-decoration:none;
-                      background:rgba(255,255,255,.06);
-                      border:1px solid rgba(255,255,255,.12);
-                      border-radius:20px; padding:36px 32px;
-                      backdrop-filter:blur(8px); transition:all .2s ease;",
-              onmouseover: "this.style.borderColor='rgba(110,231,183,.5)';
-                            this.style.transform='translateY(-4px)';
-                            this.style.background='rgba(255,255,255,.09)';",
-              onmouseout:  "this.style.borderColor='rgba(255,255,255,.12)';
-                            this.style.transform='';
-                            this.style.background='rgba(255,255,255,.06)';" do %>
-            <div style="font-size:3rem; text-align:center;
-                        margin-bottom:20px;">🔧</div>
-            <h3 style="font-size:1.5rem; font-weight:900; color:#fff;
-                       text-align:center; margin:0 0 14px;
-                       letter-spacing:-0.01em;">
-              Je suis artisan RGE
-            </h3>
-            <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
-                      text-align:center; margin:0 0 20px;">
-              J'identifie des projets de rénovation thermique pour
-              contacter le propriétaire et faire une première proposition.
-            </p>
-            <p style="font-size:1rem; font-weight:700; color:#34d399;
-                      text-align:center; margin:0;">
-              Voir les projets →
-            </p>
-          <% end %>
-
-          <%# Card 3 — Collectivité %>
-          <%= link_to collectivites_path,
-              style: "display:block; text-decoration:none;
-                      background:rgba(255,255,255,.06);
-                      border:1px solid rgba(255,255,255,.12);
-                      border-radius:20px; padding:36px 32px;
-                      backdrop-filter:blur(8px); transition:all .2s ease;",
-              onmouseover: "this.style.borderColor='rgba(110,231,183,.5)';
-                            this.style.transform='translateY(-4px)';
-                            this.style.background='rgba(255,255,255,.09)';",
-              onmouseout:  "this.style.borderColor='rgba(255,255,255,.12)';
-                            this.style.transform='';
-                            this.style.background='rgba(255,255,255,.06)';" do %>
-            <div style="font-size:3rem; text-align:center;
-                        margin-bottom:20px;">🏛️</div>
-            <h3 style="font-size:1.5rem; font-weight:900; color:#fff;
-                       text-align:center; margin:0 0 14px;
-                       letter-spacing:-0.01em;">
-              Je suis une collectivité
-            </h3>
-            <p style="font-size:1.05rem; color:#cbd5e1; line-height:1.65;
-                      text-align:center; margin:0 0 20px;">
-              Je veux offrir à mes habitants un outil qui intègre mes
-              dispositifs locaux, et mesurer l'effort de rénovation sur
-              mon territoire.
-            </p>
-            <p style="font-size:1rem; font-weight:700; color:#34d399;
-                      text-align:center; margin:0;">
-              Découvrir l'offre EPCI →
-            </p>
-          <% end %>
-
-        </div>
+        <%= render "shared/feature_columns",
+              theme: :dark,
+              items: [
+                { numero: "01",
+                  titre:  "Je suis propriétaire",
+                  corps:  "Je veux comprendre combien coûte la rénovation thermique de mon logement, quelles aides je peux obtenir, et qui peut faire les travaux.",
+                  link:   proprietaires_path,
+                  link_label: "Découvrir le parcours →" },
+                { numero: "02",
+                  titre:  "Je suis artisan RGE",
+                  corps:  "J'identifie des projets de rénovation thermique pour contacter le propriétaire et faire une première proposition.",
+                  link:   artisans_path,
+                  link_label: "Voir les projets →" },
+                { numero: "03",
+                  titre:  "Je suis une collectivité",
+                  corps:  "Je veux offrir à mes habitants un outil qui intègre mes dispositifs locaux, et mesurer l'effort de rénovation sur mon territoire.",
+                  link:   collectivites_path,
+                  link_label: "Découvrir l'offre EPCI →" }
+              ] %>
       </div>
     </section>
 

@@ -1,0 +1,82 @@
+<%# ═══════════════════════════════════════════════════════════════════════
+     _stat_band.html.erb — bande de chiffres contrastée
+
+     Section pleine largeur destinée à casser le rythme blanc des pages
+     vitrines. Aligné à gauche (eyebrow + titre + intro + grille de 3
+     chiffres avec filet supérieur + ligne source).
+
+     Locals :
+       - theme   : :ink (encre sombre, texte clair) | :stone (stone-50, texte foncé)
+       - eyebrow : sur-titre court ("Diagnostic")
+       - title   : H2 court ("L'enjeu, en chiffres")
+       - intro   : paragraphe d'amorce (HTML simple toléré, ≤ 2 phrases)
+       - source  : ligne source en petit (HTML simple toléré, liens autorisés)
+       - stats   : Array de Hash {
+           number: "− 19 000 €"  # le format est libre — préformaté ici
+           label:  "d'aides en moins en 2026"
+           body:   "Pour un ménage rural modeste rénovant globalement…"
+         }
+     ═══════════════════════════════════════════════════════════════════════ %>
+<%
+  ink          = ((local_assigns[:theme] || :ink).to_sym == :ink)
+  bg           = ink ? "#0c1f1a" : "#fafaf9"
+  fg           = ink ? "#f5f5f4" : "#0f172a"
+  muted        = ink ? "#a8a29e" : "#525252"
+  number_color = ink ? "#34d399" : "#059669"
+  rule_color   = number_color
+%>
+<section class="full-bleed" style="background:<%= bg %>; color:<%= fg %>;">
+  <div style="max-width:1100px; margin:0 auto; padding:88px 24px;">
+
+    <div style="margin-bottom:48px;">
+      <% if local_assigns[:eyebrow].present? %>
+        <p style="font-size:.75rem; font-weight:800; color:<%= number_color %>;
+                  text-transform:uppercase; letter-spacing:.14em; margin:0 0 14px;">
+          <%= eyebrow %>
+        </p>
+      <% end %>
+      <h2 style="font-family:'Fraunces',Georgia,serif;
+                 font-size:clamp(1.8rem,3.4vw,2.4rem); font-weight:700;
+                 letter-spacing:-0.02em; line-height:1.15; margin:0 0 16px;
+                 max-width:42ch; color:<%= fg %>;">
+        <%= title %>
+      </h2>
+      <% if local_assigns[:intro].present? %>
+        <p style="font-size:1.08rem; color:<%= muted %>; line-height:1.65;
+                  margin:0; max-width:60ch;">
+          <%= intro.html_safe %>
+        </p>
+      <% end %>
+    </div>
+
+    <div style="display:grid;
+                grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+                gap:32px 44px;">
+      <% stats.each do |s| %>
+        <div style="border-top:2px solid <%= rule_color %>; padding-top:22px;">
+          <div style="font-family:'Fraunces',Georgia,serif;
+                      font-size:clamp(2.2rem,4.5vw,3rem); font-weight:700;
+                      color:<%= number_color %>; line-height:1; letter-spacing:-0.03em;
+                      margin-bottom:14px;">
+            <%= s[:number] %>
+          </div>
+          <p style="font-size:.78rem; font-weight:800; color:<%= fg %>;
+                    text-transform:uppercase; letter-spacing:.08em; margin:0 0 12px;">
+            <%= s[:label] %>
+          </p>
+          <p style="font-size:.98rem; color:<%= muted %>; line-height:1.6; margin:0;
+                    max-width:48ch;">
+            <%= s[:body].html_safe %>
+          </p>
+        </div>
+      <% end %>
+    </div>
+
+    <% if local_assigns[:source].present? %>
+      <p style="font-size:.85rem; color:<%= muted %>; margin:36px 0 0;
+                max-width:60ch;">
+        <%= source.html_safe %>
+      </p>
+    <% end %>
+  </div>
+</section>

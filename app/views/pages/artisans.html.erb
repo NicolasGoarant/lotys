@@ -26,26 +26,30 @@
 
     <%# Photo : façade d'immeuble en cours de rénovation, échafaudage,
         clairement reconnaissable comme un chantier de rénovation. %>
+    <%# Voile allégé (.72 → .55 de noir) pour qu'on devine mieux la photo
+        chantier sans nuire à la lisibilité du titre. %>
     <div style="position:absolute; inset:0; z-index:0;">
       <img src="<%= asset_path("personae/artisans-hero.jpg") %>"
            alt="" style="width:100%; height:100%; object-fit:cover;">
       <div style="position:absolute; inset:0;
-                  background:linear-gradient(135deg,rgba(15,23,42,.85) 0%,rgba(30,58,95,.78) 100%);"></div>
+                  background:linear-gradient(90deg,rgba(15,23,42,.92) 0%,rgba(15,23,42,.78) 55%,rgba(15,23,42,.55) 100%);"></div>
     </div>
 
     <div style="position:relative; z-index:1; padding:104px 32px 88px;">
-      <div style="max-width:880px; margin:0 auto; text-align:center; color:#fff;">
+      <div style="max-width:880px; margin:0 auto; text-align:left; color:#fff;">
         <p style="font-size:.85rem; font-weight:700; color:#6ee7b7;
                   text-transform:uppercase; letter-spacing:.14em;
                   margin:0 0 20px;">
           Pour les artisans RGE et les banques
         </p>
-        <h1 style="font-size:clamp(2.4rem,5vw,4rem); font-weight:900;
-                   line-height:1.1; letter-spacing:-0.02em; margin:0 0 28px;">
+        <h1 style="font-family:'Fraunces',Georgia,serif;
+                   font-size:clamp(2.4rem,5vw,4rem); font-weight:700;
+                   line-height:1.1; letter-spacing:-0.02em; margin:0 0 28px;
+                   max-width:18ch;">
           Des dossiers qualifiés sur votre territoire
         </h1>
-        <p style="font-size:1.2rem; color:#cbd5e1; max-width:680px;
-                  margin:0 auto 40px; line-height:1.65; font-weight:400;">
+        <p style="font-size:1.2rem; color:#cbd5e1; max-width:60ch;
+                  margin:0 0 40px; line-height:1.65; font-weight:400;">
           Chaque dossier publié sur Lauze a été analysé : DPE extrait,
           surface vérifiée, projet de travaux défini, aides calculées.
           Plus de prospection à froid.
@@ -60,54 +64,38 @@
     </div>
   </section>
 
-  <%# ── Les 3 apports ──────────────────────────────────────────── %>
+  <%# ── Les 3 apports — colonnes à filet (refonte vitrine) ──────── %>
   <section style="background:#ffffff; padding:96px 24px;">
     <div style="max-width:1100px; margin:0 auto;">
-
-      <div style="display:grid;
-                  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-                  gap:48px;">
-
-        <div style="text-align:center;">
-          <div style="font-size:3.5rem; margin-bottom:24px;">📄</div>
-          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
-                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
-            Des dossiers déjà instruits
-          </h2>
-          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
-            DPE officiel, surface, travaux envisagés, aides mobilisables,
-            reste à charge calculé. <strong>Vous savez à qui vous parlez</strong>
-            avant de prendre contact.
+      <div style="margin-bottom:48px; display:flex; align-items:center;
+                  justify-content:space-between; gap:24px; flex-wrap:wrap;">
+        <div>
+          <p style="font-size:.75rem; font-weight:800; color:#059669;
+                    text-transform:uppercase; letter-spacing:.14em; margin:0 0 12px;">
+            Ce que vous trouvez sur Lauze
           </p>
-        </div>
-
-        <div style="text-align:center;">
-          <div style="font-size:3.5rem; margin-bottom:24px;">📍</div>
-          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
-                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
-            Sur votre territoire
+          <h2 style="font-family:'Fraunces',Georgia,serif;
+                     font-size:clamp(1.8rem,3.4vw,2.3rem); font-weight:700;
+                     color:#0f172a; margin:0; letter-spacing:-0.02em; line-height:1.15;
+                     max-width:24ch;">
+            Trois apports concrets, pas trois promesses
           </h2>
-          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
-            Filtrez par zone, commune, distance. Pas de chantier à
-            l'autre bout du département. <strong>Les bons dossiers, près
-            de chez vous.</strong>
-          </p>
         </div>
-
-        <div style="text-align:center;">
-          <div style="font-size:3.5rem; margin-bottom:24px;">🤝</div>
-          <h2 style="font-size:1.75rem; font-weight:900; color:#0f172a;
-                     margin:0 0 18px; letter-spacing:-0.01em; line-height:1.2;">
-            Sans commission Lauze
-          </h2>
-          <p style="font-size:1.1rem; color:#475569; line-height:1.7; margin:0;">
-            Vous traitez directement avec le propriétaire, sur devis.
-            <strong>Lauze ne prend rien</strong> sur les travaux réalisés.
-            Notre modèle est celui de la plateforme, pas du commissionnement.
-          </p>
-        </div>
-
+        <%= render "shared/dpe_scale" %>
       </div>
+
+      <%= render "shared/feature_columns",
+            items: [
+              { numero: "01",
+                titre:  "Des dossiers déjà instruits",
+                corps:  "DPE officiel, surface, travaux envisagés, aides mobilisables, reste à charge calculé. <strong>Vous savez à qui vous parlez</strong> avant de prendre contact." },
+              { numero: "02",
+                titre:  "Sur votre territoire",
+                corps:  "Filtrez par zone, commune, distance. Pas de chantier à l'autre bout du département. <strong>Les bons dossiers, près de chez vous.</strong>" },
+              { numero: "03",
+                titre:  "Sans commission Lauze",
+                corps:  "Vous traitez directement avec le propriétaire, sur devis. <strong>Lauze ne prend rien</strong> sur les travaux réalisés. Notre modèle est celui de la plateforme, pas du commissionnement." }
+            ] %>
     </div>
   </section>
 

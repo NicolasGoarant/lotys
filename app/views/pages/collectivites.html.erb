@@ -1,10 +1,20 @@
-<%# collectivites.html.erb — page B2G EPCI (v4 : ajout bloc Diagnostic I4CE)
-    Changements vs v3 :
-      - Ajout d'un bloc "Diagnostic — Données I4CE 2026" entre la vignette
-        "Et demain" (loi Lecornu) et le cas pratique Grand Nancy. Trois
-        chiffres clés issus de la note I4CE du 7 mai 2026 + source citée.
-      - Justification du placement : narration "promesse → contexte
-        législatif → diagnostic chiffré → preuve produit → CTA". %>
+<%# collectivites.html.erb — page B2G EPCI (v5 : refonte vitrine éditoriale)
+    Changements vs v4 :
+      - Triptyque "Ce que Lauze fait" : pastilles emoji supprimées au profit
+        de colonnes à filet vert + numérotation 01/02/03 (cf. shared/_feature_columns).
+      - Diagnostic I4CE : passé en bande pleine largeur sur fond encre
+        (shared/_stat_band) pour casser le rythme blanc des sections.
+      - Encart "Et demain" : filet latéral gauche vert, plus d'alert box
+        jaune arrondie.
+      - Cas pratique Grand Nancy : l'icône image-cassée 🗺️ remplacée par
+        un cadre neutre légendé ; un vrai screenshot prendra sa place
+        quand l'asset parcours-nancy.png sera fourni.
+      - Fil de marque : motif DPE A→G (shared/_dpe_scale) en accent. %>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&display=swap">
 
 <%# ── Hero ── %>
 <div class="relative w-full overflow-hidden" style="min-height:480px;">
@@ -17,8 +27,10 @@
     <span class="inline-block bg-emerald-500/20 text-emerald-300 text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full border border-emerald-500/40 mb-6">
       Pour les EPCI
     </span>
-    <h1 class="text-white font-black leading-tight mb-6"
-        style="font-size:clamp(2.4rem,5vw,3.8rem); letter-spacing:-0.03em;">
+    <h1 class="text-white leading-tight mb-6"
+        style="font-family:'Fraunces',Georgia,serif;
+               font-size:clamp(2.4rem,5vw,3.8rem); font-weight:700;
+               letter-spacing:-0.03em; max-width:20ch;">
       Vos aides locales,<br>
       <span class="text-emerald-400">intégrées au parcours rénovation.</span>
     </h1>
@@ -34,152 +46,90 @@
   </div>
 </div>
 
-<%# ── 3 cards proposition de valeur ── %>
+<%# ── 3 colonnes proposition de valeur — refonte éditoriale ── %>
 <section class="py-14 px-6">
   <div class="max-w-5xl mx-auto">
-    <h2 class="font-black text-gray-900 text-center mb-3" style="font-size:2rem;">Ce que Lauze fait pour votre territoire</h2>
-    <p class="text-gray-500 text-center mb-12" style="font-size:1.15rem;">Trois besoins métier, un seul outil branché à votre EPCI.</p>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12">
-
-      <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
-        <div class="p-8">
-          <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-5" style="background:#dcfce7;">🧮</div>
-          <h3 class="font-black text-gray-900 mb-3" style="font-size:1.35rem;">Vos aides, intégrées</h3>
-          <p class="text-gray-700 leading-relaxed" style="font-size:1.1rem;">
-            Vos dispositifs locaux apparaissent en cohérence avec MaPrimeRénov',
-            CEE et éco-PTZ. L'habitant voit le total à l'euro près, sans démarches multiples.
-          </p>
-        </div>
+    <div class="mb-12" style="display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap;">
+      <div>
+        <p style="font-size:.75rem; font-weight:800; color:#059669;
+                  text-transform:uppercase; letter-spacing:.14em; margin:0 0 12px;">
+          Ce que Lauze fait pour votre territoire
+        </p>
+        <h2 style="font-family:'Fraunces',Georgia,serif;
+                   font-size:clamp(1.8rem,3.4vw,2.3rem); font-weight:700;
+                   color:#0f172a; margin:0; letter-spacing:-0.02em; line-height:1.15;
+                   max-width:24ch;">
+          Trois besoins métier, un seul outil branché à votre EPCI
+        </h2>
       </div>
-
-      <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
-        <div class="p-8">
-          <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-5" style="background:#dbeafe;">🏠</div>
-          <h3 class="font-black text-gray-900 mb-3" style="font-size:1.35rem;">Un parcours clair</h3>
-          <p class="text-gray-700 leading-relaxed" style="font-size:1.1rem;">
-            Le propriétaire dépose son DPE, voit ses travaux prioritaires, ses aides
-            calculées et son reste à charge. Sans appel à votre service, sans formulaire
-            complexe.
-          </p>
-        </div>
-      </div>
-
-      <div class="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow">
-        <div class="p-8">
-          <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-5" style="background:#fef3c7;">📊</div>
-          <h3 class="font-black text-gray-900 mb-3" style="font-size:1.35rem;">Piloter votre politique</h3>
-          <p class="text-gray-700 leading-relaxed" style="font-size:1.1rem;">
-            Tableau de bord : passoires thermiques sur votre territoire,
-            vitesse de rénovation, dispositifs les plus mobilisés. Pour ajuster
-            votre stratégie en continu.
-          </p>
-        </div>
-      </div>
-
+      <%= render "shared/dpe_scale" %>
     </div>
 
-    <%# ── Vignette "Et demain" : juste sous les cards, dans le même fil narratif ── %>
-    <div class="max-w-3xl mx-auto mt-14">
-      <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 flex items-start gap-4">
-        <div class="text-2xl shrink-0">📋</div>
-        <div>
-          <p class="text-sm font-black text-amber-900 uppercase tracking-wider mb-2">Et demain</p>
-          <p class="text-gray-700 leading-relaxed" style="font-size:1.08rem;">
-            Le projet de loi « relance logement » présenté en avril 2026 prévoit de confier
-            aux intercommunalités la gestion de MaPrimeRénov'. Lauze, déjà construit autour
-            de cette articulation national + local, sera prêt le jour où vous récupérerez
-            cette compétence.
-          </p>
-        </div>
-      </div>
+    <%= render "shared/feature_columns",
+          items: [
+            { numero: "01",
+              titre:  "Vos aides, intégrées",
+              corps:  "Vos dispositifs locaux apparaissent en cohérence avec MaPrimeRénov', CEE et éco-PTZ. L'habitant voit le total à l'euro près, sans démarches multiples." },
+            { numero: "02",
+              titre:  "Un parcours clair",
+              corps:  "Le propriétaire dépose son DPE, voit ses travaux prioritaires, ses aides calculées et son reste à charge. Sans appel à votre service, sans formulaire complexe." },
+            { numero: "03",
+              titre:  "Piloter votre politique",
+              corps:  "Tableau de bord : passoires thermiques sur votre territoire, vitesse de rénovation, dispositifs les plus mobilisés. Pour ajuster votre stratégie en continu." }
+          ] %>
+
+    <%# ── Encart "Et demain" : filet latéral gauche vert, pas d'alert box. ── %>
+    <div class="max-w-3xl mt-16" style="border-left:3px solid #059669; padding:6px 0 6px 24px;">
+      <p style="font-size:.72rem; font-weight:800; color:#059669;
+                text-transform:uppercase; letter-spacing:.14em; margin:0 0 10px;">
+        Et demain
+      </p>
+      <p style="font-size:1.08rem; color:#334155; line-height:1.65; margin:0;
+                max-width:60ch;">
+        Le projet de loi « relance logement » présenté en avril 2026 prévoit de confier
+        aux intercommunalités la gestion de MaPrimeRénov'. Lauze, déjà construit autour
+        de cette articulation national + local, sera prêt le jour où vous récupérerez
+        cette compétence.
+      </p>
     </div>
   </div>
 </section>
 
-<%# ── Diagnostic I4CE — données externes qui contextualisent l'enjeu ── %>
-<%# Note : placé entre la vignette "Et demain" et le cas pratique Grand
-    Nancy. Sert de pont narratif : on vient de parler de ce que fait
-    Lauze + de la trajectoire législative ; on enchaîne avec le diagnostic
-    chiffré qui justifie le besoin d'un outil territorial ; on conclut
-    avec la preuve produit (Grand Nancy). %>
-<section class="py-14 px-6 border-t border-gray-100">
-  <div class="max-w-5xl mx-auto">
+<%# ── Diagnostic I4CE — bande contrastée pleine largeur ──
+     Sert de pont narratif : on vient de parler de ce que fait Lauze + de
+     la trajectoire législative ; on enchaîne avec le diagnostic chiffré
+     qui justifie le besoin d'un outil territorial ; on conclut avec la
+     preuve produit (Grand Nancy). %>
+<%= render "shared/stat_band",
+      theme:   :ink,
+      eyebrow: "Diagnostic",
+      title:   "L'enjeu, en chiffres",
+      intro:   "Trois données extraites de la note publiée par l'Institut de l'économie pour le climat (I4CE) le 7 mai 2026, qui éclairent le besoin d'un outil territorial intégré.",
+      source:  "Source : Institut de l'économie pour le climat (I4CE), Observatoire des conditions d'accès à la transition écologique, note du 7 mai 2026.",
+      stats: [
+        { number: "− 19 000 €",
+          label:  "d'aides en moins en 2026",
+          body:   "Pour un ménage rural modeste rénovant globalement sa maison fioul DPE G, le reste à charge passe de 22 000 € à 41 000 € entre 2025 et 2026. I4CE qualifie cette baisse de recul de dix ans." },
+        { number: "250 000",
+          label:  "rénovations d'ampleur visées par an",
+          body:   "Objectif fixé d'ici 2030 par le projet de stratégie nationale bas carbone, contre 120 000 réalisées en 2024. Un écart annuel d'environ 130 000 chantiers que les territoires devront contribuer à combler." },
+        { number: "120 €/mois",
+          label:  "d'économies nettes après travaux",
+          body:   "Pour ce même ménage, mensualités de prêts incluses : la rénovation reste rentable malgré la baisse des aides, grâce à la flambée du fioul. La rentabilité existe : reste à la rendre lisible et finançable." }
+      ] %>
 
-    <div class="text-center mb-10">
-      <span class="inline-block text-emerald-700 text-xs font-black uppercase tracking-widest mb-3">Diagnostic</span>
-      <h2 class="font-black text-gray-900 mb-3" style="font-size:2rem;">L'enjeu, en chiffres</h2>
-      <p class="text-gray-500 max-w-2xl mx-auto" style="font-size:1.1rem;">
-        Trois données extraites de la note publiée par l'Institut de
-        l'économie pour le climat (I4CE) le 7 mai 2026, qui éclairent
-        le besoin d'un outil territorial intégré.
-      </p>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-      <%# Stat 1 — baisse d'aides 2026 %>
-      <div class="rounded-3xl border border-gray-100 bg-white p-7 shadow-sm">
-        <div class="font-black text-emerald-600 mb-2" style="font-size:2.6rem; line-height:1; letter-spacing:-0.03em;">
-          − 19 000 €
-        </div>
-        <p class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">
-          d'aides en moins en 2026
-        </p>
-        <p class="text-gray-700 leading-relaxed" style="font-size:1.02rem;">
-          Pour un ménage rural modeste rénovant globalement sa maison fioul DPE G,
-          le reste à charge passe de 22 000 € à 41 000 € entre 2025 et 2026.
-          I4CE qualifie cette baisse de recul de dix ans.
-        </p>
-      </div>
-
-      <%# Stat 2 — écart objectif vs réalité %>
-      <div class="rounded-3xl border border-gray-100 bg-white p-7 shadow-sm">
-        <div class="font-black text-emerald-600 mb-2" style="font-size:2.6rem; line-height:1; letter-spacing:-0.03em;">
-          250 000
-        </div>
-        <p class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">
-          rénovations d'ampleur visées par an
-        </p>
-        <p class="text-gray-700 leading-relaxed" style="font-size:1.02rem;">
-          Objectif fixé d'ici 2030 par le projet de stratégie nationale bas carbone,
-          contre 120 000 réalisées en 2024. Un écart annuel d'environ 130 000 chantiers
-          que les territoires devront contribuer à combler.
-        </p>
-      </div>
-
-      <%# Stat 3 — économie nette post-travaux %>
-      <div class="rounded-3xl border border-gray-100 bg-white p-7 shadow-sm">
-        <div class="font-black text-emerald-600 mb-2" style="font-size:2.6rem; line-height:1; letter-spacing:-0.03em;">
-          120 €/mois
-        </div>
-        <p class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">
-          d'économies nettes après travaux
-        </p>
-        <p class="text-gray-700 leading-relaxed" style="font-size:1.02rem;">
-          Pour ce même ménage, mensualités de prêts incluses : la rénovation
-          reste rentable malgré la baisse des aides, grâce à la flambée du fioul.
-          La rentabilité existe : reste à la rendre lisible et finançable.
-        </p>
-      </div>
-
-    </div>
-
-    <%# Source + lien vers ce que Lauze apporte face à ce diagnostic %>
-    <div class="max-w-3xl mx-auto mt-10 text-center">
-      <p class="text-gray-500" style="font-size:0.92rem;">
-        Source : Institut de l'économie pour le climat (I4CE), Observatoire des conditions
-        d'accès à la transition écologique, note du 7 mai 2026.
-      </p>
-      <p class="text-gray-700 leading-relaxed mt-4" style="font-size:1.08rem;">
-        I4CE identifie deux freins persistants : <strong>l'avance de trésorerie</strong>
-        et <strong>la difficulté à trouver un artisan certifié</strong>.
-        Ce sont précisément les deux leviers que Lauze adresse pour les habitants
-        de votre territoire : simulation à l'euro près des aides mobilisables,
-        et mise en relation avec un réseau d'artisans RGE qualifiés.
-      </p>
-    </div>
-
+<%# Reprise narrative en blanc, alignée à gauche, max 60ch — pour amener
+    le cas pratique Grand Nancy juste en dessous. %>
+<section class="px-6" style="padding-top:64px; padding-bottom:24px;">
+  <div class="max-w-3xl mx-auto">
+    <p style="font-size:1.08rem; color:#334155; line-height:1.65; margin:0;">
+      I4CE identifie deux freins persistants : <strong>l'avance de trésorerie</strong>
+      et <strong>la difficulté à trouver un artisan certifié</strong>.
+      Ce sont précisément les deux leviers que Lauze adresse pour les habitants
+      de votre territoire : simulation à l'euro près des aides mobilisables,
+      et mise en relation avec un réseau d'artisans RGE qualifiés.
+    </p>
   </div>
 </section>
 
@@ -188,27 +138,56 @@
   <div class="max-w-5xl mx-auto">
     <div class="grid md:grid-cols-2 gap-12 items-center">
       <div>
-        <span class="inline-block text-emerald-700 text-xs font-black uppercase tracking-widest mb-4">Cas pratique</span>
-        <h2 class="font-black text-gray-900 mb-5" style="font-size:1.8rem;">Métropole du Grand Nancy</h2>
-        <p class="text-gray-700 leading-relaxed mb-4" style="font-size:1.15rem;">
+        <p style="font-size:.75rem; font-weight:800; color:#059669;
+                  text-transform:uppercase; letter-spacing:.14em; margin:0 0 12px;">
+          Cas pratique
+        </p>
+        <h2 style="font-family:'Fraunces',Georgia,serif;
+                   font-size:clamp(1.6rem,3vw,2.1rem); font-weight:700;
+                   color:#0f172a; margin:0 0 22px; letter-spacing:-0.02em; line-height:1.15;
+                   max-width:18ch;">
+          Métropole du Grand Nancy
+        </h2>
+        <p style="font-size:1.1rem; color:#334155; line-height:1.65; margin:0 0 16px;
+                  max-width:60ch;">
           Lauze intègre déjà les dispositifs spécifiques de la Métropole du Grand Nancy :
           <strong>Rénovation Globale</strong> (active sous condition selon le cumul avec MPR Parcours
           Accompagné), <strong>CEE bonifiés territoriaux</strong>, et <strong>aides ciblées passoires thermiques</strong>.
         </p>
-        <p class="text-gray-700 leading-relaxed" style="font-size:1.15rem;">
+        <p style="font-size:1.1rem; color:#334155; line-height:1.65; margin:0;
+                  max-width:60ch;">
           Quand un propriétaire de Nancy déclenche une simulation, il voit en temps réel
           comment l'aide locale s'articule avec les dispositifs nationaux.
           C'est ce niveau d'intégration territoriale que Lauze peut déployer pour votre EPCI.
         </p>
       </div>
-      <div class="rounded-3xl overflow-hidden border border-gray-200 bg-white shadow-md">
-        <div class="aspect-video bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center">
-          <div class="text-center p-6">
-            <div class="text-5xl mb-3">🗺️</div>
-            <p class="text-gray-600 font-semibold">Démonstration disponible<br>sur lauze.eu</p>
+      <%# Cadre neutre en attendant l'asset screenshots/parcours-nancy.png.
+          Quand l'image sera fournie, remplacer le bloc par :
+            <%= image_tag "screenshots/parcours-nancy.png", alt: "...", class: "w-full h-auto" %>
+          Pas d'icône image-cassée ici — c'est précisément le marqueur que
+          la refonte cherche à éliminer. %>
+      <figure style="margin:0; border-left:3px solid #059669; padding-left:24px;">
+        <div style="aspect-ratio:16/10; background:#0c1f1a;
+                    display:flex; align-items:flex-end; padding:24px;">
+          <div>
+            <p style="font-size:.7rem; font-weight:800; color:#34d399;
+                      text-transform:uppercase; letter-spacing:.14em; margin:0 0 8px;">
+              Aperçu produit
+            </p>
+            <p style="font-family:'Fraunces',Georgia,serif;
+                      font-size:1.35rem; font-weight:700; color:#f5f5f4;
+                      line-height:1.25; margin:0; max-width:24ch;">
+              Le parcours intégré Grand Nancy, vu côté propriétaire.
+            </p>
           </div>
         </div>
-      </div>
+        <figcaption style="font-size:.85rem; color:#525252;
+                          line-height:1.55; margin-top:14px; max-width:60ch;">
+          Démonstration interactive disponible sur
+          <a href="https://www.lauze.eu" style="color:#059669; font-weight:600; text-decoration:none;">lauze.eu</a> —
+          contactez-nous pour une mise en situation avec un dossier de votre EPCI.
+        </figcaption>
+      </figure>
     </div>
   </div>
 </section>

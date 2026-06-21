@@ -1,0 +1,26 @@
+<%# Corps interne d'une colonne — factorisé pour partager le markup
+    entre la variante <a> (item avec link) et la variante <div>. %>
+<p style="font-size:.85rem; font-weight:800; color:<%= numero_color %>;
+          font-feature-settings:'tnum'; letter-spacing:.06em; margin:0 0 14px;">
+  <%= item[:numero] %>
+</p>
+<% if item[:icone_svg].present? %>
+  <div style="margin-bottom:14px; color:<%= numero_color %>;">
+    <%= item[:icone_svg].html_safe %>
+  </div>
+<% end %>
+<h3 style="font-family:'Fraunces',Georgia,serif;
+           font-size:1.45rem; font-weight:700; color:<%= title_color %>;
+           line-height:1.2; letter-spacing:-0.01em; margin:0 0 12px;">
+  <%= item[:titre] %>
+</h3>
+<p style="font-size:1.02rem; color:<%= body_color %>; line-height:1.65;
+          margin:0; max-width:60ch;">
+  <%= item[:corps].html_safe %>
+</p>
+<% if item[:link].present? && item[:link_label].present? %>
+  <p style="font-size:.95rem; font-weight:700; color:<%= link_color %>;
+            margin:18px 0 0;">
+    <%= item[:link_label] %>
+  </p>
+<% end %>

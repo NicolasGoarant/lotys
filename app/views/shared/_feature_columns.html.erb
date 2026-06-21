@@ -1,0 +1,61 @@
+<%# ═══════════════════════════════════════════════════════════════════════
+     _feature_columns.html.erb — triptyque éditorial (colonnes à filet)
+
+     Remplace les cartes blanches arrondies + pastilles emoji des sections
+     « 3 apports » des pages vitrines. Chaque item est une colonne avec :
+       - un filet supérieur de 2 px en vert de marque (coins droits)
+       - une numérotation éditoriale 01/02/03 en vert de marque
+       - éventuellement une icône SVG inline (outline monochrome, ~22px)
+       - un titre serif (Fraunces si chargée, fallback Georgia)
+       - un corps aligné à gauche, max 60ch
+     Pas de fond, pas d'ombre. Le rythme vient du filet, pas de la carte.
+
+     Locals :
+       - items : Array de Hash {
+           numero:     "01" | "02" | "03"
+           titre:      "Vos aides, intégrées"
+           corps:      "HTML simple toléré (strong, em, br)"
+           icone_svg:  facultatif — markup SVG inline (sera rendu html_safe)
+           link:       facultatif — URL ; si présent, la colonne devient un
+                       <a> et un libellé d'action est affiché en pied
+           link_label: facultatif — libellé du lien ("Découvrir →")
+         }
+       - theme : :light (défaut, fond clair) | :dark (fond sombre, texte clair)
+     ═══════════════════════════════════════════════════════════════════════ %>
+<%
+  ink = ((local_assigns[:theme] || :light).to_sym == :dark)
+  rule_color  = ink ? "#34d399" : "#059669"
+  numero_color = rule_color
+  title_color  = ink ? "#ffffff" : "#0f172a"
+  body_color   = ink ? "#cbd5e1" : "#334155"
+  link_color   = ink ? "#34d399" : "#059669"
+%>
+<div style="display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+            gap:36px 40px;">
+  <% items.each do |item| %>
+    <%
+      wrapper_style = "border-top:2px solid #{rule_color}; padding-top:22px; text-align:left;"
+      wrapper_style += " text-decoration:none; display:block;" if item[:link].present?
+    %>
+    <% if item[:link].present? %>
+      <%= link_to item[:link], style: wrapper_style do %>
+        <%= render "shared/feature_column_body",
+              item: item,
+              numero_color: numero_color,
+              title_color: title_color,
+              body_color: body_color,
+              link_color: link_color %>
+      <% end %>
+    <% else %>
+      <div style="<%= wrapper_style %>">
+        <%= render "shared/feature_column_body",
+              item: item,
+              numero_color: numero_color,
+              title_color: title_color,
+              body_color: body_color,
+              link_color: link_color %>
+      </div>
+    <% end %>
+  <% end %>
+</div>
