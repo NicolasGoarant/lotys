@@ -11,7 +11,7 @@ class DocumentsController < ApplicationController
     Array(params.dig(:document, :files)).each do |file|
       next unless file.respond_to?(:original_filename)
       doc = @property.documents.build(
-        document_type: params.dig(:document, :document_type),
+        document_type: :autre,
         name: file.original_filename
       )
       doc.file.attach(file)

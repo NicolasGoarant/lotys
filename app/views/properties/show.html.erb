@@ -421,8 +421,12 @@
       <% @property.documents.each do |doc| %>
         <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f9fafb;">
           <span style="font-size:.85rem;">📄</span>
-          <p style="flex:1;font-size:.82rem;font-weight:600;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><%= doc.name.presence || doc.document_type.humanize %></p>
-          <% if doc.processed? %><span style="font-size:.65rem;font-weight:700;color:#059669;">✓</span><% end %>
+          <p style="flex:1;font-size:.82rem;font-weight:600;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><%= doc.name.presence || (doc.processed? ? doc.document_type.humanize : "Document") %></p>
+          <% if doc.processed? %>
+            <span style="font-size:.65rem;font-weight:700;color:#059669;">✓</span>
+          <% else %>
+            <span style="font-size:.65rem;font-weight:600;color:#d97706;font-style:italic;">Analyse en cours…</span>
+          <% end %>
           <%= button_to "✕", property_document_path(@property, doc), method: :delete, style:"background:transparent;border:none;cursor:pointer;color:#d1d5db;font-size:.8rem;padding:4px;", data: { confirm: "Supprimer ?", turbo: false } %>
         </div>
       <% end %>

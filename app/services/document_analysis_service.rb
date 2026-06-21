@@ -2,6 +2,10 @@ class DocumentAnalysisService
   ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
   MAX_VISION_PAGES = 4
 
+  # Types que l'IA peut attribuer (alignés sur l'enum Document).
+  # "photo" est exclu : les photos passent par PhotoAnalysisService.
+  CLASSIFIABLE_TYPES = %w[dpe titre_propriete pv_ag devis autre].freeze
+
   def initialize(document)
     @document = document
     @property = document.property
@@ -12,26 +16,47 @@ class DocumentAnalysisService
 
     text_content = extract_text
 
-    if text_content.present?
-      response = call_claude_text(build_prompt(text_content))
-    else
-      # PDF scanné : fallback Vision
-      Rails.logger.info("DocumentAnalysisService: texte vide pour doc #{@document.id}, bascule en Vision")
-      images = pdf_to_images
-      if images.blank?
-        Rails.logger.error("DocumentAnalysisService: impossible de convertir doc #{@document.id} en images")
-        return false
+    raw =
+      if text_content.present?
+        call_claude_text(build_prompt(text_content))
+      else
+        Rails.logger.info("DocumentAnalysisService: texte vide pour doc #{@document.id}, bascule en Vision")
+        images = pdf_to_images
+        if images.blank?
+          Rails.logger.error("DocumentAnalysisService: conversion images impossible pour doc #{@document.id}")
+          return false
+        end
+        call_claude_vision(images)
       end
-      response = call_claude_vision(images)
-    end
 
-    return false if response.blank?
+    return false if raw.blank?
 
-    @document.update(ai_summary: response, processed: true)
+    detected_type, summary = parse_classification(raw)
+
+    attrs = { ai_summary: summary, processed: true }
+    attrs[:document_type] = detected_type if detected_type
+    @document.update(attrs)
+
+    Rails.logger.info("DocumentAnalysisService: doc #{@document.id} classé '#{detected_type || @document.document_type}'")
     true
   end
 
   private
+
+  # Sépare la ligne "TYPE: xxx" du reste du texte.
+  # Renvoie [type_détecté_ou_nil, résumé]. Si la classification est absente ou
+  # non reconnue, on ne touche pas au type existant et on garde le texte brut.
+  def parse_classification(raw)
+    text  = raw.to_s
+    match = text.match(/^\s*TYPE\s*:\s*([a-z_]+)/i)
+
+    if match && CLASSIFIABLE_TYPES.include?(match[1].downcase)
+      summary = text.sub(/^\s*TYPE\s*:\s*[a-z_]+\s*\n?/i, "").strip
+      [match[1].downcase, summary]
+    else
+      [nil, text.strip]
+    end
+  end
 
   def extract_text
     Tempfile.create(["doc", ".pdf"]) do |tmp|
@@ -55,7 +80,6 @@ class DocumentAnalysisService
       tmp.write(@document.file.download)
       tmp.rewind
 
-      # pdftoppm converti chaque page en PNG (resolution 150 dpi)
       output_prefix = File.join(dir, "page")
       result = system("pdftoppm", "-r", "150", "-png", "-l", MAX_VISION_PAGES.to_s, tmp.path, output_prefix)
 
@@ -64,7 +88,6 @@ class DocumentAnalysisService
         return []
       end
 
-      # Récupère les pages générées, dans l'ordre
       Dir.glob("#{output_prefix}-*.png").sort.first(MAX_VISION_PAGES).each do |png_path|
         images << Base64.strict_encode64(File.binread(png_path))
       end
@@ -78,11 +101,28 @@ class DocumentAnalysisService
     FileUtils.remove_entry(dir) if dir && Dir.exist?(dir)
   end
 
+  def classification_instruction
+    <<~TXT
+      Commence IMPÉRATIVEMENT ta réponse par une première ligne au format exact :
+
+      TYPE: <code>
+
+      où <code> est l'un de : dpe, titre_propriete, pv_ag, devis, autre.
+      - dpe : diagnostic de performance énergétique
+      - titre_propriete : acte de vente, compromis, attestation de propriété
+      - pv_ag : procès-verbal d'assemblée générale de copropriété
+      - devis : devis ou facture de travaux
+      - autre : tout le reste
+      Choisis "autre" en cas de doute. Passe ensuite à la ligne et rédige l'analyse.
+    TXT
+  end
+
   def build_prompt(content)
-    type_label = @document.document_type.humanize
     <<~PROMPT
       Tu es un expert en droit immobilier et rénovation énergétique français.
-      Analyse ce document de type "#{type_label}" et fournis :
+      #{classification_instruction}
+
+      Analyse ensuite le document et fournis :
 
       1. RÉSUMÉ : Un résumé factuel en 3-5 phrases
       2. POINTS CLÉS : Les informations importantes pour le propriétaire (surface, DPE, année construction, prix, etc.)
@@ -98,10 +138,11 @@ class DocumentAnalysisService
   end
 
   def build_vision_prompt
-    type_label = @document.document_type.humanize
     <<~PROMPT
       Tu es un expert en droit immobilier et rénovation énergétique français.
-      Analyse ce document de type "#{type_label}" (images de pages PDF scannées) et fournis :
+      #{classification_instruction}
+
+      Analyse ensuite ce document (images de pages PDF scannées) et fournis :
 
       1. RÉSUMÉ : Un résumé factuel en 3-5 phrases
       2. POINTS CLÉS : Les informations importantes pour le propriétaire. Pour un DPE, extrais impérativement :
@@ -139,20 +180,11 @@ class DocumentAnalysisService
   end
 
   def call_claude_vision(base64_images)
-    content = []
-
-    # On ajoute le prompt texte en premier
-    content << { type: "text", text: build_vision_prompt }
-
-    # Puis chaque page comme image
+    content = [{ type: "text", text: build_vision_prompt }]
     base64_images.each do |img_b64|
       content << {
         type: "image",
-        source: {
-          type:       "base64",
-          media_type: "image/png",
-          data:       img_b64
-        }
+        source: { type: "base64", media_type: "image/png", data: img_b64 }
       }
     end
 
