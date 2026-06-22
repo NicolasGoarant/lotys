@@ -88,6 +88,92 @@ class AidCalculatorGrandNancyTest < ActiveSupport::TestCase
       "L'aide locale Grand Nancy Isolation devrait être > 0 €, reçu : #{aides_locales.inspect}"
   end
 
+  # ── Câblage UI : cocher les macros suffit (via TravauxDefaultsDeriver) ─
+  # Cas critique du bug "Aucune aide retenue pour le moment" en prod : DPE E→A,
+  # foyer intermédiaire (RFR ≈ 25 000 / 1 personne), bien à Nancy, l'utilisateur
+  # n'a coché QUE les cases macro et n'a aucune donnée mesurée dans surface_ite,
+  # vmc_double_flux, etc.
+  #
+  # Avant l'introduction du déricteur, AidCalculatorService renvoyait
+  # subventions=[] car travaux_prevus était vide. On vérifie maintenant que :
+  #   1. cocher les macros déclenche le dépôt d'estimations par défaut ;
+  #   2. le drapeau inputs_estimes est posé pour que la vue affiche le bandeau ;
+  #   3. MPR Ampleur ET Grand Nancy Rénovation Globale sortent non vides.
+  test "cocher les macros E→A intermédiaire Grand Nancy débloque MPR + aide locale" do
+    property = build_grand_nancy_property(
+      dpe_class:      "E",
+      dpe_target:     "A",
+      property_type:  "maison",
+      income_bracket: "intermediaire"
+    )
+    # Pas d'injection de surface_ite, surface_iti, vmc_double_flux, etc.
+    # Tout passe par les 7 cases macro, comme dans la card "Rénovation
+    # énergétique" en prod.
+    property.travaux_selection = {
+      "isolation_toiture" => true,
+      "isolation_murs"    => true,
+      "vmc"               => true,
+      "chauffage"         => true
+    }
+
+    derived = TravauxDefaultsDeriver.new(property).call!
+    assert derived, "Le déricteur doit signaler qu'une estimation a été déposée"
+
+    # Les colonnes structurées attendues par le service ont bien été remplies
+    # par des estimations par défaut (mais ne se prétendent pas mesurées).
+    assert_operator property.surface_combles_perdus.to_f, :>, 0,
+                    "isolation_toiture coché doit produire surface_combles_perdus > 0"
+    assert_operator property.surface_ite.to_f, :>, 0,
+                    "isolation_murs coché doit produire surface_ite > 0"
+    assert property.vmc_double_flux, "vmc coché doit activer vmc_double_flux"
+    assert property.pac_air_eau, "chauffage coché doit activer pac_air_eau par défaut"
+
+    # Marqueur d'estimation : la vue doit pouvoir afficher le bandeau honnête.
+    assert_equal true, (property.equipements_selection || {})["inputs_estimes"],
+                 "Le drapeau inputs_estimes doit être posé après dérivation"
+
+    # Calcul des aides via le même chemin que le contrôleur : travaux_actifs
+    # passé au service comme filtre macros.
+    result = AidCalculatorService.new(
+      property,
+      travaux_actifs: property.travaux_actifs
+    ).call
+
+    aides_nationales = result[:subventions].select { |a| %w[mpr cee].include?(a[:type]) }
+    assert aides_nationales.any?,
+           "MPR (Ampleur) attendue après dérivation. Reçu : " \
+           "subventions=#{result[:subventions].map { |a| [a[:type], a[:slug]] }.inspect}, " \
+           "errors=#{result[:errors].inspect}"
+    assert_operator aides_nationales.sum { |a| a[:amount] }, :>, 0,
+                    "Le montant national doit être > 0"
+
+    aides_locales = result[:subventions].select { |a| a[:type] == "local" }
+    assert aides_locales.any?,
+           "Aide locale Grand Nancy attendue après dérivation. Reçu : " \
+           "subventions=#{result[:subventions].map { |a| [a[:type], a[:slug]] }.inspect}"
+    assert_operator aides_locales.sum { |a| a[:amount] }, :>, 0,
+                    "Le montant local doit être > 0"
+  end
+
+  # ── Priorité : une mesure existante ne doit JAMAIS être écrasée ─────
+  # Si Claude a déjà rempli surface_ite (mesure issue d'un DPE / devis),
+  # le déricteur doit la respecter et ne PAS déposer une estimation à la place.
+  test "le déricteur ne touche pas à une surface déjà mesurée" do
+    property = build_grand_nancy_property(
+      dpe_class:      "E",
+      dpe_target:     "A",
+      property_type:  "maison",
+      income_bracket: "intermediaire"
+    )
+    property.surface_ite = 42.0  # mesure existante (Claude / saisie user)
+    property.travaux_selection = { "isolation_murs" => true }
+
+    TravauxDefaultsDeriver.new(property).call!
+
+    assert_in_delta 42.0, property.surface_ite.to_f, 0.01,
+                    "Une surface mesurée ne doit pas être remplacée par un default"
+  end
+
   # ── Garde-fou : hors Grand Nancy, pas d'aide locale ────────────────
   # Sanity check : sans territoire, on n'invente pas une aide locale.
   test "maison hors Grand Nancy ne reçoit aucune aide locale" do

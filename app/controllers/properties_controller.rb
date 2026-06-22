@@ -179,6 +179,14 @@ class PropertiesController < ApplicationController
       @property.update_column(:dpe_target, dpe_target_raw)
     end
 
+    # Comble les colonnes structurées (surface_*, equipements_selection) là où
+    # l'analyse Claude n'a rien posé, avec des estimations par défaut dérivées
+    # des macros cochés. Sans ce shim, AidCalculatorService renvoie "Aucune
+    # aide retenue" tant qu'aucun DPE/devis n'a alimenté quantites_mpr.
+    # Pose le drapeau inputs_estimes lu par la vue pour afficher honnêtement
+    # "estimation, lancez l'analyse pour affiner".
+    TravauxDefaultsDeriver.new(@property).call!
+
     redirect_to property_path(@property, anchor: "travaux")
   end
 

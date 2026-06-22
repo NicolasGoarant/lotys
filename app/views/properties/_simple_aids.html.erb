@@ -29,6 +29,12 @@
 <% gn_active_now = subventions.any? { |a| a[:slug] == gn_slug } %>
 <% other_potentielles = potentielles.reject { |a| a[:slug] == gn_slug } %>
 
+<%# Drapeau posé par TravauxDefaultsDeriver quand au moins une colonne
+    structurée a été remplie par défaut faute d'analyse documentaire. La vue
+    doit alors clairement signaler que les montants sont des estimations
+    indicatives, pas des chiffres mesurés. %>
+<% inputs_estimes = (property.equipements_selection || {})["inputs_estimes"] == true %>
+
 <%# Total initial : MPR + CEE + (GN si active) — aligné sur le serveur %>
 <% total_initial = [mpr_aid, cee_aid, (gn_active_now ? gn_aid : nil)].compact.sum { |a| a[:amount].to_i } %>
 
@@ -83,6 +89,21 @@
     <% end %>
 
     <% if mpr_aid || cee_aid || gn_aid %>
+      <%# Bandeau d'honnêteté : montants estimés sur surfaces et équipements
+           par défaut, faute de quantites_mpr issues d'une analyse documentaire.
+           Inciter explicitement à lancer (ou relancer) l'analyse pour affiner. %>
+      <% if inputs_estimes %>
+        <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;margin-bottom:14px;display:flex;gap:8px;align-items:flex-start;">
+          <span style="font-size:.95rem;flex-shrink:0;">ℹ️</span>
+          <p class="bod" style="font-size:.78rem;color:#78350f;line-height:1.45;">
+            <strong>Estimation indicative</strong> — les montants ci-dessous reposent sur des
+            surfaces et équipements <em>par défaut</em> dérivés des cases cochées, faute
+            d'analyse documentaire complète. Pour affiner, ajoutez votre DPE, vos devis ou
+            relancez l'analyse depuis la fiche du bien.
+          </p>
+        </div>
+      <% end %>
+
       <%# Ligne MPR %>
       <% if mpr_aid %>
         <div style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;border-bottom:1px solid #f3f4f6;gap:12px;">
