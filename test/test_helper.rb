@@ -14,3 +14,9 @@ module ActiveSupport
     # fixtures :all
   end
 end
+
+# Devise : helpers de session pour les tests d'intégration (sign_in / sign_out).
+# Tous les tests d'intégration héritent d'ActionDispatch::IntegrationTest.
+class ActionDispatch::IntegrationTest
+  include Devise::Test::IntegrationHelpers
+end
