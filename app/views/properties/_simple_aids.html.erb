@@ -152,23 +152,29 @@
       </div>
 
       <%# Bloc Grand Nancy — version POTENTIELLE (affichée si cible DPE ≠ A/B).
-           Le JS bascule son display en fonction du slider. -%>
+           Le JS bascule son display en fonction du slider, et écrit le montant
+           dans #aide-gn-pot-val. Le préfixe "+" est porté par un span séparé
+           pour ne pas être écrasé par le JS. La carte est volontairement
+           lisible (liseré violet Lauze, badge "À DÉBLOQUER") pour que
+           l'utilisateur la voie sans la confondre avec une aide acquise.
+           Le montant N'EST PAS additionné au "Total des aides" : il reste
+           conditionnel tant que la cible DPE n'a pas basculé en A ou B. -%>
       <% if gn_aid %>
-        <div id="gn-potential-block" style="display:<%= gn_active_now ? 'none' : 'block' %>;margin-top:18px;">
-          <p class="lbl" style="margin-bottom:6px;color:#9ca3af;">Aides disponibles sous condition</p>
-          <div style="padding:10px 12px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:10px;margin-bottom:6px;opacity:0.75;">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
-              <p class="bod" style="font-weight:600;color:#6b7280;font-size:.85rem;">
-                🏛️ <%= gn_aid[:name].split("—").first.strip %>
-              </p>
-              <p class="bod" style="font-weight:700;color:#6b7280;white-space:nowrap;font-size:.9rem;" id="aide-gn-pot-val">
-                <%= number_to_currency(gn_aid[:amount], unit: "€", format: "%n %u", precision: 0, delimiter: " ") %>
-              </p>
+        <div id="gn-potential-block" style="display:<%= gn_active_now ? 'none' : 'block' %>;margin-top:14px;padding:14px 16px;background:#fff;border:2px dashed #5b21b6;border-radius:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+              <span style="font-size:.6rem;font-weight:800;color:#5b21b6;background:#ede9fe;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;">À débloquer</span>
+              <p class="bod" style="font-weight:700;color:#1f2937;font-size:.9rem;">🏛️ <%= gn_aid[:name].split("—").first.strip %></p>
             </div>
-            <p class="lbl" style="margin-top:4px;color:#9ca3af;text-transform:none;letter-spacing:0;font-weight:500;font-size:.72rem;line-height:1.4;">
-              💡 Débloquée si vous visez un DPE A ou B. Glissez la jauge dans la card Rénovation pour l'activer.
+            <p class="bod" style="font-weight:800;color:#5b21b6;white-space:nowrap;font-size:1rem;">
+              + <span id="aide-gn-pot-val"><%= number_to_currency(gn_aid[:amount], unit: "€", format: "%n %u", precision: 0, delimiter: " ") %></span>
             </p>
           </div>
+          <p class="bod" style="margin:0;font-size:.78rem;color:#374151;line-height:1.5;">
+            Atteignez l'<strong>objectif B ou A</strong> pour activer cette aide : ajustez la jauge
+            dans la card « Rénovation énergétique » puis cliquez <strong>« Mettre à jour les aides »</strong>.
+            Non comptée dans le total ci-dessus tant que la condition n'est pas remplie.
+          </p>
         </div>
       <% end %>
 
