@@ -5,8 +5,15 @@
 <p style="font-family:'Fraunces',Georgia,serif;
           font-size:1.375rem; font-weight:700; color:<%= numero_color %>;
           font-feature-settings:'tnum'; letter-spacing:.02em;
-          line-height:1; margin:0 0 18px;">
-  <%= item[:numero] %>
+          line-height:1; margin:0 0 18px;
+          display:flex; align-items:center; gap:12px;">
+  <span><%= item[:numero] %></span>
+  <% if item[:emoji].present? %>
+    <span aria-hidden="true"
+          style="font-size:1.5rem; line-height:1;">
+      <%= item[:emoji] %>
+    </span>
+  <% end %>
 </p>
 <% if item[:icone_svg].present? %>
   <div style="margin-bottom:16px; color:<%= numero_color %>;">
