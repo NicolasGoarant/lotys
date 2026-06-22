@@ -444,6 +444,10 @@
 var dpe_all=['A','B','C','D','E','F','G'];
 var C_DPE={A:'#16a34a',B:'#4ade80',C:'#a3e635',D:'#ca8a04',E:'#fb923c',F:'#ef4444',G:'#991b1b'};
 var CUR=<%= cur_idx %>;
+// Cible DPE telle que rendue par le serveur (issue de l'analyse Claude / DB).
+// Source de vérité au chargement : on ne dérive PAS la cible des cases cochées
+// à l'init, c'est SERVER_TGT_IDX qui pilote slider + pin + hidden field.
+var SERVER_TGT_IDX=<%= tgt_idx %>;
 
 // Barème d'impact DPE par travail (cohérent avec TravauxMapperService::DPE_IMPACT)
 var DPE_IMPACT={
@@ -484,7 +488,15 @@ var TRAVAUX_DIRTY = false;
 // depuis les cases cochées (qui pourraient donner un gain arrondi différent
 // et faire "rebondir" la jauge — ex: je vise E, le recalc coche 1 travail et
 // fait "sauter" la jauge sur D).
-function recalcTravaux(skipJaugeUpdate){
+//
+// Param `initialLoad` : appel depuis initShow au chargement de la page. À
+// l'init, la cible DPE qui fait foi est celle du serveur (SERVER_TGT_IDX,
+// issue de l'analyse Claude). On ne dérive PAS la cible des cases cochées
+// (sinon un bien avec plein de travaux pré-cochés "auto-snappe" vers A et
+// le hidden field form-dpe-target persiste cette cible non choisie au
+// premier submit). On positionne donc la jauge sur SERVER_TGT_IDX et on
+// ne marque rien comme "à recalculer".
+function recalcTravaux(skipJaugeUpdate, initialLoad){
   var total=0, gainDpe=0;
   document.querySelectorAll('.travail-check').forEach(function(row){
     var cb=row.querySelector('input[type=checkbox].travail-cb');
@@ -502,11 +514,16 @@ function recalcTravaux(skipJaugeUpdate){
     budgetNum.textContent = total.toLocaleString('fr-FR');
   }
 
-  // Mise à jour de la jauge : uniquement quand l'appel vient d'une checkbox.
-  // Quand l'utilisateur glisse la jauge, la cible est déjà positionnée par
-  // onSliderChange via updateJaugeDPE — on ne la recalcule pas.
-  var gainArr = Math.min(Math.round(gainDpe), 5);
-  if(!skipJaugeUpdate){
+  // Mise à jour de la jauge :
+  //  - à l'init : on cale sur la cible serveur (pas de dérivation depuis gainDpe)
+  //  - au drag slider : la cible est déjà positionnée par onSliderChange
+  //  - sinon (case cochée/décochée par l'utilisateur) : on dérive de gainDpe
+  if(initialLoad){
+    updateJaugeDPE(SERVER_TGT_IDX);
+    var sliderInit=document.getElementById('dpe-slider');
+    if(sliderInit && sliderInit.value != SERVER_TGT_IDX){ sliderInit.value = SERVER_TGT_IDX; }
+  } else if(!skipJaugeUpdate){
+    var gainArr = Math.min(Math.round(gainDpe), 5);
     var tgtIdx = Math.max(CUR - gainArr, 0);
     updateJaugeDPE(tgtIdx);
     var slider=document.getElementById('dpe-slider');
@@ -519,9 +536,12 @@ function recalcTravaux(skipJaugeUpdate){
   // réels ne sont pas strictement linéaires, mais suffisant pour feedback).
   recalcAidesProportionnel(total);
 
-  // Marquer les chiffres comme "à recalculer" pour inciter au submit.
-  TRAVAUX_DIRTY = true;
-  marquerAidesPerimees();
+  // Marquer les chiffres comme "à recalculer" pour inciter au submit —
+  // sauf à l'init, où rien n'a changé du côté utilisateur.
+  if(!initialLoad){
+    TRAVAUX_DIRTY = true;
+    marquerAidesPerimees();
+  }
 }
 
 // Met à jour les cards Aides et Financement proportionnellement au nouveau budget.
@@ -690,7 +710,12 @@ function initShow(){
   document.querySelectorAll('.travail-cb').forEach(function(cb){
     cb.addEventListener('change', recalcTravaux);
   });
-  recalcTravaux();
+  // Appel d'init : skipJaugeUpdate=true (on ne touche pas à la jauge calculée
+  // depuis les cases) ET initialLoad=true (on cale la jauge sur la cible
+  // serveur et on ne marque rien comme "à recalculer"). Empêche le snap
+  // silencieux vers une cible ambitieuse (ex. A) au load + sa persistance
+  // au premier clic "Mettre à jour les aides" sans interaction réelle.
+  recalcTravaux(true, true);
   calcPret();
 
   // Fallback scroll vers l'ancre (#aides, #financement, #travaux).
