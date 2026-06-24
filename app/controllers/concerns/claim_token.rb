@@ -15,6 +15,8 @@
 #   - claim_tokens                       → jetons portés par le navigateur
 #   - claimable_by_browser?(property)    → décide l'accès en lecture
 #   - write_claim_cookie!(token)         → dépose le jeton à la création
+#   - claim_orphans!(user)               → rattache les orphelines du cookie
+#   - delete_claim_cookie!               → efface le cookie après rattachement
 module ClaimToken
   extend ActiveSupport::Concern
 
@@ -59,5 +61,60 @@ module ClaimToken
       httponly: true,
       secure:   Rails.env.production?
     }
+  end
+
+  # Efface le cookie de revendication. Appelé après une tentative de claim,
+  # qu'elle ait réussi ou non — le navigateur n'a plus de raison de garder
+  # un jeton (soit le bien est rattaché, soit il est introuvable, soit
+  # la limite a empêché le claim et l'utilisateur devra refaire un
+  # parcours propre).
+  def delete_claim_cookie!
+    cookies.delete(CLAIM_COOKIE)
+  end
+
+  # Rattache les Property orphelines dont les jetons sont portés par ce
+  # navigateur au User donné. Idempotent et tolérant aux jetons orphelins
+  # (jeton en cookie sans Property correspondante en DB — purgée, expirée,
+  # déjà rattachée par un autre device).
+  #
+  # Garde-fous :
+  #   - n'agit que sur les Property avec user_id ENCORE nil (pas de vol
+  #     d'un bien déjà possédé par un autre user, même si le claim_token
+  #     fuitait par erreur),
+  #   - respecte la limite de 3 biens par compte (cohérence avec
+  #     PropertiesController#create),
+  #   - efface le cookie en fin de course, quoi qu'il arrive,
+  #   - rescue StandardError au niveau du callback appelant (cf.
+  #     ApplicationController) pour ne JAMAIS casser le flow Devise.
+  #
+  # Retourne la liste des Property effectivement rattachées (peut être vide).
+  def claim_orphans!(user)
+    return [] if user.nil?
+    return [] if claim_tokens.empty?
+
+    claimed = []
+
+    claim_tokens.each do |token|
+      orphan = Property.where(user_id: nil, claim_token: token).first
+      next unless orphan
+
+      if user.properties.count >= 3
+        Rails.logger.info("[ClaimToken] user##{user.id} déjà à 3 biens — orphan ##{orphan.id} non rattaché")
+        next
+      end
+
+      # Clear du claim_token au moment du rattachement : le bien devient
+      # un bien possédé classique, plus une orpheline. L'invariant
+      # #rattachable reste satisfait par user_id présent.
+      if orphan.update(user_id: user.id, claim_token: nil)
+        claimed << orphan
+        Rails.logger.info("[ClaimToken] orphan ##{orphan.id} rattaché à user##{user.id}")
+      else
+        Rails.logger.error("[ClaimToken] rattachement orphan ##{orphan.id} échoué : #{orphan.errors.full_messages.join(', ')}")
+      end
+    end
+
+    delete_claim_cookie!
+    claimed
   end
 end
