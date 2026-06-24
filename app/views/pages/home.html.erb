@@ -88,11 +88,16 @@
                     margin:0 0 12px;">
             Lauze, pour qui ?
           </p>
+          <%# max-width:32ch laisse passer la phrase entière sur une seule
+              ligne dès qu'on dispose d'un peu de largeur (desktop & tablette).
+              Le <br class="sm:hidden"> force un saut contrôlé après la virgule
+              sur mobile uniquement (< 640px Tailwind sm), pour éviter qu'un
+              wrap naturel coupe à un endroit inopportun. -%>
           <h2 style="font-family:'Fraunces',Georgia,serif;
                      font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700;
                      color:#fff; margin:0; letter-spacing:-0.02em; line-height:1.15;
-                     max-width:18ch;">
-            Trois publics, un même outil
+                     max-width:32ch;">
+            Trois publics,<br class="sm:hidden"> un même outil
           </h2>
         </div>
 
