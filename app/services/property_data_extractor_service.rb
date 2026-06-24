@@ -52,16 +52,26 @@ class PropertyDataExtractorService
 
   def extract_structured_data(content)
     prompt = <<~PROMPT
-      Tu es un expert immobilier français. Analyse ces documents et extrais les données structurées du bien immobilier.
+      Tu es un expert immobilier français. Tu extrais des données structurées
+      d'un dossier de bien immobilier.
+
+      PRIORITÉ 1 — SURFACE HABITABLE (champ critique pour tout le reste de l'app).
+      Cherche dans cet ordre :
+        a) "Surface habitable Loi Carrez" ou "Loi Boutin" dans le titre de propriété ;
+        b) "Surface habitable" dans le DPE ;
+        c) toute mention "<N> m²" explicitement rattachée AU LOGEMENT
+           (pas aux travaux, pas à un comparable, pas à un kWh/m²).
+      Renvoie un entier en m². Si plusieurs valeurs cohérentes (±2 m²), prends
+      celle du DPE. Si rien d'écrit explicitement → null. NE DEVINE JAMAIS.
 
       Documents :
       ---
       #{content.truncate(10000)}
       ---
 
-      Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans commentaires) contenant ces champs :
+      Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans commentaires) :
       {
-        "surface": <nombre entier en m², null si inconnu>,
+        "surface": <entier m² ou null — voir PRIORITÉ 1>,
         "construction_year": <année entière, null si inconnue>,
         "dpe_class": <"A","B","C","D","E","F" ou "G", null si inconnu>,
         "dpe_value": <valeur kWhEP/m².an en entier, null si inconnue>,
@@ -80,7 +90,10 @@ class PropertyDataExtractorService
     PROMPT
 
     response = call_claude(prompt)
-    JSON.parse(response.to_s.strip)
+    # Strip d'un éventuel ```json … ``` autour de la réponse — mode de panne
+    # observé en prod (cf. logs "unexpected character: '```json'" historiques).
+    cleaned = response.to_s.gsub(/\A```json\n?|```\z/, "").strip
+    JSON.parse(cleaned)
   rescue JSON::ParserError => e
     Rails.logger.error("PropertyDataExtractor JSON parse error: #{e.message}\nRaw: #{response}")
     {}
@@ -139,7 +152,7 @@ class PropertyDataExtractorService
       },
       body: {
         model:     "claude-sonnet-4-6",
-        max_tokens: 512,
+        max_tokens: 1024,
         messages:  [{ role: "user", content: prompt }]
       }.to_json
     )
