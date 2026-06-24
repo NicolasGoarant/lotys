@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_21_160544) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_24_125706) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -267,7 +267,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_21_160544) do
   end
 
   create_table "properties", force: :cascade do |t|
-    t.bigint "user_id", null: false
+    t.bigint "user_id"
     t.string "address"
     t.string "city"
     t.string "zipcode"
@@ -302,6 +302,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_21_160544) do
     t.string "code_insee"
     t.integer "household_size"
     t.integer "rfr"
+    t.string "claim_token"
+    t.index ["claim_token"], name: "index_properties_on_claim_token", unique: true
     t.index ["user_id"], name: "index_properties_on_user_id"
   end
 

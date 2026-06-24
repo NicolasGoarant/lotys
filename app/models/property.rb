@@ -1,5 +1,10 @@
 class Property < ApplicationRecord
-  belongs_to :user
+  # optional: true → autorise les Property orphelines (user_id nil),
+  # créées dans le parcours d'estimation anonyme et rattachables plus tard
+  # à un User via leur claim_token. L'invariant #rattachable ci-dessous
+  # garantit qu'une Property sans user porte forcément un claim_token —
+  # pas de bien « ni possédé ni revendicable » silencieux en DB.
+  belongs_to :user, optional: true
   has_many :documents, dependent: :destroy
   has_one :analysis, dependent: :destroy
   has_one :valuation, dependent: :destroy
@@ -148,5 +153,25 @@ class Property < ApplicationRecord
 
   def local_aids_total_max
     local_aid_results.eligible.sum { |r| r.total_max_amount.to_i }
+  end
+
+  # Invariant de rattachement : une Property doit être SOIT possédée
+  # (user_id présent), SOIT revendicable (claim_token présent). Une ligne
+  # sans aucun des deux serait orpheline ET non-récupérable — un déchet
+  # silencieux. On la refuse à la validation.
+  validate :rattachable
+
+  private
+
+  def rattachable
+    # On reconnaît un rattachement valide si :
+    #   - user_id est posé (cas usuel après save), OU
+    #   - user est assigné en mémoire (cas `Property.new(user: u)` avant save), OU
+    #   - claim_token est présent (orpheline revendicable).
+    # Vérifier user_id seul ferait passer en faux-négatif un Property.new(user: u)
+    # tant que le User n'a pas son id (cas typique des tests sans save).
+    return if user_id.present? || user.present? || claim_token.present?
+
+    errors.add(:base, "Un bien doit être rattaché à un utilisateur ou porter un jeton de revendication")
   end
 end
