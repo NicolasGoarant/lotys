@@ -261,13 +261,20 @@
       <% end %>
     <% end %>
 
-    <%# Errors / warnings du calculateur, si existants %>
+    <%# Errors / warnings du calculateur, si existants.
+        On filtre les erreurs préfixées "[interne]" (pannes techniques
+        type "règle absente en DB") — elles vont en logs Heroku via
+        Rails.logger.error, pas à l'écran utilisateur. La vue n'affiche
+        que les erreurs métier explicables ("logement doit avoir ≥ 15 ans"). -%>
     <% if aid_result && aid_result[:errors]&.any? %>
-      <div style="margin-top:10px;">
-        <% aid_result[:errors].each do |err| %>
-          <p class="lbl" style="color:#b45309;margin-bottom:4px;font-size:.7rem;text-transform:none;letter-spacing:0;">⚠ <%= err %></p>
-        <% end %>
-      </div>
+      <% user_facing_errors = aid_result[:errors].reject { |e| e.to_s.start_with?("[interne]") } %>
+      <% if user_facing_errors.any? %>
+        <div style="margin-top:10px;">
+          <% user_facing_errors.each do |err| %>
+            <p class="lbl" style="color:#b45309;margin-bottom:4px;font-size:.7rem;text-transform:none;letter-spacing:0;">⚠ <%= err %></p>
+          <% end %>
+        </div>
+      <% end %>
     <% end %>
   </div>
 </div>

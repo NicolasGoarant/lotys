@@ -376,14 +376,17 @@ class AidCalculatorService
   #   - Accompagnateur Rénov' obligatoire
   # ================================================================
   def calculate_mpr_ampleur
-    rule = AidRule.find_by(slug: "mpr_parcours_accompagne", active: true)
-    return unless rule
-
+    # Éligibilité métier AVANT fetch_rule! : un bien non-éligible doit
+    # produire son erreur métier sans pousser un faux [interne] si la
+    # règle technique manque par ailleurs.
     dpe_actuel = @p.dpe_class&.upcase
     unless %w[E F G].include?(dpe_actuel)
       @errors << "MPR Rénovation d'ampleur réservée aux logements E, F ou G (DPE actuel : #{dpe_actuel || '?'})"
       return
     end
+
+    rule = fetch_rule!("mpr_parcours_accompagne")
+    return unless rule
 
     taux       = MPR_TAUX_2026[@p.income_bracket] || 0
     saut       = dpe_saut(@p.dpe_class&.upcase, current_dpe_target)
@@ -568,9 +571,9 @@ class AidCalculatorService
   # Éco-PTZ (inchangé)
   # ================================================================
   def calculate_eco_ptz
-    rule = AidRule.find_by(slug: "eco_ptz", active: true)
-    return unless rule
-
+    # Éligibilité métier AVANT fetch_rule! : ancienneté < 2 ans ou
+    # absence de gestes produisent leur signal métier sans pousser un
+    # faux [interne] si la règle technique manque par ailleurs.
     if @p.construction_year.present? && @p.construction_year.to_i > (Date.today.year - 2)
       @errors << "Éco-PTZ : logement doit être achevé depuis ≥ 2 ans"
       return
@@ -578,6 +581,9 @@ class AidCalculatorService
 
     nb_gestes = travaux_prevus.size
     return if nb_gestes == 0
+
+    rule = fetch_rule!("eco_ptz")
+    return unless rule
 
     if eligible_parcours_accompagne? && sortie_passoire?
       montant = ECO_PTZ_RENO_GLOBALE
@@ -607,9 +613,11 @@ class AidCalculatorService
   def calculate_grand_nancy_isolation
     return unless territory_grand_nancy?
     return unless maison_individuelle?
-    rule = AidRule.find_by(slug: "grand_nancy_isolation", active: true)
-    return unless rule
 
+    # Éligibilité métier AVANT fetch_rule! : si parcours accompagné
+    # actif (la branche Grand Nancy Réno Globale prendra le relais) ou
+    # cible DPE non éligible, on doit court-circuiter sans pousser un
+    # faux [interne] si la règle technique manque par ailleurs.
     return if eligible_parcours_accompagne?
 
     dpe_cible = current_dpe_target
@@ -617,6 +625,9 @@ class AidCalculatorService
       @errors << "Grand Nancy Isolation : cible DPE doit être ≥ C (actuelle cible : #{dpe_cible || '?'})"
       return
     end
+
+    rule = fetch_rule!("grand_nancy_isolation")
+    return unless rule
 
     grille = modeste_ou_tres_modeste? ? GN_ISOLATION_MODESTE : GN_ISOLATION_SUPERIEUR
 
@@ -663,7 +674,7 @@ class AidCalculatorService
     return unless eligible_parcours_accompagne?
     return unless @p.income_bracket.present?
 
-    rule = AidRule.find_by(slug: "grand_nancy_renovation_globale", active: true)
+    rule = fetch_rule!("grand_nancy_renovation_globale")
     return unless rule
 
     config  = GN_RENO_GLOBALE_TAUX[@p.income_bracket]
@@ -748,6 +759,26 @@ class AidCalculatorService
   # partout et que @p.dpe_target n'est pas mutée.
   def current_dpe_target
     @dpe_target_override || @p.dpe_target&.upcase
+  end
+
+  # Charge une AidRule par slug. Si absente, trace explicitement la panne
+  # plutôt que de laisser la branche d'aide disparaître en silence.
+  # Politique :
+  #   - rule trouvée → renvoie l'objet, comportement normal.
+  #   - rule absente → Rails.logger.error (visible Heroku/Papertrail) ET
+  #     push d'une entrée préfixée "[interne]" dans @errors. Le préfixe
+  #     est filtré côté vue (_simple_aids) pour ne JAMAIS exposer ce
+  #     détail technique à l'utilisateur — il reste réservé aux logs et
+  #     à une éventuelle UI admin.
+  # Le caller décide de l'effet (return unless rule, ou fallback) — le
+  # helper ne mute que @errors et les logs, jamais @subventions.
+  def fetch_rule!(slug)
+    rule = AidRule.find_by(slug: slug, active: true)
+    return rule if rule
+
+    Rails.logger.error("[AidCalculator] règle absente en DB: #{slug} — relancer db/seeds_local_aids.rb")
+    @errors << "[interne] règle d'aide absente : #{slug}"
+    nil
   end
 
   def territory_grand_nancy?
