@@ -32,19 +32,39 @@ class ApplicationController < ActionController::Base
   end
 
   # Rattache au compte les orphelines portées par le cookie. Tout est
-  # délégué à ClaimToken#claim_orphans! (DB + logs + cleanup cookie).
+  # délégué à ClaimToken#claim_orphans! qui renvoie un Hash structuré
+  # { claimed: [...], left_behind: [...] } — politique « zéro perte » :
+  # les orphelines au-delà de la limite restent en DB avec leur jeton,
+  # et le cookie est réécrit pour qu'un futur sign-in (après libération
+  # de place) reprenne le claim. Le flash informe l'utilisateur des
+  # deux côtés — succès ET échecs — sans jamais mentir au singulier.
+  #
   # Le rescue garantit qu'aucune erreur applicative ne casse le flow
-  # Devise — l'utilisateur reste connecté même si le claim échoue.
+  # Devise : l'utilisateur reste connecté même si le claim échoue.
   def claim_orphans_after_devise
     return unless user_signed_in?
 
-    claimed = claim_orphans!(current_user)
+    result      = claim_orphans!(current_user)
+    claimed     = result[:claimed]
+    left_behind = result[:left_behind]
+
     if claimed.any?
-      flash[:notice] = if claimed.size == 1
-        "Votre bien a été rattaché à votre compte."
-      else
+      flash[:notice] = claimed.size == 1 ?
+        "Votre bien a été rattaché à votre compte." :
         "#{claimed.size} biens ont été rattachés à votre compte."
+    end
+
+    if left_behind.any?
+      msg = if left_behind.size == 1
+        "1 estimation n'a pas pu être rattachée : votre compte est limité " \
+        "à #{ClaimToken::PROPERTY_LIMIT} biens. Libérez de la place puis " \
+        "reconnectez-vous pour la récupérer."
+      else
+        "#{left_behind.size} estimations n'ont pas pu être rattachées : " \
+        "votre compte est limité à #{ClaimToken::PROPERTY_LIMIT} biens. " \
+        "Libérez de la place puis reconnectez-vous pour les récupérer."
       end
+      flash[:alert] = msg
     end
   rescue StandardError => e
     Rails.logger.error("[claim_orphans_after_devise] #{e.class}: #{e.message}")

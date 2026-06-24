@@ -15,8 +15,10 @@
 #   - claim_tokens                       → jetons portés par le navigateur
 #   - claimable_by_browser?(property)    → décide l'accès en lecture
 #   - write_claim_cookie!(token)         → dépose le jeton à la création
-#   - claim_orphans!(user)               → rattache les orphelines du cookie
-#   - delete_claim_cookie!               → efface le cookie après rattachement
+#   - claim_orphans!(user)               → rattache jusqu'à la limite,
+#                                          retourne { claimed:, left_behind: },
+#                                          ne perd jamais une orpheline
+#   - delete_claim_cookie!               → efface le cookie (no-op si vide)
 module ClaimToken
   extend ActiveSupport::Concern
 
@@ -45,9 +47,8 @@ module ClaimToken
 
   # Dépose le jeton dans un cookie signé (inviolable côté client). Appelé
   # par PropertiesController#create quand un visiteur anonyme crée son
-  # premier bien. Le cookie expire dans 30 jours — aligné sur la durée
-  # de vie attendue d'une orpheline avant que le job de nettoyage
-  # (commit 5) ne la purge.
+  # premier bien. Le cookie expire dans 30 jours — fenêtre laissée à
+  # l'utilisateur entre création anonyme et signup/sign-in confirmé.
   #
   # Note : single-value (string), pas array. Si le visiteur crée un 2e
   # bien anonyme, le cookie est remplacé → l'accès à l'orpheline
@@ -72,34 +73,47 @@ module ClaimToken
     cookies.delete(CLAIM_COOKIE)
   end
 
-  # Rattache les Property orphelines dont les jetons sont portés par ce
-  # navigateur au User donné. Idempotent et tolérant aux jetons orphelins
-  # (jeton en cookie sans Property correspondante en DB — purgée, expirée,
-  # déjà rattachée par un autre device).
-  #
-  # Garde-fous :
-  #   - n'agit que sur les Property avec user_id ENCORE nil (pas de vol
-  #     d'un bien déjà possédé par un autre user, même si le claim_token
-  #     fuitait par erreur),
-  #   - respecte la limite de 3 biens par compte (cohérence avec
-  #     PropertiesController#create),
-  #   - efface le cookie en fin de course, quoi qu'il arrive,
-  #   - rescue StandardError au niveau du callback appelant (cf.
-  #     ApplicationController) pour ne JAMAIS casser le flow Devise.
-  #
-  # Retourne la liste des Property effectivement rattachées (peut être vide).
-  def claim_orphans!(user)
-    return [] if user.nil?
-    return [] if claim_tokens.empty?
+  # Limite alignée avec PropertiesController#create — un User ne peut pas
+  # détenir plus de PROPERTY_LIMIT biens. Le claim respecte ce plafond et
+  # met le reste en attente (cf. left_behind).
+  PROPERTY_LIMIT = 3
 
-    claimed = []
+  # Rattache les Property orphelines dont les jetons sont portés par ce
+  # navigateur au User donné. Tolérant aux jetons sans property en DB
+  # (purgée, expirée, déjà rattachée par un autre device).
+  #
+  # Politique « zéro perte » (commit 5/5) :
+  #   - rattache JUSQU'À la limite de PROPERTY_LIMIT biens par user,
+  #   - les orphelines en surplus restent INTACTES en DB (user_id: nil,
+  #     claim_token préservé) → encore revendicables au prochain sign-in,
+  #   - le cookie est RÉÉCRIT avec UNIQUEMENT les jetons des left_behind
+  #     (ou supprimé si tout a été claim) pour que le navigateur puisse
+  #     reprendre le claim après libération de place.
+  #
+  # Garde-fous historiques préservés :
+  #   - where(user_id: nil) → ne vole JAMAIS un bien déjà possédé.
+  #   - rescue StandardError au niveau du callback appelant
+  #     (ApplicationController) → ne casse JAMAIS le flow Devise.
+  #
+  # Retourne un Hash structuré :
+  #   { claimed: [Property, ...], left_behind: [Property, ...] }
+  def claim_orphans!(user)
+    empty_result = { claimed: [], left_behind: [] }
+    return empty_result if user.nil?
+    return empty_result if claim_tokens.empty?
+
+    claimed     = []
+    left_behind = []
 
     claim_tokens.each do |token|
       orphan = Property.where(user_id: nil, claim_token: token).first
-      next unless orphan
+      next unless orphan   # jeton dans le cookie sans property → ignore
 
-      if user.properties.count >= 3
-        Rails.logger.info("[ClaimToken] user##{user.id} déjà à 3 biens — orphan ##{orphan.id} non rattaché")
+      # Le compteur est réévalué à chaque tour : un claim réussi monte la
+      # jauge et peut faire basculer les suivants en left_behind.
+      if user.properties.count >= PROPERTY_LIMIT
+        left_behind << orphan
+        Rails.logger.info("[ClaimToken] user##{user.id} a atteint #{PROPERTY_LIMIT} biens — orphan ##{orphan.id} mis en attente (token préservé)")
         next
       end
 
@@ -110,11 +124,42 @@ module ClaimToken
         claimed << orphan
         Rails.logger.info("[ClaimToken] orphan ##{orphan.id} rattaché à user##{user.id}")
       else
+        # Échec d'update (validation cassée) : on traite l'orpheline comme
+        # left_behind pour ne pas la perdre côté cookie.
+        left_behind << orphan
         Rails.logger.error("[ClaimToken] rattachement orphan ##{orphan.id} échoué : #{orphan.errors.full_messages.join(', ')}")
       end
     end
 
-    delete_claim_cookie!
-    claimed
+    rewrite_or_delete_cookie!(left_behind)
+    { claimed: claimed, left_behind: left_behind }
+  end
+
+  private
+
+  # Politique cookie post-claim :
+  #   - left_behind vide   → rien à reprendre, on supprime le cookie.
+  #   - left_behind non vide → on réécrit le cookie signé avec EXACTEMENT
+  #     les jetons des orphelines restées en attente. Les jetons des
+  #     orphelines claimed disparaissent (leur claim_token a été nullifié
+  #     en DB, ils ne servent plus à rien côté navigateur).
+  # Single-string si une seule orpheline restante (cohérent avec
+  # write_claim_cookie! qui pose une string), tableau au-delà — le
+  # lecteur claim_tokens accepte les deux via Array(raw).
+  def rewrite_or_delete_cookie!(left_behind)
+    if left_behind.empty?
+      delete_claim_cookie!
+      return
+    end
+
+    remaining_tokens = left_behind.map(&:claim_token)
+    value            = remaining_tokens.size == 1 ? remaining_tokens.first : remaining_tokens
+
+    cookies.signed[CLAIM_COOKIE] = {
+      value:    value,
+      expires:  30.days.from_now,
+      httponly: true,
+      secure:   Rails.env.production?
+    }
   end
 end
