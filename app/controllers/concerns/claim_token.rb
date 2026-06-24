@@ -11,8 +11,10 @@
 #   - protège contre l'usurpation : un visiteur ne peut pas se fabriquer
 #     un jeton à la main pour accéder à l'orpheline d'un autre navigateur.
 #
-# Ce concern fournit UNIQUEMENT la lecture pour ce commit. L'écriture
-# (pose du cookie au moment de la création anonyme) arrivera au commit 3.
+# API :
+#   - claim_tokens                       → jetons portés par le navigateur
+#   - claimable_by_browser?(property)    → décide l'accès en lecture
+#   - write_claim_cookie!(token)         → dépose le jeton à la création
 module ClaimToken
   extend ActiveSupport::Concern
 
@@ -37,5 +39,25 @@ module ClaimToken
     property.user_id.nil? &&
       property.claim_token.present? &&
       claim_tokens.include?(property.claim_token)
+  end
+
+  # Dépose le jeton dans un cookie signé (inviolable côté client). Appelé
+  # par PropertiesController#create quand un visiteur anonyme crée son
+  # premier bien. Le cookie expire dans 30 jours — aligné sur la durée
+  # de vie attendue d'une orpheline avant que le job de nettoyage
+  # (commit 5) ne la purge.
+  #
+  # Note : single-value (string), pas array. Si le visiteur crée un 2e
+  # bien anonyme, le cookie est remplacé → l'accès à l'orpheline
+  # précédente est perdu côté navigateur (elle reste en DB jusqu'au
+  # nettoyage). Acceptable : aujourd'hui rien dans l'UI ne permet de
+  # créer 2 brouillons consécutifs sans rattachement.
+  def write_claim_cookie!(token)
+    cookies.signed[CLAIM_COOKIE] = {
+      value:    token,
+      expires:  30.days.from_now,
+      httponly: true,
+      secure:   Rails.env.production?
+    }
   end
 end

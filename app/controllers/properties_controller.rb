@@ -81,8 +81,23 @@ class PropertiesController < ApplicationController
         render :new, status: :unprocessable_entity
       end
     else
-      session[:pending_property] = property_params.to_h
-      redirect_to new_user_registration_path, notice: "Créez votre compte pour sauvegarder votre dossier."
+      # Parcours anonyme : on crée une Property ORPHELINE (user_id nil)
+      # munie d'un claim_token aléatoire. Le jeton est aussi déposé en
+      # cookie signé côté navigateur — c'est lui qui débloquera la lecture
+      # via set_property_for_read (commit 2) et la revendication à
+      # l'inscription/connexion (commit 4).
+      token = SecureRandom.urlsafe_base64(32)
+      @property = Property.new(property_params)
+      @property.claim_token = token
+      @property.status      = :analyzing
+      if @property.save
+        write_claim_cookie!(token)
+        attach_uploaded_documents
+        PropertyAnalysisJob.perform_later(@property.id)
+        redirect_to @property, notice: "Analyse lancée — la page se met à jour automatiquement."
+      else
+        render :new, status: :unprocessable_entity
+      end
     end
   end
 
