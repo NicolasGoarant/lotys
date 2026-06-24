@@ -304,7 +304,7 @@ class AidCalculatorService
     "superieur"     => { taux_ab: 0.15, taux_ab_passoire: 0.05, plafond:  2_500 }
   }.freeze
 
-  def initialize(property, travaux_actifs: nil)
+  def initialize(property, travaux_actifs: nil, dpe_target_override: nil)
     @p                   = property
     # Sémantique :
     #   nil  (défaut) → aucun filtre, lit tous les équipements/surfaces
@@ -313,6 +313,13 @@ class AidCalculatorService
     #                   Utile pour le cas "utilisateur a tout décoché".
     #   [...]         → seuls les macro-postes listés entrent dans le calcul.
     @travaux_actifs      = travaux_actifs
+    # Override LECTURE SEULE : si présent, toutes les lectures de dpe_target
+    # passent par current_dpe_target et utilisent cette valeur au lieu de
+    # @p.dpe_target. La Property n'est JAMAIS mutée — c'est le garde-fou
+    # anti-persistance (bug auto-snap d'hier ne doit pas régresser).
+    # Utilisé par AidProjectionService pour calculer "à la cible B, ça
+    # donnerait X €" sans toucher à la cible serveur.
+    @dpe_target_override = dpe_target_override&.to_s&.upcase
     @subventions         = []
     @aides_potentielles  = []   # aides non éligibles actuellement mais qui pourraient l'être
     @financement         = []
@@ -379,7 +386,7 @@ class AidCalculatorService
     end
 
     taux       = MPR_TAUX_2026[@p.income_bracket] || 0
-    saut       = dpe_saut(@p.dpe_class&.upcase, @p.dpe_target&.upcase)
+    saut       = dpe_saut(@p.dpe_class&.upcase, current_dpe_target)
     plafond_ht = MPR_PLAFOND_TRAVAUX_HT[[saut, 4].min] || MPR_PLAFOND_TRAVAUX_HT[2]
     base_ht    = [estimated_cost_ht, plafond_ht].min
     montant    = (base_ht * taux).round
@@ -605,7 +612,7 @@ class AidCalculatorService
 
     return if eligible_parcours_accompagne?
 
-    dpe_cible = @p.dpe_target&.upcase
+    dpe_cible = current_dpe_target
     unless %w[A B C].include?(dpe_cible)
       @errors << "Grand Nancy Isolation : cible DPE doit être ≥ C (actuelle cible : #{dpe_cible || '?'})"
       return
@@ -662,7 +669,7 @@ class AidCalculatorService
     config  = GN_RENO_GLOBALE_TAUX[@p.income_bracket]
     return unless config
 
-    dpe_cible  = @p.dpe_target&.upcase
+    dpe_cible  = current_dpe_target
     dpe_actuel = @p.dpe_class&.upcase
 
     # Si la cible actuelle n'est pas A ou B, on émet l'aide en "potentielle"
@@ -718,13 +725,13 @@ class AidCalculatorService
   def eligible_parcours_accompagne?
     nb_gestes   = travaux_prevus.count { |t| %w[ite iti sarking combles_perdus toiture_terrasse plancher_bas menuiseries].include?(t) }
     ventilation = travaux_prevus.include?("vmc")
-    saut        = dpe_saut(@p.dpe_class&.upcase, @p.dpe_target&.upcase)
+    saut        = dpe_saut(@p.dpe_class&.upcase, current_dpe_target)
     nb_gestes >= 2 && ventilation && saut >= 2
   end
 
   def sortie_passoire?
     dpe_actuel = @p.dpe_class&.upcase
-    dpe_cible  = @p.dpe_target&.upcase
+    dpe_cible  = current_dpe_target
     %w[F G].include?(dpe_actuel) && %w[A B C D].include?(dpe_cible)
   end
 
@@ -732,6 +739,15 @@ class AidCalculatorService
     ordre = %w[A B C D E F G]
     return 0 unless actuel && cible
     (ordre.index(actuel) || 0) - (ordre.index(cible) || 0)
+  end
+
+  # Cible DPE effective pour ce calcul — soit l'override LECTURE SEULE passé
+  # à l'initializer (projection "à cible B"), soit la cible serveur de la
+  # Property. NE jamais lire @p.dpe_target directement ailleurs dans le
+  # service : passer par ce helper garantit que l'override est respecté
+  # partout et que @p.dpe_target n'est pas mutée.
+  def current_dpe_target
+    @dpe_target_override || @p.dpe_target&.upcase
   end
 
   def territory_grand_nancy?

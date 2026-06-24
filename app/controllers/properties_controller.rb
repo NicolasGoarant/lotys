@@ -43,6 +43,17 @@ class PropertiesController < ApplicationController
         @property,
         travaux_actifs: travaux_actifs_param
       ).call
+
+      # Projection LECTURE SEULE : "à la cible supérieure la plus proche
+      # qui débloque, ça donnerait X €". Sert à l'UI à inviter sans mentir
+      # (cf. AidProjectionService, garde-fous testés).
+      # Retourne nil si rien à proposer (déjà optimal, revenus manquants,
+      # ou aucune cible supérieure ne change le total) → pas d'invitation.
+      @aid_projection = AidProjectionService.call(
+        @property,
+        current_total:  @aid_result[:total_subventions],
+        travaux_actifs: travaux_actifs_param
+      )
     end
     respond_to do |format|
       format.html

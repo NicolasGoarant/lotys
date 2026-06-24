@@ -176,6 +176,45 @@ class AidCalculatorServiceTest < ActiveSupport::TestCase
                     "total=#{r[:total_subventions]}, subv=#{r[:subventions].inspect}, errors=#{r[:errors].inspect}"
   end
 
+  # ─── Override LECTURE SEULE de dpe_target ────────────────────────────
+
+  # L'override sert à la projection ("à la cible B, ça donnerait X €")
+  # sans toucher à la cible serveur. Le garde-fou critique : la Property
+  # ne doit JAMAIS être mutée — c'est ce qui a fait régresser hier (bug
+  # auto-snap où la cible sautait à B toute seule).
+  test "dpe_target_override ne mute pas la Property" do
+    p = build_property(dpe_target: "C")
+    p.pac_air_eau = true
+
+    snapshot = p.changes.deep_dup
+
+    AidCalculatorService.new(p, dpe_target_override: "B").call
+
+    assert_equal "C", p.dpe_target, "dpe_target doit rester 'C' après un appel override"
+    assert_equal snapshot["dpe_target"], p.changes["dpe_target"],
+                 "L'override ne doit pas modifier l'état dirty de dpe_target (sinon save() ultérieur persisterait B). " \
+                 "Avant : #{snapshot["dpe_target"].inspect}, après : #{p.changes["dpe_target"].inspect}"
+  end
+
+  test "dpe_target_override produit un calcul différent de la cible serveur" do
+    # F → C : saut 3 (parcours accompagné OK). F → B : saut 4.
+    # Le plafond HT MPR Ampleur saute de 40 000 € à 40 000 € (idem),
+    # mais Grand Nancy Réno Globale qui n'est qu'en potentielle à C
+    # bascule en subvention à B → total différent.
+    p = build_property(dpe_class: "F", dpe_target: "C", city: "Nancy", income_bracket: "modeste")
+    p.code_insee        = "54395"
+    p.surface_ite       = 80
+    p.surface_iti       = 30
+    p.vmc_double_flux   = true
+
+    r_courant = AidCalculatorService.new(p).call
+    r_projete = AidCalculatorService.new(p, dpe_target_override: "B").call
+
+    assert_operator r_projete[:total_subventions], :>, r_courant[:total_subventions],
+                    "Override 'B' devrait débloquer Grand Nancy Réno Globale et donc augmenter le total " \
+                    "(courant=#{r_courant[:total_subventions]} €, projeté=#{r_projete[:total_subventions]} €)"
+  end
+
   # ─── Éco-PTZ ───────────────────────────────────────────────────────
 
   test "eco_ptz retourné comme financement, pas comme subvention" do

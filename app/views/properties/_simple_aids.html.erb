@@ -8,9 +8,15 @@
      courante du slider, et met à jour le total en conséquence.
 
      Locals attendus :
-       - property : la Property
-       - aid_result : retour de AidCalculatorService
+       - property        : la Property
+       - aid_result      : retour de AidCalculatorService
+       - aid_projection  : retour de AidProjectionService (peut être nil)
+                           Hash { target:, delta:, total: } si une cible supérieure
+                           débloque plus d'aides. nil = silence (déjà optimal, revenus
+                           manquants, ou aucun saut ne change le total).
 -%>
+
+<% aid_projection ||= nil %>
 
 <%# income_bracket n'est plus saisie directement : on la dérive de
     household_size + RFR via IncomeBracketCalculator (cf. before_save).
@@ -151,6 +157,25 @@
         </p>
       </div>
 
+      <%# Invitation à viser plus ambitieux (LECTURE SEULE, ne touche ni à
+           la cible serveur ni au total ci-dessus). Affichée uniquement si
+           AidProjectionService a trouvé une cible supérieure qui débloque
+           réellement plus d'aides. Le delta est arrondi au 500 € le plus
+           proche : "~X €" = ordre de grandeur honnête, pas un chiffre net. -%>
+      <% if aid_projection %>
+        <% delta_arrondi = aid_projection[:delta] >= 1000 ? (aid_projection[:delta] / 500.0).round * 500 : aid_projection[:delta] %>
+        <div style="margin-top:14px;padding:14px 16px;background:#faf5ff;border:2px dashed #c4b5fd;border-radius:12px;">
+          <p class="bod" style="margin:0 0 6px;font-size:.82rem;color:#374151;">
+            Vos aides actuelles sont calculées sur votre objectif <strong><%= property.dpe_target %></strong>.
+          </p>
+          <p class="bod" style="margin:0;font-size:.82rem;color:#374151;line-height:1.5;">
+            En visant <strong><%= aid_projection[:target] %></strong>, vous débloqueriez environ
+            <strong style="color:#5b21b6;">~<%= number_to_currency(delta_arrondi, unit: "€", format: "%n %u", precision: 0, delimiter: " ") %></strong>
+            de plus — glissez la jauge dans la card « Rénovation énergétique » pour voir le détail.
+          </p>
+        </div>
+      <% end %>
+
       <%# Bloc Grand Nancy — version POTENTIELLE (affichée si cible DPE ≠ A/B).
            Le JS bascule son display en fonction du slider, et écrit le montant
            dans #aide-gn-pot-val. Le préfixe "+" est porté par un span séparé
@@ -213,9 +238,25 @@
         <%# Analyse pas (encore) terminée → l'absence d'aides est suspecte,
             on guide l'utilisateur vers la cause probable. %>
         <p class="bod" style="color:#9ca3af;font-style:italic;">Aucune aide calculable — vérifiez que l'analyse IA a bien été lancée.</p>
+      <% elsif aid_projection %>
+        <%# Pas d'aide à la cible courante MAIS une cible supérieure en
+            débloquerait. On invite à explorer plutôt que d'annoncer un
+            verdict décourageant ("Aucune aide retenue") qui ferait fuir
+            un propriétaire qui en aurait pourtant droit. -%>
+        <% delta_arrondi = aid_projection[:delta] >= 1000 ? (aid_projection[:delta] / 500.0).round * 500 : aid_projection[:delta] %>
+        <div style="padding:14px 16px;background:#faf5ff;border:2px dashed #c4b5fd;border-radius:12px;">
+          <p class="bod" style="margin:0 0 6px;font-size:.82rem;color:#374151;">
+            Vos aides actuelles sont calculées sur votre objectif <strong><%= property.dpe_target %></strong>.
+          </p>
+          <p class="bod" style="margin:0;font-size:.82rem;color:#374151;line-height:1.5;">
+            En visant <strong><%= aid_projection[:target] %></strong>, vous débloqueriez environ
+            <strong style="color:#5b21b6;">~<%= number_to_currency(delta_arrondi, unit: "€", format: "%n %u", precision: 0, delimiter: " ") %></strong>
+            de plus — glissez la jauge dans la card « Rénovation énergétique » pour voir le détail.
+          </p>
+        </div>
       <% else %>
-        <%# Bien analysé/publié sans aides : pas d'inquiétude à transmettre,
-            juste un message neutre invitant à ajuster la sélection. %>
+        <%# Bien analysé/publié sans aides ET aucune cible supérieure ne
+            change la donne : message neutre. Pas de faux espoir. %>
         <p class="bod" style="color:#9ca3af;font-style:italic;">Aucune aide retenue pour le moment — ajustez la jauge ci-dessus.</p>
       <% end %>
     <% end %>
