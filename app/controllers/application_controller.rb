@@ -1,4 +1,6 @@
 class ApplicationController < ActionController::Base
+  include ClaimToken
+
   layout :layout_by_resource
 
   # Callback global : quand l'utilisateur vient de s'inscrire ou de se connecter,

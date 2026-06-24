@@ -264,16 +264,29 @@ class PropertiesController < ApplicationController
     end
   end
 
-  # Lecture :
-  #   - propriétaire : accès à son bien quel que soit le status (draft inclus)
-  #   - autres utilisateurs (y compris non connectés) : uniquement biens publiés
+  # Lecture — trois voies d'autorisation, dans cet ordre :
+  #   1. propriétaire connecté → son bien, quel que soit le status (draft inclus)
+  #   2. orpheline (user_id nil) ET claim_token présent dans le cookie signé
+  #      de CE navigateur → autorisée. Le cookie est inviolable côté client,
+  #      donc un autre visiteur ne peut pas usurper le jeton.
+  #   3. fallback : Property.published.find(id) — visible par tous, y compris
+  #      non connectés. Une orpheline ne peut pas être publiée (l'invariant
+  #      #rattachable + le flux de publication exigent un user), donc le
+  #      fallback ne révèle jamais une orpheline d'un autre navigateur.
   # Ne fait PAS crasher sur user non connecté (bug précédent : current_user nil).
   def set_property_for_read
     if user_signed_in? && current_user.properties.exists?(id: params[:id])
       @property = current_user.properties.find(params[:id])
-    else
-      @property = Property.published.find(params[:id])
+      return
     end
+
+    candidate = Property.find_by(id: params[:id])
+    if candidate && claimable_by_browser?(candidate)
+      @property = candidate
+      return
+    end
+
+    @property = Property.published.find(params[:id])
   rescue ActiveRecord::RecordNotFound
     redirect_to root_path, alert: "Ce bien n'existe pas ou n'est plus disponible."
   end
