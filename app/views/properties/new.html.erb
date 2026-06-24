@@ -238,16 +238,21 @@
         </div>
       </div>
 
+      <%# sm:min-h-12 sur les DEUX labels : à ≥ 640px, le label gauche wrap
+          sur 2 lignes (~48px) tandis que le label droit tient sur 1 ligne
+          (~24px). En forçant les deux à occuper la même hauteur minimale,
+          les inputs en-dessous démarrent au même Y, indépendamment du wrap.
+          Pas de sm: → pas appliqué en mobile colonne-unique (rien à aligner). -%>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <%= f.label :household_size, "Combien de personnes composent votre foyer fiscal ?",
-                class: "block text-base font-semibold text-gray-700 mb-2" %>
+                class: "block text-base font-semibold text-gray-700 mb-2 sm:min-h-12" %>
           <%= f.number_field :household_size, min: 1, max: 19, placeholder: "Ex : 3",
                 class: "w-full border border-gray-200 rounded-xl px-4 py-3.5 text-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50" %>
         </div>
         <div>
           <%= f.label :rfr, "Revenu fiscal de référence",
-                class: "block text-base font-semibold text-gray-700 mb-2" %>
+                class: "block text-base font-semibold text-gray-700 mb-2 sm:min-h-12" %>
           <div class="relative">
             <%= f.number_field :rfr, min: 0, step: 1, placeholder: "Ex : 28 500",
                   class: "w-full border border-gray-200 rounded-xl px-4 py-3.5 pr-10 text-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50" %>
