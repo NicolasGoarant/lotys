@@ -6,35 +6,61 @@ class PropertyDataExtractorService
   end
 
   def call
-    summaries = collect_document_texts
+    bundle = collect_document_texts
 
-    if summaries.blank?
+    if bundle[:llm].blank?
       sync_from_existing_analysis
       return false
     end
 
-    extracted = extract_structured_data(summaries)
+    extracted = extract_structured_data(bundle[:llm])
     update_property(extracted)
+
+    # Filet déterministe : si l'extraction LLM n'a pas posé la surface,
+    # on tente une récupération par regex sur le texte brut des documents.
+    # Cet appel doit avoir lieu ICI, dans la même passe d'analyse, AVANT
+    # toute purge du fichier (cf. PropertyAnalysisJob#purge_documents).
+    apply_surface_regex_fallback(bundle) if @property.reload.surface.blank?
+
     true
   end
 
   private
 
+  # Construit deux versions du texte en une seule passe (un seul download
+  # par document) :
+  #   - :llm   → ai_summary si dispo (plus court, mieux pour le prompt)
+  #             sinon le texte brut PDF tronqué à 3000 chars.
+  #   - :raw   → texte brut PDF systématiquement, utilisé par le filet
+  #             regex (formulations canoniques préservées, pas réécrites
+  #             par l'IA en amont).
   def collect_document_texts
-    texts = []
+    llm = []
+    raw = []
 
     @property.documents.reload.each do |doc|
       next unless doc.file.attached?
 
+      pdf_text = extract_pdf_text(doc)
+      raw << "=== #{doc.document_type.humanize} ===\n#{pdf_text}" if pdf_text.present?
+
       if doc.ai_summary.present?
-        texts << "=== #{doc.document_type.humanize} ===\n#{doc.ai_summary}"
-      else
-        raw = extract_pdf_text(doc)
-        texts << "=== #{doc.document_type.humanize} ===\n#{raw.truncate(3000)}" if raw.present?
+        llm << "=== #{doc.document_type.humanize} ===\n#{doc.ai_summary}"
+      elsif pdf_text.present?
+        llm << "=== #{doc.document_type.humanize} ===\n#{pdf_text.truncate(3000)}"
       end
     end
 
-    texts.join("\n\n")
+    { llm: llm.join("\n\n"), raw: raw.join("\n\n") }
+  end
+
+  def apply_surface_regex_fallback(bundle)
+    source = [bundle[:raw], bundle[:llm]].reject(&:blank?).join("\n\n")
+    surface = SurfaceRegexFallback.call(source)
+    return unless surface
+
+    @property.update(surface: surface)
+    Rails.logger.info("PropertyDataExtractor: filet regex a comblé surface=#{surface} m²")
   end
 
   def extract_pdf_text(document)
