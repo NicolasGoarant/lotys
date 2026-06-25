@@ -480,6 +480,13 @@
 </div>
 
 <script>
+// ═══ Logique pure de dérivation jauge → travaux (testée Node) ═════════════
+// Inlinée depuis app/javascript/dpe_slider_logic.js. Le fichier est aussi
+// utilisé tel quel par test/javascript/dpe_slider_logic_test.rb via Node CLI
+// (cf. guard CommonJS à la fin du fichier). Inline ici pour éviter une étape
+// d'asset pipeline (Lauze tourne en importmap, sans bundler).
+<%= raw File.read(Rails.root.join("app/javascript/dpe_slider_logic.js")) %>
+
 // ═══ État côté client ═══════════════════════════════════════════════════
 var dpe_all=['A','B','C','D','E','F','G'];
 var C_DPE={A:'#16a34a',B:'#4ade80',C:'#a3e635',D:'#ca8a04',E:'#fb923c',F:'#ef4444',G:'#991b1b'};
@@ -519,6 +526,32 @@ var SERVER_REF = {
 // Flag : true tant que l'utilisateur n'a pas persisté sa sélection via le submit.
 // Permet de savoir si les chiffres affichés sont encore "alignés" sur le serveur.
 var TRAVAUX_DIRTY = false;
+
+// ═══ Socle de travaux INVIOLABLE par la jauge ═════════════════════════════
+// Modèle (cf. dpe_slider_logic.js pour le contrat formel) :
+//   - INITIAL_SOCLE   = cases cochées au load (reco Claude + DB).
+//   - USER_SOCLE      = cases que l'user a cochées à la main depuis le load.
+//   - ADDED_BY_SLIDER = cases que la jauge a ajoutées par-dessus le socle.
+//
+// Socle effectif = INITIAL_SOCLE ∪ USER_SOCLE. La jauge automatique ne le
+// touche JAMAIS. Seul ADDED_BY_SLIDER est susceptible d'être retiré quand
+// l'user redescend la jauge.
+//
+// Initialisés vides ici, remplis par initShow() (snapshot DOM au load + setup
+// listeners). Les opérations sur ces Set utilisent l'identité de référence —
+// on ne réassigne pas les variables (Set.clear() au lieu de = new Set()),
+// sauf ADDED_BY_SLIDER qui est remplacé à chaque drag par le retour de
+// deriveSelection.
+var INITIAL_SOCLE   = new Set();
+var USER_SOCLE      = new Set();
+var ADDED_BY_SLIDER = new Set();
+
+// Codes canoniques injectés depuis Ruby pour rester DRY avec
+// TravauxMapperService::CANONICAL_CODES (source de vérité unique).
+// L'ordre sert de tie-breaker stable dans deriveSelection (cas typique :
+// 4 gestes d'impact 0.5 — l'ordre canonique fait que menuiseries arrive
+// dernier, c'était la cause secondaire du bug d'origine).
+var CANONICAL_CODES_JS = <%= raw TravauxMapperService::CANONICAL_CODES.to_json %>;
 
 // ═══ Recalcul temps réel du budget et de la cible DPE selon cases cochées ═
 // Sens 1 : checkboxes → jauge (utilisé par les onchange des checkboxes)
@@ -647,12 +680,18 @@ function marquerAidesPerimees(){
   if(el2){ el2.style.display = 'inline-block'; }
 }
 
-// Sens 2 : jauge (slider) → checkboxes (utilisé par l'oninput du slider)
-// L'utilisateur glisse la jauge jusqu'à une cible X. On coche/décoche les
-// travaux pour s'approcher au mieux de cette cible (par impact DPE décroissant).
-// On ne réajuste PAS la jauge après — c'est la volonté de l'utilisateur qui
-// fait foi, même si les checkboxes cochées produisent un gain légèrement
-// supérieur ou inférieur.
+// Sens 2 : jauge (slider) → checkboxes (utilisé par l'oninput du slider).
+// Wrapper mince autour de deriveSelection (logique pure testée Node, cf.
+// app/javascript/dpe_slider_logic.js + test/javascript/dpe_slider_logic_test.rb).
+//
+// Garanties :
+//   - Le socle effectif (INITIAL_SOCLE ∪ USER_SOCLE) n'est JAMAIS décoché.
+//     Monter la cible ne peut qu'ajouter par-dessus, descendre ne retire
+//     que des codes que la jauge avait elle-même ajoutés.
+//   - Pas de boucle : cb.checked = X par script ne déclenche pas l'event
+//     'change' natif, donc le listener manuel qui maintient USER_SOCLE
+//     n'est pas re-déclenché. Idem slider.value = X dans recalcTravaux ne
+//     re-déclenche pas 'input'. (Vérifié au diagnostic — section §2.)
 function onSliderChange(newTgtVal){
   var tgtIdx = parseInt(newTgtVal);
 
@@ -663,33 +702,43 @@ function onSliderChange(newTgtVal){
     if(slider){ slider.value = tgtIdx; }
   }
 
-  // Positionner la jauge sur la cible exacte voulue par l'utilisateur
+  // Positionner la jauge sur la cible exacte voulue par l'utilisateur.
+  // On la pose AVANT recalcTravaux, qui sera appelé avec skipJaugeUpdate=true
+  // pour ne pas la reprendre depuis le gain dérivé (évite le rebond cosmétique).
   updateJaugeDPE(tgtIdx);
 
-  var gainSouhaite = CUR - tgtIdx;
-  if(gainSouhaite < 0) gainSouhaite = 0;
+  // Socle effectif = union INITIAL ∪ USER (Set spread, dédupe gratuite).
+  var socleEffectif = Array.from(new Set([].concat(
+    Array.from(INITIAL_SOCLE),
+    Array.from(USER_SOCLE)
+  )));
 
-  // Trier les rangées de travaux par impact DPE décroissant (chauffage > isolation > vmc/chauffe-eau/menuiseries)
-  var rows = Array.from(document.querySelectorAll('.travail-check'));
-  rows.sort(function(a, b){
-    var ia = DPE_IMPACT[a.dataset.code] || 0;
-    var ib = DPE_IMPACT[b.dataset.code] || 0;
-    return ib - ia;
+  // Délégation à la fonction pure. addedBySlider précédent passé pour
+  // symétrie de signature, mais ignoré par deriveSelection (résultat
+  // déterministe fonction de (socle, cible) seul — cf. note design).
+  var res = deriveSelection({
+    currentDpeIdx:   CUR,
+    targetIdx:       tgtIdx,
+    socle:           socleEffectif,
+    addedBySlider:   Array.from(ADDED_BY_SLIDER),
+    dpeImpact:       DPE_IMPACT,
+    canonicalCodes:  CANONICAL_CODES_JS
   });
 
-  // Cocher un par un jusqu'à approcher ou dépasser le gain souhaité
-  var cumul = 0;
-  rows.forEach(function(row){
+  // Écriture DOM : on coche exactement ce que res.checked contient, on
+  // décoche le reste. cb.checked = X (assignation propriété) ne dispatch
+  // PAS l'event 'change' — donc le listener qui maintient USER_SOCLE n'est
+  // PAS appelé. C'est la propriété qui empêche la boucle cases↔jauge.
+  var checkedSet = new Set(res.checked);
+  document.querySelectorAll('.travail-check').forEach(function(row){
     var cb = row.querySelector('input[type=checkbox].travail-cb');
-    if(!cb) return;
-    var impact = DPE_IMPACT[row.dataset.code] || 0;
-    if(cumul < gainSouhaite){
-      cb.checked = true;
-      cumul += impact;
-    } else {
-      cb.checked = false;
-    }
+    if(!cb || !row.dataset.code) return;
+    cb.checked = checkedSet.has(row.dataset.code);
   });
+
+  // Met à jour le tracking des ajouts de la jauge (sera consulté à la
+  // prochaine descente pour savoir ce qu'on a le droit de retirer).
+  ADDED_BY_SLIDER = new Set(res.addedBySlider);
 
   // Recalcul budget/aides mais on NE TOUCHE PAS la jauge (skipJaugeUpdate=true)
   recalcTravaux(true);
@@ -712,11 +761,27 @@ function updateJaugeDPE(tgtIdx){
   });
 }
 
-// Raccourci : tout cocher ou tout décocher
+// Raccourci : tout cocher ou tout décocher.
+//
+// Politique alignée avec la décision produit :
+//   - "Tout cocher" (etat=true) : coche toutes les cases DOM, mais NE TOUCHE
+//     PAS aux sets socle/added. La jauge garde la liberté d'enlever ses
+//     propres ajouts à la prochaine interaction. Cohérent avec "les boutons
+//     explicites font ce qu'ils disent" (ici : tout cocher visuellement,
+//     point).
+//   - "Tout décocher" (etat=false) : action explicite et brutale. Vide
+//     vraiment tout — INITIAL_SOCLE, USER_SOCLE, ADDED_BY_SLIDER — pour
+//     remettre l'utilisateur à zéro. Ses cochages manuels suivants
+//     reconstruisent USER_SOCLE via le listener change.
 function toggleAllTravaux(etat){
   document.querySelectorAll('.travail-cb').forEach(function(cb){
     cb.checked = !!etat;
   });
+  if(!etat){
+    INITIAL_SOCLE.clear();
+    USER_SOCLE.clear();
+    ADDED_BY_SLIDER.clear();
+  }
   recalcTravaux();
 }
 
@@ -746,9 +811,51 @@ function calcPret(){
 
 // ═══ Init ═══════════════════════════════════════════════════════════════
 function initShow(){
-  // Écoute sur chaque checkbox travaux pour feedback temps réel
+  // ─── Snapshot du SOCLE INITIAL (reco Claude + ce qui est en DB) ──
+  // Au load, les cases cochées proviennent du serveur (cf. show.html.erb
+  // boucle TravauxMapperService::CANONICAL_CODES, `coche = travaux_actifs.
+  // include?(code)`). On les fige dans INITIAL_SOCLE : c'est ce que la
+  // jauge ne pourra jamais décocher.
+  INITIAL_SOCLE.clear();
+  document.querySelectorAll('.travail-check').forEach(function(row){
+    var cb = row.querySelector('input[type=checkbox].travail-cb');
+    if(cb && cb.checked && row.dataset.code){
+      INITIAL_SOCLE.add(row.dataset.code);
+    }
+  });
+
+  // ─── Listener change : maintient USER_SOCLE ──────────────────────
+  // IMPORTANT : ce handler est appelé UNIQUEMENT par un clic user (les
+  // écritures `cb.checked = X` faites par onSliderChange / toggleAllTravaux
+  // ne dispatch PAS l'event 'change' natif). C'est cette propriété qui
+  // évite la boucle cases↔jauge — ne jamais introduire un dispatchEvent
+  // 'change' depuis du code script sans réfléchir au cycle.
+  //
+  // Sémantique :
+  //   - check → true  : l'user veut ce geste → ajout à USER_SOCLE,
+  //                     sort de ADDED_BY_SLIDER (ce n'est plus un "ajout
+  //                     jauge", c'est un choix explicite).
+  //   - check → false : l'user ne veut PAS ce geste → on le retire de
+  //                     TOUS les sets, y compris INITIAL_SOCLE (si la
+  //                     reco Claude le contenait). Sinon la jauge le
+  //                     re-cocherait au prochain drag, contredisant le
+  //                     choix utilisateur.
   document.querySelectorAll('.travail-cb').forEach(function(cb){
-    cb.addEventListener('change', recalcTravaux);
+    cb.addEventListener('change', function(){
+      var row = cb.closest('.travail-check');
+      var code = row && row.dataset.code;
+      if(code){
+        if(cb.checked){
+          USER_SOCLE.add(code);
+          ADDED_BY_SLIDER.delete(code);
+        } else {
+          INITIAL_SOCLE.delete(code);
+          USER_SOCLE.delete(code);
+          ADDED_BY_SLIDER.delete(code);
+        }
+      }
+      recalcTravaux();
+    });
   });
   // Appel d'init : skipJaugeUpdate=true (on ne touche pas à la jauge calculée
   // depuis les cases) ET initialLoad=true (on cale la jauge sur la cible
