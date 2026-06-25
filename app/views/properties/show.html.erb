@@ -277,7 +277,7 @@
                oninput="onSliderChange(this.value)">
       </div>
       <p class="lbl" id="dpe-estim-lbl" style="text-align:center;margin-bottom:20px;color:#059669;font-size:.66rem;">
-        Objectif : <span id="dpe-estim-val"><%= dpe_all[tgt_idx] %></span> · estimation indicative · glissez la jauge pour ajuster
+        Objectif : <span id="dpe-estim-val"><%= dpe_all[tgt_idx] %></span> · estimation indicative · glissez la jauge ou cochez les travaux, les deux se synchronisent
       </p>
     <% end %>
 
@@ -527,30 +527,8 @@ var SERVER_REF = {
 // Permet de savoir si les chiffres affichés sont encore "alignés" sur le serveur.
 var TRAVAUX_DIRTY = false;
 
-// ═══ Socle de travaux INVIOLABLE par la jauge ═════════════════════════════
-// Modèle (cf. dpe_slider_logic.js pour le contrat formel) :
-//   - INITIAL_SOCLE   = cases cochées au load (reco Claude + DB).
-//   - USER_SOCLE      = cases que l'user a cochées à la main depuis le load.
-//   - ADDED_BY_SLIDER = cases que la jauge a ajoutées par-dessus le socle.
-//
-// Socle effectif = INITIAL_SOCLE ∪ USER_SOCLE. La jauge automatique ne le
-// touche JAMAIS. Seul ADDED_BY_SLIDER est susceptible d'être retiré quand
-// l'user redescend la jauge.
-//
-// Initialisés vides ici, remplis par initShow() (snapshot DOM au load + setup
-// listeners). Les opérations sur ces Set utilisent l'identité de référence —
-// on ne réassigne pas les variables (Set.clear() au lieu de = new Set()),
-// sauf ADDED_BY_SLIDER qui est remplacé à chaque drag par le retour de
-// deriveSelection.
-var INITIAL_SOCLE   = new Set();
-var USER_SOCLE      = new Set();
-var ADDED_BY_SLIDER = new Set();
-
-// Codes canoniques injectés depuis Ruby pour rester DRY avec
-// TravauxMapperService::CANONICAL_CODES (source de vérité unique).
-// L'ordre sert de tie-breaker stable dans deriveSelection (cas typique :
-// 4 gestes d'impact 0.5 — l'ordre canonique fait que menuiseries arrive
-// dernier, c'était la cause secondaire du bug d'origine).
+// Codes canoniques injectés depuis Ruby (source de vérité = TravauxMapperService).
+// Sert de tie-breaker stable dans deriveSelection.
 var CANONICAL_CODES_JS = <%= raw TravauxMapperService::CANONICAL_CODES.to_json %>;
 
 // ═══ Recalcul temps réel du budget et de la cible DPE selon cases cochées ═
@@ -684,14 +662,18 @@ function marquerAidesPerimees(){
 // Wrapper mince autour de deriveSelection (logique pure testée Node, cf.
 // app/javascript/dpe_slider_logic.js + test/javascript/dpe_slider_logic_test.rb).
 //
-// Garanties :
-//   - Le socle effectif (INITIAL_SOCLE ∪ USER_SOCLE) n'est JAMAIS décoché.
-//     Monter la cible ne peut qu'ajouter par-dessus, descendre ne retire
-//     que des codes que la jauge avait elle-même ajoutés.
-//   - Pas de boucle : cb.checked = X par script ne déclenche pas l'event
-//     'change' natif, donc le listener manuel qui maintient USER_SOCLE
-//     n'est pas re-déclenché. Idem slider.value = X dans recalcTravaux ne
-//     re-déclenche pas 'input'. (Vérifié au diagnostic — section §2.)
+// Modèle BIDIRECTIONNEL : la jauge et les cases sont deux vues du même
+// état. Bouger la jauge ajuste les cases ; cocher/décocher les cases
+// recale la jauge (cf. recalcTravaux branche L565-571).
+//
+// INVARIANT : monter la cible (targetIdx diminue) ne RETIRE JAMAIS un
+// geste coché. Descendre PEUT retirer (c'est voulu : on allège).
+//
+// Pas de boucle : `cb.checked = X` (assignation propriété par script)
+// ne dispatch PAS l'event 'change', donc le listener change qui appelle
+// recalcTravaux n'est pas re-déclenché ici. Idem `slider.value = X` dans
+// recalcTravaux ne re-déclenche pas 'input' → pas de rappel à
+// onSliderChange. Propriété structurelle, vérifiée au diagnostic.
 function onSliderChange(newTgtVal){
   var tgtIdx = parseInt(newTgtVal);
 
@@ -703,32 +685,29 @@ function onSliderChange(newTgtVal){
   }
 
   // Positionner la jauge sur la cible exacte voulue par l'utilisateur.
-  // On la pose AVANT recalcTravaux, qui sera appelé avec skipJaugeUpdate=true
-  // pour ne pas la reprendre depuis le gain dérivé (évite le rebond cosmétique).
+  // recalcTravaux sera appelé avec skipJaugeUpdate=true pour ne pas la
+  // reprendre depuis le gain dérivé (évite le rebond cosmétique).
   updateJaugeDPE(tgtIdx);
 
-  // Socle effectif = union INITIAL ∪ USER (Set spread, dédupe gratuite).
-  var socleEffectif = Array.from(new Set([].concat(
-    Array.from(INITIAL_SOCLE),
-    Array.from(USER_SOCLE)
-  )));
-
-  // Délégation à la fonction pure. addedBySlider précédent passé pour
-  // symétrie de signature, mais ignoré par deriveSelection (résultat
-  // déterministe fonction de (socle, cible) seul — cf. note design).
-  var res = deriveSelection({
-    currentDpeIdx:   CUR,
-    targetIdx:       tgtIdx,
-    socle:           socleEffectif,
-    addedBySlider:   Array.from(ADDED_BY_SLIDER),
-    dpeImpact:       DPE_IMPACT,
-    canonicalCodes:  CANONICAL_CODES_JS
+  // Snapshot des cases actuellement cochées (lecture pure du DOM).
+  var currentlyChecked = [];
+  document.querySelectorAll('.travail-check').forEach(function(row){
+    var cb = row.querySelector('input[type=checkbox].travail-cb');
+    if(cb && cb.checked && row.dataset.code){
+      currentlyChecked.push(row.dataset.code);
+    }
   });
 
-  // Écriture DOM : on coche exactement ce que res.checked contient, on
-  // décoche le reste. cb.checked = X (assignation propriété) ne dispatch
-  // PAS l'event 'change' — donc le listener qui maintient USER_SOCLE n'est
-  // PAS appelé. C'est la propriété qui empêche la boucle cases↔jauge.
+  // Délégation à la fonction pure.
+  var res = deriveSelection({
+    currentDpeIdx:    CUR,
+    targetIdx:        tgtIdx,
+    currentlyChecked: currentlyChecked,
+    dpeImpact:        DPE_IMPACT,
+    canonicalCodes:   CANONICAL_CODES_JS
+  });
+
+  // Écriture DOM : on coche exactement ce que res.checked contient.
   var checkedSet = new Set(res.checked);
   document.querySelectorAll('.travail-check').forEach(function(row){
     var cb = row.querySelector('input[type=checkbox].travail-cb');
@@ -736,11 +715,7 @@ function onSliderChange(newTgtVal){
     cb.checked = checkedSet.has(row.dataset.code);
   });
 
-  // Met à jour le tracking des ajouts de la jauge (sera consulté à la
-  // prochaine descente pour savoir ce qu'on a le droit de retirer).
-  ADDED_BY_SLIDER = new Set(res.addedBySlider);
-
-  // Recalcul budget/aides mais on NE TOUCHE PAS la jauge (skipJaugeUpdate=true)
+  // Recalcul budget/aides mais on NE TOUCHE PAS la jauge (skipJaugeUpdate=true).
   recalcTravaux(true);
 }
 
@@ -761,27 +736,12 @@ function updateJaugeDPE(tgtIdx){
   });
 }
 
-// Raccourci : tout cocher ou tout décocher.
-//
-// Politique alignée avec la décision produit :
-//   - "Tout cocher" (etat=true) : coche toutes les cases DOM, mais NE TOUCHE
-//     PAS aux sets socle/added. La jauge garde la liberté d'enlever ses
-//     propres ajouts à la prochaine interaction. Cohérent avec "les boutons
-//     explicites font ce qu'ils disent" (ici : tout cocher visuellement,
-//     point).
-//   - "Tout décocher" (etat=false) : action explicite et brutale. Vide
-//     vraiment tout — INITIAL_SOCLE, USER_SOCLE, ADDED_BY_SLIDER — pour
-//     remettre l'utilisateur à zéro. Ses cochages manuels suivants
-//     reconstruisent USER_SOCLE via le listener change.
+// Raccourci : tout cocher ou tout décocher. recalcTravaux ensuite recale
+// la jauge depuis le nouveau gain DPE cumulé.
 function toggleAllTravaux(etat){
   document.querySelectorAll('.travail-cb').forEach(function(cb){
     cb.checked = !!etat;
   });
-  if(!etat){
-    INITIAL_SOCLE.clear();
-    USER_SOCLE.clear();
-    ADDED_BY_SLIDER.clear();
-  }
   recalcTravaux();
 }
 
@@ -811,51 +771,13 @@ function calcPret(){
 
 // ═══ Init ═══════════════════════════════════════════════════════════════
 function initShow(){
-  // ─── Snapshot du SOCLE INITIAL (reco Claude + ce qui est en DB) ──
-  // Au load, les cases cochées proviennent du serveur (cf. show.html.erb
-  // boucle TravauxMapperService::CANONICAL_CODES, `coche = travaux_actifs.
-  // include?(code)`). On les fige dans INITIAL_SOCLE : c'est ce que la
-  // jauge ne pourra jamais décocher.
-  INITIAL_SOCLE.clear();
-  document.querySelectorAll('.travail-check').forEach(function(row){
-    var cb = row.querySelector('input[type=checkbox].travail-cb');
-    if(cb && cb.checked && row.dataset.code){
-      INITIAL_SOCLE.add(row.dataset.code);
-    }
-  });
-
-  // ─── Listener change : maintient USER_SOCLE ──────────────────────
-  // IMPORTANT : ce handler est appelé UNIQUEMENT par un clic user (les
-  // écritures `cb.checked = X` faites par onSliderChange / toggleAllTravaux
-  // ne dispatch PAS l'event 'change' natif). C'est cette propriété qui
-  // évite la boucle cases↔jauge — ne jamais introduire un dispatchEvent
-  // 'change' depuis du code script sans réfléchir au cycle.
-  //
-  // Sémantique :
-  //   - check → true  : l'user veut ce geste → ajout à USER_SOCLE,
-  //                     sort de ADDED_BY_SLIDER (ce n'est plus un "ajout
-  //                     jauge", c'est un choix explicite).
-  //   - check → false : l'user ne veut PAS ce geste → on le retire de
-  //                     TOUS les sets, y compris INITIAL_SOCLE (si la
-  //                     reco Claude le contenait). Sinon la jauge le
-  //                     re-cocherait au prochain drag, contredisant le
-  //                     choix utilisateur.
+  // Écoute sur chaque checkbox travaux pour feedback temps réel (sens
+  // CASES → JAUGE : recalcTravaux recale la jauge sur la classe atteignable
+  // selon le gain DPE cumulé des cases cochées). cb.checked = X par script
+  // ne dispatch pas 'change', donc onSliderChange ne déclenche pas ce
+  // listener — pas de boucle.
   document.querySelectorAll('.travail-cb').forEach(function(cb){
-    cb.addEventListener('change', function(){
-      var row = cb.closest('.travail-check');
-      var code = row && row.dataset.code;
-      if(code){
-        if(cb.checked){
-          USER_SOCLE.add(code);
-          ADDED_BY_SLIDER.delete(code);
-        } else {
-          INITIAL_SOCLE.delete(code);
-          USER_SOCLE.delete(code);
-          ADDED_BY_SLIDER.delete(code);
-        }
-      }
-      recalcTravaux();
-    });
+    cb.addEventListener('change', recalcTravaux);
   });
   // Appel d'init : skipJaugeUpdate=true (on ne touche pas à la jauge calculée
   // depuis les cases) ET initialLoad=true (on cale la jauge sur la cible

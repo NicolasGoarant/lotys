@@ -10,10 +10,20 @@ require "json"
 # pour Node ET déclarée comme fonction globale en script tag classique (cf.
 # guard `if (typeof module ...)` en fin de fichier).
 #
-# Cas testés (cf. plan I/J/K/N) :
-#   I — Bug menuiseries C→B : socle préservé, le geste fenêtres ne saute plus.
-#   J — Monotonie : cible plus ambitieuse ⇒ checked ne rétrécit jamais.
-#   K — Descente : peut retirer ce que la jauge avait ajouté, jamais le socle.
+# Modèle (rappel) — pilotage BIDIRECTIONNEL jauge↔cases :
+#   - JAUGE → CASES : ce que cette fonction calcule. Monter (cible plus
+#     ambitieuse) ajoute des gestes. Descendre retire les gestes en trop par
+#     impact croissant.
+#   - INVARIANT : monter la cible ne RETIRE JAMAIS un geste coché.
+#
+# Cas testés :
+#   I — Bug historique : currentlyChecked=5 dont menuiseries, C→B (montée) :
+#       aucun retrait, menuiseries reste cochée.
+#   J — Montée pure (départ minimal, cible ambitieuse) : checked grandit.
+#   K — Descente : retraits autorisés, par impact croissant (moins utile
+#       d'abord), sans descendre sous gainSouhaite.
+#   L — Réactivité : un drag de cible qui CHANGE la situation doit modifier
+#       checked. Pas de jauge inerte. C'est le bug du jour à fermer.
 #   N — Pureté : entrées non mutées, idempotent.
 #
 # Si node n'est pas dans le PATH du runner de test, tous les tests sont skip
@@ -22,9 +32,7 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
   NODE_BIN   = "node".freeze
   LOGIC_FILE = Rails.root.join("app/javascript/dpe_slider_logic.js").to_s.freeze
 
-  # Aligné avec show.html.erb:493-501 (DPE_IMPACT JS) et avec
-  # TravauxMapperService::DPE_IMPACT côté Ruby. Si l'un des deux change, ce
-  # test doit suivre.
+  # Aligné avec show.html.erb (DPE_IMPACT JS) et TravauxMapperService::DPE_IMPACT.
   DPE_IMPACT = {
     "isolation_toiture"      => 1.0,
     "isolation_murs"         => 1.0,
@@ -35,9 +43,6 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
     "menuiseries"            => 0.5
   }.freeze
 
-  # Aligné avec TravauxMapperService::CANONICAL_CODES. L'ordre sert de
-  # tie-breaker stable pour le tri par impact décroissant (cas typique :
-  # 4 gestes d'impact 0.5 doivent garder cet ordre).
   CANONICAL_CODES = %w[
     isolation_toiture
     isolation_murs
@@ -69,161 +74,203 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
     JSON.parse(out)
   end
 
-  # ─── I. LE BUG ────────────────────────────────────────────────────────
-  # Socle Claude de 5 gestes (apport DPE 4.5) incluant menuiseries. CUR=F.
-  # Avant le fix : glisser C→B décochait menuiseries. Maintenant : le socle
-  # couvre déjà le gain demandé (4.5 >= 4), donc la jauge ne touche RIEN.
+  # ─── I. Bug historique menuiseries C→B : monotonie en montée ──────────
+  # currentlyChecked = 5 gestes recommandés par Claude, incluant menuiseries.
+  # apport = 4.5 ; cible C (gain 3) → cible B (gain 4). Monter ne doit
+  # JAMAIS retirer un geste. En particulier, menuiseries reste cochée.
 
-  test "I — bug menuiseries C→B : socle inviolable, menuiseries reste cochée à C ET à B" do
-    socle = %w[isolation_toiture isolation_murs chauffage vmc menuiseries]
-    # Apport socle = 1.0 + 1.0 + 1.5 + 0.5 + 0.5 = 4.5
+  test "I — montée C→B avec 5 gestes (dont menuiseries) : aucun retrait, menuiseries reste cochée" do
+    initial = %w[isolation_toiture isolation_murs chauffage vmc menuiseries]
+    # Apport initial = 1.0 + 1.0 + 1.5 + 0.5 + 0.5 = 4.5
 
-    # C : tgt=2, CUR=5 ⇒ gainSouhaite=3, socle apport=4.5 ⇒ socle suffit
+    # Sur cible C (tgt=2, CUR=5, gain=3), apport (4.5) >= gain (3) → branche
+    # "descente" théorique. Mais on retire seulement si ça ne fait pas passer
+    # sous gain. Retirer menuiseries (0.5) ferait passer à 4.0 ≥ 3 ⇒ retiré.
+    # Retirer vmc (0.5) → 3.5 ≥ 3 ⇒ retiré. Retirer iso_plancher (absent).
+    # Retirer chauffe_eau (absent). Iso_toit (1.0) → 2.5 < 3 ⇒ pas retiré.
+    # Donc à C, on s'allège à un minimum. C'est cohérent (la cible C est
+    # MOINS ambitieuse que ce que couvrent 5 gestes Claude).
     res_c = run_derive(
       currentDpeIdx: 5, targetIdx: 2,
-      socle: socle, addedBySlider: [],
+      currentlyChecked: initial,
       dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES
     )
 
-    # B : tgt=1, gainSouhaite=4, socle apport 4.5 ⇒ socle suffit toujours
+    # Cœur du test : on MONTE de C à B. Quel que soit l'état à C, monter
+    # vers B ne doit JAMAIS retirer un geste DÉJÀ coché à C.
+    # On simule le drag C→B en prenant res_c["checked"] comme input.
     res_b = run_derive(
       currentDpeIdx: 5, targetIdx: 1,
-      socle: socle, addedBySlider: [],
+      currentlyChecked: res_c["checked"],
       dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES
     )
 
-    # Menuiseries reste cochée DANS LES DEUX cas (cœur du bug).
-    assert_includes res_c["checked"], "menuiseries",
-                    "C : menuiseries doit rester cochée (socle inviolable)"
-    assert_includes res_b["checked"], "menuiseries",
-                    "B : menuiseries doit rester cochée — c'est exactement le bug : avant fix, C→B la décochait"
+    # MONOTONIE EN MONTÉE : checked à B ⊇ checked à C (aucun retrait).
+    manquants = res_c["checked"] - res_b["checked"]
+    assert_empty manquants,
+                 "Montée C→B : aucun geste coché à C ne doit disparaître à B. Perdus: #{manquants.inspect}"
 
-    # Socle ENTIER inclus dans les deux cas.
-    assert_empty (socle - res_c["checked"]),
-                 "C : tout le socle doit être coché. Manquants: #{(socle - res_c["checked"]).inspect}"
-    assert_empty (socle - res_b["checked"]),
-                 "B : tout le socle doit être coché — le bug retirait certains gestes en visant plus ambitieux"
-
-    # Aucun ajout du slider tant que le socle couvre (idempotent stateless).
-    assert_empty res_c["addedBySlider"],
-                 "C : socle apport >= gainSouhaite ⇒ rien ajouté par la jauge"
-    assert_empty res_b["addedBySlider"],
-                 "B : socle apport >= gainSouhaite ⇒ rien ajouté par la jauge"
+    # Et le cas direct du bug : si on part de la sélection Claude initiale
+    # complète (5 gestes, qui couvre déjà B avec apport 4.5 >= 4), monter
+    # directement à B ne doit toucher à RIEN — surtout pas menuiseries.
+    res_b_direct = run_derive(
+      currentDpeIdx: 5, targetIdx: 1,
+      currentlyChecked: initial,
+      dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES
+    )
+    assert_includes res_b_direct["checked"], "menuiseries",
+                    "Cible B avec 5 gestes Claude (apport 4.5 ≥ gain 4) : menuiseries reste cochée. C'est exactement le bug d'origine."
+    # apport actuel (4.5) > gain (4). Branche descente : tente de retirer
+    # menuiseries (0.5) → 4.0 ≥ 4 ⇒ retiré. C'est OK ici, on n'est PAS
+    # dans le scénario "montée depuis C" — on a directement chargé à B.
+    # L'invariant qui mord vraiment, c'est la montée. Vérifions-le ailleurs.
   end
 
-  # ─── J. MONOTONIE ──────────────────────────────────────────────────────
-  # Pour un socle faible (apport 1.5), monter la cible de F vers A doit
-  # toujours faire grandir (ou stagner) `checked`. Le socle est inclus
-  # à chaque cran.
+  # ─── J. Montée pure : départ minimal, cible ambitieuse ⇒ ajouts ─────
 
-  test "J — monotonie : cibles croissantes (F→…→A) ne rétrécissent jamais checked, socle toujours inclus" do
-    socle = %w[chauffage] # apport 1.5
-    cur   = 6             # CUR = G
+  test "J — montée pure (D → B depuis 1 geste) : checked grandit, aucun retrait" do
+    initial = %w[chauffage] # apport 1.5
+    cur     = 6              # CUR = G
 
-    prev_checked = nil
-    # Cibles de moins ambitieuse (F=5) à plus ambitieuse (A=0).
-    [5, 4, 3, 2, 1, 0].each do |tgt|
-      res = run_derive(
-        currentDpeIdx: cur, targetIdx: tgt,
-        socle: socle, addedBySlider: [],
-        dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES
-      )
-      checked = res["checked"]
-
-      # Socle inclus à chaque cran.
-      assert_empty (socle - checked),
-                   "tgt=#{tgt} : socle doit rester inclus. Manquants: #{(socle - checked).inspect}"
-
-      # Monotonie : nouveau checked ⊇ ancien checked.
-      if prev_checked
-        manquants = prev_checked - checked
-        assert_empty manquants,
-                     "tgt=#{tgt} : rétrécissement détecté en montant la cible. Gestes perdus: #{manquants.inspect}. " \
-                     "Avant: #{prev_checked.inspect}. Maintenant: #{checked.inspect}"
-      end
-
-      prev_checked = checked
-    end
-  end
-
-  # ─── K. DESCENTE ───────────────────────────────────────────────────────
-  # Aller à A puis redescendre à D : on PEUT retirer des ajouts de la jauge,
-  # mais le socle reste intouché. Les retraits doivent tous être des codes
-  # qui étaient dans addedBySlider à A.
-
-  test "K — descente A→D : peut retirer ce que la jauge a ajouté, JAMAIS le socle" do
-    socle = %w[chauffage] # apport 1.5
-    cur   = 6
-
-    # Montée à A : la jauge ajoute beaucoup.
-    res_a = run_derive(
-      currentDpeIdx: cur, targetIdx: 0,
-      socle: socle, addedBySlider: [],
+    res_d = run_derive(
+      currentDpeIdx: cur, targetIdx: 3, # D, gain 3
+      currentlyChecked: initial,
       dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES
     )
 
-    # Sanity : à A, des ajouts ont bien été faits.
-    refute_empty res_a["addedBySlider"], "Sanity : à A, la jauge doit avoir ajouté"
+    # apport(1.5) < gain(3) → ajouts par impact décroissant.
+    # iso_toit 1.0 → cumul 2.5 ; iso_murs 1.0 → cumul 3.5 ≥ 3 STOP.
+    # Donc res_d devrait être chauffage + iso_toit + iso_murs (3 gestes).
+    assert_includes res_d["checked"], "chauffage", "chauffage initial conservé"
+    assert_operator res_d["checked"].size, :>=, initial.size,
+                    "Montée : checked ne rétrécit pas"
+    refute (initial - res_d["checked"]).any?,
+           "Initial intégralement préservé en montée"
 
-    # Redescente à D : tgt=3, gainSouhaite=3 ; apport socle 1.5 ⇒ reste 1.5
+    # Monter encore : D → B (gain 4)
+    res_b = run_derive(
+      currentDpeIdx: cur, targetIdx: 1, # B
+      currentlyChecked: res_d["checked"],
+      dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES
+    )
+    assert_empty (res_d["checked"] - res_b["checked"]),
+                 "Montée D→B : aucun retrait"
+    assert_operator res_b["checked"].size, :>=, res_d["checked"].size,
+                    "Montée D→B : checked ≥ checked à D"
+  end
+
+  # ─── K. Descente : retraits OK, par impact croissant, sans sous-cible ─
+
+  test "K — descente A→D depuis 5 gestes : peut retirer, par impact croissant, sans descendre sous gain" do
+    initial = %w[isolation_toiture isolation_murs chauffage chauffe_eau menuiseries]
+    # Apport = 1.0 + 1.0 + 1.5 + 0.5 + 0.5 = 4.5
+    cur = 6 # G
+
+    # Descente vers D : gain = 3. apport 4.5 > 3.
+    # Retrait croissant : menuiseries (0.5) → 4.0 ≥ 3 ⇒ retiré.
+    # chauffe_eau (0.5) → 3.5 ≥ 3 ⇒ retiré.
+    # iso_toit (1.0) → 2.5 < 3 ⇒ NON retiré.
+    # iso_murs (1.0) → 2.5 < 3 ⇒ NON retiré.
+    # chauffage (1.5) → 3.0 ≥ 3 ⇒ retiré ? Oui ! cumul 3.0 == gain 3 → OK.
+    #
+    # Mais wait : l'ordre est croissant. Menuiseries (0.5), chauffe_eau (0.5),
+    # vmc (0.5, absent), iso_plancher (0.5, absent), iso_toit (1.0),
+    # iso_murs (1.0), chauffage (1.5). On itère dans cet ordre, on retire
+    # tant que cumul - impact >= gain. Résultat : on garde au moins ce qui
+    # est nécessaire pour rester à gain.
     res_d = run_derive(
       currentDpeIdx: cur, targetIdx: 3,
-      socle: socle,
-      addedBySlider: res_a["addedBySlider"],
+      currentlyChecked: initial,
       dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES
     )
 
-    # Socle toujours là.
-    assert_empty (socle - res_d["checked"]),
-                 "Descente : socle doit rester inclus. Manquants: #{(socle - res_d["checked"]).inspect}"
+    # Sanity : on est descendu — checked peut rétrécir.
+    assert_operator res_d["checked"].size, :<, initial.size,
+                    "Descente : au moins un retrait"
 
-    # checked à D ⊆ checked à A (on est descendu, on a moins ou égal).
-    extras = res_d["checked"] - res_a["checked"]
-    assert_empty extras,
-                 "Descente : checked à D doit être un sous-ensemble de A. Extras: #{extras.inspect}"
+    # Apport résiduel >= gainSouhaite (on ne descend jamais sous la cible).
+    apport_res = res_d["checked"].sum { |code| DPE_IMPACT[code] }
+    assert_operator apport_res, :>=, 3.0,
+                    "Apport résiduel #{apport_res} doit rester >= gain 3"
 
-    # CHAQUE retrait (A \ D) doit être un code qui était dans addedBySlider à A
-    # ET ne doit JAMAIS être dans le socle.
-    retraits = res_a["checked"] - res_d["checked"]
-    refute_empty retraits, "Sanity : descendre A→D doit retirer au moins un geste"
-    retraits.each do |code|
-      assert_includes res_a["addedBySlider"], code,
-                      "Retrait '#{code}' : doit avoir été ajouté par la jauge (présent dans addedBySlider précédent)"
-      refute_includes socle, code,
-                      "Retrait '#{code}' : NE DOIT PAS être dans le socle"
+    # Les retraits doivent être des gestes à IMPACT FAIBLE (croissant).
+    # Tous les gestes encore présents doivent avoir un impact >= au plus
+    # gros retrait (sinon on aurait dû alléger le retrait plus lourd).
+    # On vérifie spécifiquement : si menuiseries (0.5) est retirée, alors
+    # chauffage (1.5) ne doit pas avoir été retiré "à sa place".
+    retraits = initial - res_d["checked"]
+    retraits.each do |r_code|
+      r_impact = DPE_IMPACT[r_code]
+      # Aucun geste plus lourd retiré que ce r_code, à moins qu'il ait fallu.
+      # Simple version : impact des retraits ne doit pas être strictement
+      # supérieur à l'impact du plus petit geste resté.
+      restes_impacts = res_d["checked"].map { |c| DPE_IMPACT[c] }
+      if restes_impacts.any?
+        plus_petit_reste = restes_impacts.min
+        assert_operator r_impact, :<=, plus_petit_reste + 0.001,
+                        "Retrait '#{r_code}' (impact #{r_impact}) > plus petit reste (#{plus_petit_reste}) : violation du principe 'retirer le moins utile d'abord'"
+      end
     end
   end
 
-  # ─── N. PURETÉ ─────────────────────────────────────────────────────────
-  # Vérifie :
-  #   a) idempotence — deux appels avec mêmes entrées ⇒ mêmes sorties
-  #   b) non-mutation — les arrays/objets passés en entrée ne sont pas modifiés
-  # On fait LE TEST EN UN SEUL APPEL NODE pour observer la mutation potentielle
-  # côté process JS (Node CLI redémarre à chaque Open3, donc 2 calls Open3
-  # masqueraient une mutation interne).
+  # ─── L. Réactivité (LE BUG DU JOUR) ───────────────────────────────────
+  # Un drag de jauge qui change la situation DOIT modifier checked.
+  # Avant le fix d'aujourd'hui : la jauge devenait inerte parce que le socle
+  # bloquait tout retrait. Maintenant : descente = retrait OK.
+
+  test "L — réactivité : descendre la cible avec apport excédentaire DOIT alléger checked (jauge non inerte)" do
+    initial = %w[isolation_toiture isolation_murs chauffage vmc menuiseries]
+    # Apport = 4.5. CUR = F (5). Si l'utilisateur passe de C (gain 3) à
+    # E (gain 1), apport (4.5) >> gain (1) : la jauge doit ALLÉGER.
+    res_e = run_derive(
+      currentDpeIdx: 5, targetIdx: 4, # E
+      currentlyChecked: initial,
+      dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES
+    )
+
+    refute_equal initial.sort, res_e["checked"].sort,
+                 "Drag vers cible MOINS ambitieuse avec apport excédentaire DOIT changer checked. " \
+                 "Avant fix d'aujourd'hui, la jauge restait inerte avec ce scénario. " \
+                 "initial=#{initial.sort.inspect}, après=#{res_e["checked"].sort.inspect}"
+
+    # Et la cible reste atteinte (apport >= gain).
+    apport_res = res_e["checked"].sum { |code| DPE_IMPACT[code] }
+    assert_operator apport_res, :>=, 1.0,
+                    "Apport résiduel #{apport_res} doit rester >= gain 1"
+
+    # Cas symétrique en montée : départ minimal, viser plus haut DOIT
+    # ajouter des cases.
+    res_b = run_derive(
+      currentDpeIdx: 6, targetIdx: 1, # G → B, gain 5, depuis chauffage seul
+      currentlyChecked: %w[chauffage],
+      dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES
+    )
+    refute_equal %w[chauffage], res_b["checked"],
+                 "Drag vers cible plus ambitieuse avec apport insuffisant DOIT ajouter des cases"
+  end
+
+  # ─── N. Pureté : idempotent + entrées non mutées ─────────────────────
+  # Test scripté en UN SEUL process Node (deux Open3 successifs masqueraient
+  # une mutation interne car Node redémarre à chaque appel).
 
   test "N — pureté : idempotent, n'altère pas les arrays/objets passés en entrée" do
     script = <<~JS
       const { deriveSelection } = require(#{LOGIC_FILE.inspect});
-      const socle      = ['chauffage', 'isolation_toiture'];
-      const added      = ['isolation_murs'];
+      const checked    = ['chauffage', 'isolation_toiture'];
       const dpeImpact  = #{DPE_IMPACT.to_json};
       const canonical  = #{CANONICAL_CODES.to_json};
 
-      // Snapshot AVANT
-      const snapshotBefore = JSON.stringify({ socle, added, dpeImpact, canonical });
+      const snapshotBefore = JSON.stringify({ checked, dpeImpact, canonical });
 
-      // Deux appels successifs avec les MÊMES références.
       const input = {
         currentDpeIdx: 5, targetIdx: 1,
-        socle, addedBySlider: added,
+        currentlyChecked: checked,
         dpeImpact, canonicalCodes: canonical
       };
       const res1 = deriveSelection(input);
       const res2 = deriveSelection(input);
 
-      // Snapshot APRÈS
-      const snapshotAfter = JSON.stringify({ socle, added, dpeImpact, canonical });
+      const snapshotAfter = JSON.stringify({ checked, dpeImpact, canonical });
 
       console.log(JSON.stringify({
         idempotent:   JSON.stringify(res1) === JSON.stringify(res2),

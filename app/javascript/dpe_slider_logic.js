@@ -1,101 +1,121 @@
 // app/javascript/dpe_slider_logic.js
 //
-// Fonction PURE qui dérive la sélection de travaux quand la jauge DPE bouge.
+// Fonction PURE qui dérive la nouvelle sélection de travaux quand l'utilisateur
+// déplace la jauge DPE. Pilotage BIDIRECTIONNEL :
 //
-// Modèle :
-//   - SOCLE = travaux qu'on ne touche JAMAIS automatiquement.
-//             Au runtime, c'est l'union de :
-//               * INITIAL_SOCLE = travaux cochés au chargement (reco Claude
-//                 + ce que l'utilisateur avait persisté en DB).
-//               * USER_SOCLE    = travaux que l'utilisateur a cochés à la main
-//                 depuis le chargement (et pas redécochés).
-//   - ADDED_BY_SLIDER = ce que la jauge a ajouté par-dessus le socle pour
-//             atteindre une cible plus ambitieuse. C'est le SEUL ensemble que
-//             les mouvements de jauge ont le droit de retirer.
+//   - JAUGE → CASES (cette fonction) : bouger la jauge ajuste les cases pour
+//     atteindre la cible. Monter (cible plus ambitieuse) = AJOUTER. Descendre
+//     = RETIRER ce qui devient inutile.
 //
-// Garanties de cette fonction :
-//   1. INVIOLABILITÉ du socle : `checked` inclut TOUJOURS tout le socle, quel
-//      que soit `targetIdx`. Aucun geste du socle n'est jamais retiré par la
-//      jauge.
-//   2. MONOTONIE en cible : pour un socle fixé, augmenter la cible (i.e. baisser
-//      `targetIdx`) ne fait jamais rétrécir `checked` (cf. preuve dans le test J).
+//   - CASES → JAUGE (côté show.html.erb, dans recalcTravaux) : cocher/décocher
+//     recale la jauge sur la classe atteignable. Inchangé.
+//
+// INVARIANT CENTRAL — la garantie qui ferme le bug "menuiseries décochée en
+// passant C→B" :
+//
+//   Monter la cible (targetIdx diminue ⇒ gainSouhaite augmente) ne retire
+//   JAMAIS un geste déjà coché. L'ensemble checked ne rétrécit jamais en
+//   passant à une cible plus ambitieuse.
+//
+// Descendre la cible PEUT retirer des gestes (c'est voulu : si la cible est
+// moins ambitieuse, on allège). On retire dans l'ordre d'impact DPE CROISSANT
+// (les moins utiles d'abord), pour ne jamais retirer un geste lourd quand on
+// pouvait alléger sur un geste léger.
+//
+// Garanties :
+//   1. MONOTONIE MONTÉE : currentlyChecked ⊆ checked dès que gainSouhaite ≥
+//      apport actuel. Pas un seul geste perdu en visant mieux.
+//   2. RÉACTIVITÉ : si la cible change et que l'apport des cases ne colle pas,
+//      la fonction modifie checked. Pas de jauge inerte.
 //   3. PURETÉ : aucune lecture DOM, aucun effet de bord, déterministe, ne mute
-//      pas les arrays/Set passés en entrée.
-//
-// Choix de design : `addedBySlider` est accepté en entrée pour symétrie de
-// signature, MAIS n'est PAS consulté dans le calcul. Le résultat dépend
-// uniquement de (currentDpeIdx, targetIdx, socle, dpeImpact, canonicalCodes).
-// Ce choix rend la fonction idempotente et indépendante de l'historique des
-// drags : aller de C directement à A donne le même résultat que C→B→A. On
-// préfère la prévisibilité à la fidélité à un historique LIFO qui serait
-// invisible pour l'utilisateur.
+//      pas les arrays/objets passés en entrée.
 
 function deriveSelection({
   currentDpeIdx,
   targetIdx,
-  socle,
-  addedBySlider, // accepté pour symétrie, non consulté (cf. note ci-dessus)
+  currentlyChecked,
   dpeImpact,
   canonicalCodes
 }) {
-  // ─── Copies défensives : on ne mute jamais les entrées ─────────────────
-  const socleSet = new Set(socle);
+  // ─── Copie défensive : on ne mute jamais les entrées ───────────────────
+  const checkedSet = new Set(currentlyChecked);
 
   // ─── Gain DPE souhaité (clampé à >= 0) ─────────────────────────────────
   // targetIdx >= currentDpeIdx ⇒ aucune amélioration demandée ⇒ gain = 0
-  // (la jauge ne demande aucun ajout, le socle reste, rien d'autre n'est coché).
+  // (autorise alors le retrait de tous les gestes inutiles).
   const gainSouhaite = Math.max(0, currentDpeIdx - targetIdx);
 
-  // ─── Apport DPE déjà couvert par le socle ──────────────────────────────
-  // Le socle est intouchable et coché. Son apport DPE compte dans le total.
-  // Si le socle couvre déjà gainSouhaite, la jauge n'a rien à ajouter.
-  let apportSocle = 0;
-  for (const code of socleSet) {
-    apportSocle += dpeImpact[code] || 0;
-  }
+  // ─── Apport DPE actuellement couvert par les cases cochées ─────────────
+  const apportActuel = sumImpact(checkedSet, dpeImpact);
 
-  // ─── Construction du résultat ──────────────────────────────────────────
-  // checked démarre = socle (inviolable). addedBySlider démarre vide.
-  const checkedSet = new Set(socleSet);
-  const newAddedSet = new Set();
+  if (apportActuel < gainSouhaite) {
+    // ─── MONTÉE : on AJOUTE des gestes hors checked pour combler le déficit.
+    // Aucun retrait : la monotonie est préservée par construction (on ne
+    // touche jamais aux cases déjà cochées dans cette branche).
+    const candidats = candidatsHors(checkedSet, canonicalCodes, dpeImpact);
+    // Tri stable décroissant par impact : gros gestes d'abord, ils couvrent
+    // plus vite la cible. L'ordre canonicalCodes sert de tie-breaker stable
+    // pour les gestes à impact égal (typique : les 4 gestes à 0.5).
+    candidats.sort((a, b) => b.impact - a.impact);
 
-  if (gainSouhaite > apportSocle) {
-    // Le socle ne suffit pas : on AJOUTE des gestes HORS socle pour combler.
-    const reste = gainSouhaite - apportSocle;
+    let cumul = apportActuel;
+    for (const { code, impact } of candidats) {
+      if (cumul >= gainSouhaite) break;
+      checkedSet.add(code);
+      cumul += impact;
+    }
+  } else if (apportActuel > gainSouhaite) {
+    // ─── DESCENTE : on RETIRE des gestes en trop, par impact CROISSANT
+    // (les moins utiles d'abord). On s'arrête dès qu'un retrait
+    // supplémentaire ferait passer sous gainSouhaite — on veut COLLER au
+    // plus près sans descendre dessous.
+    //
+    // Note : retirer "le moins utile d'abord" n'est pas un comportement
+    // arbitraire — c'est le retrait le plus prévisible pour l'utilisateur
+    // (les gestes lourds, qu'il "voit" comme structurants, restent).
+    const candidats = candidatsDans(checkedSet, canonicalCodes, dpeImpact);
+    // Tri stable croissant par impact.
+    candidats.sort((a, b) => a.impact - b.impact);
 
-    // Candidats : codes canoniques hors socle (avec leur impact).
-    // L'ordre des codes canoniques (`canonicalCodes`) sert de tie-breaker
-    // stable quand plusieurs gestes ont le même impact (typique : isolation
-    // plancher / chauffe-eau / VMC / menuiseries sont tous à 0.5).
-    const candidates = canonicalCodes
-      .filter(code => !socleSet.has(code))
-      .map(code => ({ code, impact: dpeImpact[code] || 0 }));
-
-    // Tri stable décroissant par impact. JS Array#sort est stable depuis
-    // ES2019 (Node 12+). Donc en cas d'égalité d'impact, l'ordre d'apparition
-    // dans `canonicalCodes` est préservé.
-    candidates.sort((a, b) => b.impact - a.impact);
-
-    // Glouton : coche tant que le cumul d'apports ajoutés est strictement
-    // inférieur au reste à combler. La condition `cumul < reste` (et non `<=`)
-    // garantit qu'on s'arrête dès qu'on a atteint la cible, sans sur-cocher.
-    let cumul = 0;
-    for (const { code, impact } of candidates) {
-      if (cumul < reste) {
-        checkedSet.add(code);
-        newAddedSet.add(code);
-        cumul += impact;
-      }
+    let cumul = apportActuel;
+    for (const { code, impact } of candidats) {
+      // Ne retire que si on reste >= gainSouhaite après retrait.
+      if (cumul - impact < gainSouhaite) continue;
+      checkedSet.delete(code);
+      cumul -= impact;
     }
   }
-  // Else : gainSouhaite <= apportSocle. Le socle couvre tout seul. La jauge
-  // n'ajoute RIEN. Si addedBySlider précédent contenait des gestes, ils sont
-  // implicitement retirés (newAddedSet vide). Aucun geste du socle ne sort.
+  // Else (apportActuel === gainSouhaite) : on est pile à la cible, rien à
+  // faire. checkedSet inchangé.
 
-  return {
-    checked:       Array.from(checkedSet),
-    addedBySlider: Array.from(newAddedSet)
-  };
+  return { checked: Array.from(checkedSet) };
+}
+
+// ─── Helpers internes (purs aussi) ──────────────────────────────────────
+
+function sumImpact(set, dpeImpact) {
+  let s = 0;
+  for (const code of set) s += dpeImpact[code] || 0;
+  return s;
+}
+
+// Codes canoniques HORS du set passé, avec leur impact. Préserve l'ordre
+// canonicalCodes (utilisé comme tie-breaker stable par les sorts qui suivent).
+function candidatsHors(set, canonicalCodes, dpeImpact) {
+  const out = [];
+  for (const code of canonicalCodes) {
+    if (!set.has(code)) out.push({ code, impact: dpeImpact[code] || 0 });
+  }
+  return out;
+}
+
+// Codes canoniques DANS le set. Même remarque sur l'ordre.
+function candidatsDans(set, canonicalCodes, dpeImpact) {
+  const out = [];
+  for (const code of canonicalCodes) {
+    if (set.has(code)) out.push({ code, impact: dpeImpact[code] || 0 });
+  }
+  return out;
 }
 
 // ─── Double export : Node CommonJS pour les tests, global pour le browser ──
