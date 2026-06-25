@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>SPÉCIMEN — Facture d'énergie — 14 rue des Tilleuls, Vandœuvre-lès-Nancy</title>
+<style>
+  @page { size: A4; margin: 16mm; }
+  body {
+    font-family: "Helvetica", "Arial", sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.4;
+    color: #111;
+    max-width: 180mm;
+    margin: 0 auto;
+    padding: 8mm;
+  }
+  header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #d62b1f; padding-bottom: 10px; }
+  .logo {
+    font-weight: 900;
+    font-size: 22pt;
+    color: #d62b1f;
+    letter-spacing: 1.5px;
+  }
+  .logo .barre { display:inline-block; width: 16px; height: 16px; background:#d62b1f; margin-right: 6px; vertical-align: -2px; }
+  .logo .sub { display:block; font-size: 9.5pt; color: #555; font-weight: normal; letter-spacing: 0; margin-top: 2px; }
+
+  .destinataire {
+    margin-top: 18px;
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .destinataire .bloc { font-size: 10pt; }
+  .destinataire .bloc h4 { margin: 0 0 4px; font-size: 9.5pt; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+
+  .ref {
+    margin-top: 14px;
+    background: #f6f6f6;
+    border-left: 4px solid #d62b1f;
+    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 24px;
+    font-size: 10pt;
+  }
+  .ref strong { color: #d62b1f; }
+
+  h2 { color: #d62b1f; font-size: 12pt; margin-top: 18px; border-bottom: 1px solid #d62b1f; padding-bottom: 2px; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 10pt; }
+  th, td { border: 1px solid #ddd; padding: 5px 8px; text-align: left; }
+  th { background: #faecea; color: #d62b1f; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.total td { font-weight: bold; background: #f6f6f6; }
+  tr.ttc td { font-weight: bold; background: #d62b1f; color: #fff; font-size: 11.5pt; }
+
+  .resume {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 16px;
+  }
+  .conso-box, .montant-box {
+    border: 1px solid #e6c5c2;
+    padding: 10px;
+  }
+  .conso-box h3, .montant-box h3 { margin: 0 0 6px; font-size: 11pt; color: #d62b1f; }
+  .conso-box .gros { font-size: 18pt; font-weight: bold; color: #111; }
+  .montant-box .gros { font-size: 20pt; font-weight: bold; color: #d62b1f; }
+
+  .legende { font-size: 9pt; color: #555; margin-top: 4px; }
+
+  .specimen {
+    position: fixed;
+    top: 45%;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 70pt;
+    color: rgba(180, 0, 0, 0.07);
+    transform: rotate(-22deg);
+    letter-spacing: 14px;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  footer { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 6px; font-size: 8.5pt; color: #555; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<div class="specimen">SPÉCIMEN</div>
+
+<header>
+  <div class="logo">
+    <span class="barre"></span>FLAMME ÉNERGIE
+    <span class="sub">Fournisseur d'électricité et de gaz naturel (fictif) — SAS au capital de 1 € — RCS Nancy 000 000 000</span>
+  </div>
+  <div style="text-align:right; font-size:9.5pt;">
+    Service Clients : 09 99 00 00 00<br>
+    contact@flamme-energie-specimen.test<br>
+    Espace client : flamme-energie-specimen.test
+  </div>
+</header>
+
+<div class="destinataire">
+  <div class="bloc">
+    <h4>Émetteur</h4>
+    FLAMME ÉNERGIE SAS<br>
+    Centre de facturation<br>
+    BP 99 — 54000 NANCY CEDEX<br>
+    TVA FR00 000 000 000
+  </div>
+  <div class="bloc" style="text-align:right;">
+    <h4>Adressé à</h4>
+    M. et Mme TEST-DUPONT<br>
+    14 rue des Tilleuls<br>
+    54500 VANDŒUVRE-LÈS-NANCY
+  </div>
+</div>
+
+<div class="ref">
+  <div><strong>Facture n° :</strong> 2026-03-FE-00427183</div>
+  <div><strong>Date d'émission :</strong> 15 mars 2026</div>
+  <div><strong>N° client :</strong> 7842-001</div>
+  <div><strong>Échéance :</strong> 05 avril 2026</div>
+  <div><strong>Contrat :</strong> Gaz Naturel — Tarif Confort</div>
+  <div><strong>Mode de paiement :</strong> Prélèvement automatique</div>
+  <div><strong>Point de livraison (PCE) :</strong> GI000000123456</div>
+  <div><strong>Adresse de consommation :</strong> 14 rue des Tilleuls, 54500 Vandœuvre-lès-Nancy</div>
+  <div><strong>Type de logement :</strong> Maison individuelle — 95 m²</div>
+  <div><strong>Période facturée :</strong> du 16 décembre 2025 au 15 mars 2026 (90 jours)</div>
+</div>
+
+<h2>Relevé de consommation — Gaz naturel</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Description</th>
+      <th>Index début (16/12/2025)</th>
+      <th>Index fin (15/03/2026)</th>
+      <th>Volume (m³)</th>
+      <th>Coeff. conv.</th>
+      <th>Énergie (kWh PCS)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Compteur G4 — n° 18472901 — relevé réel</td>
+      <td class="num">8 412</td>
+      <td class="num">9 458</td>
+      <td class="num">1 046</td>
+      <td class="num">11,28</td>
+      <td class="num">11 800</td>
+    </tr>
+  </tbody>
+</table>
+
+<p class="legende">
+  Période hivernale : la consommation représente environ 33 % de la consommation annuelle
+  attendue. Consommation annuelle reconstituée ≈ 35 300 kWh<sub>EF</sub>/an, cohérente avec
+  le DPE du logement (classe F, ~410 kWh<sub>EP</sub>/m².an pour 95 m²).
+</p>
+
+<h2>Détail des prix</h2>
+
+<table>
+  <thead>
+    <tr><th>Désignation</th><th>Quantité</th><th>P.U. HT</th><th>Montant HT</th><th>TVA</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Abonnement Gaz Naturel — Tarif Confort (90 jours)</td>
+      <td class="num">3 mois</td>
+      <td class="num">22,40 €</td>
+      <td class="num">67,20 €</td>
+      <td class="num">5,5 %</td>
+    </tr>
+    <tr>
+      <td>Consommation gaz — part fournisseur</td>
+      <td class="num">11 800 kWh</td>
+      <td class="num">0,0742 €</td>
+      <td class="num">875,56 €</td>
+      <td class="num">20 %</td>
+    </tr>
+    <tr>
+      <td>Acheminement (ATRD GRDF — distribution)</td>
+      <td class="num">11 800 kWh</td>
+      <td class="num">0,0181 €</td>
+      <td class="num">213,58 €</td>
+      <td class="num">20 %</td>
+    </tr>
+    <tr>
+      <td>Accise sur le gaz naturel (ex-TICGN)</td>
+      <td class="num">11 800 kWh</td>
+      <td class="num">0,01637 €</td>
+      <td class="num">193,17 €</td>
+      <td class="num">20 %</td>
+    </tr>
+    <tr>
+      <td>Contribution Tarifaire d'Acheminement (CTA)</td>
+      <td class="num">forfait</td>
+      <td class="num">—</td>
+      <td class="num">14,82 €</td>
+      <td class="num">5,5 %</td>
+    </tr>
+    <tr class="total">
+      <td colspan="3">Total HT</td>
+      <td class="num">1 364,33 €</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td colspan="3">TVA à 5,5 % (abonnement + CTA)</td>
+      <td class="num">4,51 €</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td colspan="3">TVA à 20 % (consommation, acheminement, accise)</td>
+      <td class="num">256,46 €</td>
+      <td></td>
+    </tr>
+    <tr class="ttc">
+      <td colspan="3">TOTAL TTC À PAYER</td>
+      <td class="num">1 625,30 €</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="resume">
+  <div class="conso-box">
+    <h3>Votre consommation</h3>
+    <div class="gros">11 800 kWh PCS</div>
+    <div>sur la période du 16/12/2025 au 15/03/2026 (90 jours)</div>
+    <div class="legende">
+      Soit ≈ 131 kWh/jour en moyenne hivernale.
+      Estimation annuelle reconstituée : <strong>≈ 35 300 kWh/an</strong> pour une maison de 95 m²,
+      cohérente avec un DPE classe F (≈ 410 kWh<sub>EP</sub>/m².an).
+    </div>
+  </div>
+  <div class="montant-box">
+    <h3>Total à régler</h3>
+    <div class="gros">1 625,30 € TTC</div>
+    <div>Prélèvement le 05/04/2026 sur compte se terminant par •••• 27</div>
+    <div class="legende">
+      Toute réclamation doit être adressée au Service Clients sous 60 jours.
+    </div>
+  </div>
+</div>
+
+<h2>Informations utiles</h2>
+<p style="font-size:9.5pt;">
+  Votre logement est classé <strong>F</strong> au DPE. Le passage de F à C via un bouquet de
+  travaux (isolation toiture + murs, remplacement chaudière, ventilation) permettrait,
+  selon le diagnostic, une économie attendue de l'ordre de <strong>1 800 à 2 100 €/an</strong>
+  sur votre facture gaz. Vous pouvez vérifier votre éligibilité aux aides MaPrimeRénov',
+  CEE et aux dispositifs locaux (Grand Nancy / ALEC) auprès de votre conseiller.
+</p>
+
+<footer>
+  <span>SPÉCIMEN — DOCUMENT DE TEST — Fournisseur fictif « FLAMME ÉNERGIE »</span>
+  <span>Page 1/1 — Facture 2026-03-FE-00427183</span>
+</footer>
+
+</body>
+</html>

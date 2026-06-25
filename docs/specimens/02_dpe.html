@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>SPÉCIMEN — DPE — 14 rue des Tilleuls, Vandœuvre-lès-Nancy</title>
+<style>
+  @page { size: A4; margin: 16mm; }
+  body {
+    font-family: "Helvetica", "Arial", sans-serif;
+    font-size: 10.5pt;
+    color: #111;
+    line-height: 1.4;
+    max-width: 180mm;
+    margin: 0 auto;
+    padding: 8mm;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #1a3a6c;
+    padding-bottom: 8px;
+  }
+  header .gauche { font-size: 9pt; }
+  header .titre {
+    text-align: center;
+    flex: 1;
+  }
+  header .titre h1 { margin: 0; color: #1a3a6c; font-size: 17pt; letter-spacing: 1px; }
+  header .titre .sub { font-size: 9.5pt; color: #555; }
+  header .droite { font-size: 9pt; text-align: right; }
+
+  .bloc-id {
+    margin-top: 12px;
+    background: #f3f5f9;
+    border: 1px solid #c9d2e2;
+    padding: 8px 12px;
+    font-size: 10pt;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 16px;
+    row-gap: 3px;
+  }
+  .bloc-id strong { color: #1a3a6c; }
+
+  h2 { color: #1a3a6c; border-bottom: 1px solid #1a3a6c; padding-bottom: 2px; margin-top: 18px; font-size: 12pt; }
+
+  /* Étiquettes énergie / GES */
+  .etiquettes { display: flex; gap: 16px; margin-top: 10px; }
+  .etiquette { flex: 1; border: 1px solid #999; padding: 8px; }
+  .etiquette h3 { margin: 0 0 6px; font-size: 11pt; text-align: center; }
+  .echelle { display: flex; flex-direction: column; gap: 2px; }
+  .barre {
+    display: flex;
+    align-items: center;
+    color: #fff;
+    font-weight: bold;
+    padding: 3px 6px;
+    font-size: 9.5pt;
+  }
+  .barre .lettre { width: 18px; text-align: center; }
+  .barre .val { margin-left: auto; font-weight: normal; font-size: 9pt; }
+  .barre.active { outline: 3px solid #000; font-size: 11pt; padding: 5px 6px; }
+  .e-A { background: #00a651; width: 30%; }
+  .e-B { background: #50b848; width: 40%; }
+  .e-C { background: #aed136; width: 50%; }
+  .e-D { background: #fff200; color: #333; width: 62%; }
+  .e-E { background: #fdb913; width: 74%; }
+  .e-F { background: #f37021; width: 86%; }
+  .e-G { background: #ed1c24; width: 100%; }
+
+  .ges-A { background: #f3eaff; color:#3b1e6b; width: 30%; }
+  .ges-B { background: #d9c2f4; color:#3b1e6b; width: 40%; }
+  .ges-C { background: #b58fe0; color:#fff; width: 50%; }
+  .ges-D { background: #9663cc; color:#fff; width: 62%; }
+  .ges-E { background: #7b3fb6; color:#fff; width: 74%; }
+  .ges-F { background: #5a1d8c; color:#fff; width: 86%; }
+  .ges-G { background: #3b005c; color:#fff; width: 100%; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10pt; }
+  th, td { border: 1px solid #c9d2e2; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #f3f5f9; color: #1a3a6c; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .conso { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+  .conso .case { border: 1px solid #c9d2e2; padding: 8px; text-align: center; }
+  .conso .case .lbl { font-size: 9pt; color: #555; }
+  .conso .case .val { font-size: 14pt; font-weight: bold; color: #1a3a6c; }
+
+  .reco { margin-top: 8px; }
+  .reco-item { border-left: 4px solid #1a3a6c; padding: 6px 10px; margin: 6px 0; background: #f8fafd; }
+  .reco-item .titre-r { font-weight: bold; color: #1a3a6c; }
+  .reco-item .gain { color: #00794d; font-weight: bold; }
+  .priorite { display: inline-block; padding: 1px 6px; border-radius: 3px; color:#fff; font-size: 9pt; margin-right: 6px; }
+  .p1 { background: #c0392b; }
+  .p2 { background: #e67e22; }
+  .p3 { background: #2980b9; }
+
+  .specimen {
+    position: fixed;
+    top: 45%;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 70pt;
+    color: rgba(180, 0, 0, 0.07);
+    transform: rotate(-22deg);
+    letter-spacing: 14px;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  footer { margin-top: 18px; border-top: 1px solid #c9d2e2; padding-top: 6px; font-size: 8.5pt; color: #555; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<div class="specimen">SPÉCIMEN</div>
+
+<header>
+  <div class="gauche">
+    Diagnostiqueur (fictif) :<br>
+    <strong>DIAG'EST SPÉCIMEN SARL</strong><br>
+    8 bis allée des Sapins — 54520 Laxou<br>
+    Cert. : CERTIF-TEST-XYZ — Assurance RCP fictive
+  </div>
+  <div class="titre">
+    <h1>DIAGNOSTIC DE PERFORMANCE ÉNERGÉTIQUE</h1>
+    <div class="sub">Logement individuel — Vente — Arrêté du 31 mars 2021 modifié</div>
+  </div>
+  <div class="droite">
+    N° ADEME : <strong>DPE-TEST-0000000000000</strong><br>
+    Émis le : 04/02/2026<br>
+    Valable jusqu'au : 03/02/2036<br>
+    Méthode : 3CL-DPE 2021
+  </div>
+</header>
+
+<div class="bloc-id">
+  <div><strong>Adresse :</strong> 14 rue des Tilleuls, 54500 Vandœuvre-lès-Nancy</div>
+  <div><strong>Type :</strong> Maison individuelle</div>
+  <div><strong>Surface habitable :</strong> 95 m²</div>
+  <div><strong>Année de construction :</strong> 1962</div>
+  <div><strong>Énergie de chauffage :</strong> Gaz naturel (chaudière ancienne, &gt; 25 ans)</div>
+  <div><strong>Eau chaude sanitaire :</strong> Couplée chaudière gaz</div>
+  <div><strong>Ventilation :</strong> Naturelle par défauts d'étanchéité</div>
+  <div><strong>Menuiseries :</strong> Bois SV partiel + PVC DV partiel (façade arrière)</div>
+  <div><strong>Propriétaires :</strong> M. et Mme Test-Dupont</div>
+  <div><strong>Statut :</strong> Propriétaire occupant — hors copropriété</div>
+</div>
+
+<h2>Étiquettes</h2>
+
+<div class="etiquettes">
+  <div class="etiquette">
+    <h3>Consommation énergétique (énergie primaire)</h3>
+    <div class="echelle">
+      <div class="barre e-A"><span class="lettre">A</span><span class="val">≤ 70</span></div>
+      <div class="barre e-B"><span class="lettre">B</span><span class="val">71 – 110</span></div>
+      <div class="barre e-C"><span class="lettre">C</span><span class="val">111 – 180</span></div>
+      <div class="barre e-D"><span class="lettre">D</span><span class="val">181 – 250</span></div>
+      <div class="barre e-E"><span class="lettre">E</span><span class="val">251 – 330</span></div>
+      <div class="barre e-F active"><span class="lettre">F</span><span class="val">331 – 420 — <strong>410 kWh<sub>EP</sub>/m².an</strong></span></div>
+      <div class="barre e-G"><span class="lettre">G</span><span class="val">&gt; 420</span></div>
+    </div>
+    <p style="font-size:9pt; color:#a00; margin-top:6px;">
+      Logement classé <strong>F — passoire thermique</strong>.
+      Soumis aux obligations de la loi Climat &amp; Résilience (interdiction progressive de
+      mise en location et audit énergétique obligatoire à la vente).
+    </p>
+  </div>
+
+  <div class="etiquette">
+    <h3>Émissions de gaz à effet de serre</h3>
+    <div class="echelle">
+      <div class="barre ges-A"><span class="lettre">A</span><span class="val">≤ 6</span></div>
+      <div class="barre ges-B"><span class="lettre">B</span><span class="val">7 – 11</span></div>
+      <div class="barre ges-C"><span class="lettre">C</span><span class="val">12 – 30</span></div>
+      <div class="barre ges-D"><span class="lettre">D</span><span class="val">31 – 50</span></div>
+      <div class="barre ges-E"><span class="lettre">E</span><span class="val">51 – 70</span></div>
+      <div class="barre ges-F active"><span class="lettre">F</span><span class="val">71 – 100 — <strong>83 kg CO₂eq/m².an</strong></span></div>
+      <div class="barre ges-G"><span class="lettre">G</span><span class="val">&gt; 100</span></div>
+    </div>
+    <p style="font-size:9pt; color:#555; margin-top:6px;">
+      Émissions dominées par la combustion gaz naturel pour le chauffage et l'ECS.
+    </p>
+  </div>
+</div>
+
+<h2>Consommations chiffrées</h2>
+<div class="conso">
+  <div class="case"><div class="lbl">Consommation énergie primaire</div><div class="val">410 kWh<sub>EP</sub>/m².an</div><div class="lbl">soit 38 950 kWh<sub>EP</sub>/an</div></div>
+  <div class="case"><div class="lbl">Consommation énergie finale</div><div class="val">372 kWh<sub>EF</sub>/m².an</div><div class="lbl">soit ≈ 35 340 kWh<sub>EF</sub>/an (gaz)</div></div>
+  <div class="case"><div class="lbl">Coût annuel estimé</div><div class="val">≈ 3 480 € / an</div><div class="lbl">tarifs réglementés 2025, fourchette 3 100 – 3 850 €</div></div>
+</div>
+
+<table>
+  <thead>
+    <tr><th>Poste</th><th>Énergie</th><th>Conso annuelle</th><th>Part</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Chauffage</td><td>Gaz naturel</td><td class="num">28 700 kWh<sub>EF</sub></td><td class="num">81 %</td></tr>
+    <tr><td>Eau chaude sanitaire</td><td>Gaz naturel</td><td class="num">5 100 kWh<sub>EF</sub></td><td class="num">14 %</td></tr>
+    <tr><td>Auxiliaires &amp; éclairage</td><td>Électricité</td><td class="num">1 540 kWh<sub>EF</sub></td><td class="num">5 %</td></tr>
+  </tbody>
+</table>
+
+<h2>Recommandations de travaux (hiérarchisées)</h2>
+<div class="reco">
+
+  <div class="reco-item">
+    <div class="titre-r"><span class="priorite p1">PRIORITÉ 1</span>Isolation des combles perdus (R ≥ 7 m².K/W)</div>
+    <div>Soufflage de laine minérale ou biosourcée sur plancher de combles non isolé.
+      Travaux les plus rentables sur ce type de pavillon 1962 ; chantier rapide, peu d'aléas.</div>
+    <div class="gain">Gain estimé : -25 à -30 % sur la consommation chauffage — ≈ -110 kWh<sub>EP</sub>/m².an</div>
+  </div>
+
+  <div class="reco-item">
+    <div class="titre-r"><span class="priorite p1">PRIORITÉ 1</span>Remplacement du système de chauffage gaz par PAC air/eau</div>
+    <div>Dépose chaudière gaz &gt; 25 ans, pose pompe à chaleur air/eau haute température
+      compatible avec radiateurs existants. Régulation par sonde extérieure.</div>
+    <div class="gain">Gain estimé : -40 à -55 % énergie primaire et -70 % émissions GES</div>
+  </div>
+
+  <div class="reco-item">
+    <div class="titre-r"><span class="priorite p2">PRIORITÉ 2</span>Isolation des murs par l'extérieur (ITE, R ≥ 3,7 m².K/W)</div>
+    <div>Murs maçonnés non isolés (parpaing 1962). ITE polystyrène ou laine de bois,
+      avec reprise des points singuliers (encadrements, tableaux).</div>
+    <div class="gain">Gain estimé : -18 à -22 % sur la consommation totale</div>
+  </div>
+
+  <div class="reco-item">
+    <div class="titre-r"><span class="priorite p2">PRIORITÉ 2</span>Remplacement des menuiseries simple vitrage restantes</div>
+    <div>Façade rue : menuiseries bois SV à déposer ; pose double vitrage à isolation
+      renforcée (Uw ≤ 1,3 W/m².K). Conserver les fenêtres récentes en façade arrière.</div>
+    <div class="gain">Gain estimé : -6 à -9 % + amélioration nette du confort hiver</div>
+  </div>
+
+  <div class="reco-item">
+    <div class="titre-r"><span class="priorite p3">PRIORITÉ 3</span>Installation d'une VMC hygroréglable de type B</div>
+    <div>Indispensable après travaux d'isolation et de menuiseries pour éviter les
+      désordres d'humidité. Réseau gaines à passer en combles isolés.</div>
+    <div class="gain">Gain estimé : -3 à -5 % et qualité d'air intérieur sécurisée</div>
+  </div>
+
+  <div class="reco-item">
+    <div class="titre-r"><span class="priorite p3">PRIORITÉ 3</span>Calorifugeage des réseaux ECS et chauffage en volume non chauffé</div>
+    <div>Sous-sol partiel : isolation des départs primaires et bouclage ECS.</div>
+    <div class="gain">Gain estimé : -2 à -3 % à très faible coût</div>
+  </div>
+
+</div>
+
+<p style="font-size:9.5pt; margin-top:10px;">
+  <strong>Synthèse :</strong> bouquet de travaux complet visant à passer de la classe F vers
+  la classe C, soit un gain attendu d'environ 240 kWh<sub>EP</sub>/m².an. Audit énergétique
+  réglementaire à réaliser avant cession (logement F).
+</p>
+
+<footer>
+  <span>SPÉCIMEN — DOCUMENT DE TEST — N° ADEME factice DPE-TEST-0000000000000</span>
+  <span>Page 1/1</span>
+</footer>
+
+</body>
+</html>
