@@ -1,11 +1,15 @@
 <%# app/views/properties/_simple_financing.html.erb
      Bloc Financement : narration claire de la décomposition du reste à financer.
      Locals attendus :
-       - property : la Property
-       - aid_result : retour de AidCalculatorService (pour montant Éco-PTZ)
-       - reste : reste à financer total (budget - aides)
-       - ptz_utilise : portion couvrable par Éco-PTZ (= min(reste, plafond Éco-PTZ))
-       - reste_banque : portion à financer par un prêt bancaire classique (= reste - ptz_utilise)
+       - property            : la Property
+       - aid_result          : retour de AidCalculatorService (pour montant Éco-PTZ)
+       - reste               : reste à financer total (budget - aides)
+       - ptz_utilise         : portion couvrable par Éco-PTZ (= min(reste, plafond Éco-PTZ))
+       - reste_banque        : portion à financer par un prêt bancaire classique (= reste - ptz_utilise)
+       - is_owner_connecte   : true si propriétaire connecté du bien. Discrimine le
+                               wording du badge stale (vrai recalcul possible vs
+                               estimation indicative pour le claimant). Défaut false
+                               = sûr (jamais de fuite owner si l'appelant oublie).
 
      Approche :
        - Pas de montant "jusqu'à X €" en gros : uniquement le montant réellement
@@ -14,6 +18,8 @@
          comprenne concrètement à quoi s'applique ce prêt à 0 %.
        - Simulateur mensualité sur le prêt bancaire uniquement.
 -%>
+
+<% is_owner_connecte = local_assigns.fetch(:is_owner_connecte, false) %>
 
 <%# Liste simplifiée des travaux éligibles Éco-PTZ, déduite des checkboxes cochées
      par l'utilisateur (travaux_selection sur Property), pas du JSON Claude entier.
@@ -35,8 +41,15 @@
 <div class="cd">
   <div class="cd-hd" style="background:#1d4ed8;display:flex;align-items:center;justify-content:space-between;gap:10px;">
     <span>🏦 Financement</span>
+    <%# Pendant du badge stale d'Aides. Même logique : owner peut recalculer
+         pour de vrai ; claimant non — on ne lui promet pas un recalcul qui
+         n'arrivera jamais sans inscription. %>
     <span id="financement-stale-badge" style="display:none;background:#fbbf24;color:#78350f;font-size:.62rem;font-weight:800;padding:3px 8px;border-radius:10px;text-transform:none;letter-spacing:0;">
-      À recalculer
+      <% if is_owner_connecte %>
+        À recalculer
+      <% else %>
+        Estimation indicative
+      <% end %>
     </span>
   </div>
 

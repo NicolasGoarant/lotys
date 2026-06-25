@@ -8,15 +8,22 @@
      courante du slider, et met à jour le total en conséquence.
 
      Locals attendus :
-       - property        : la Property
-       - aid_result      : retour de AidCalculatorService
-       - aid_projection  : retour de AidProjectionService (peut être nil)
-                           Hash { target:, delta:, total: } si une cible supérieure
-                           débloque plus d'aides. nil = silence (déjà optimal, revenus
-                           manquants, ou aucun saut ne change le total).
+       - property            : la Property
+       - aid_result          : retour de AidCalculatorService
+       - aid_projection      : retour de AidProjectionService (peut être nil)
+                               Hash { target:, delta:, total: } si une cible supérieure
+                               débloque plus d'aides. nil = silence (déjà optimal, revenus
+                               manquants, ou aucun saut ne change le total).
+       - is_owner_connecte   : true si propriétaire connecté du bien. Discrimine les
+                               actions qui MUTENT (submits réels) vs le claimant
+                               anonyme à qui on propose de s'inscrire au lieu de
+                               cliquer un submit qui jetterait sa saisie au passage
+                               par sign-in. Défaut false = sûr (jamais de fuite owner
+                               si l'appelant oublie le local).
 -%>
 
-<% aid_projection ||= nil %>
+<% aid_projection   ||= nil %>
+<% is_owner_connecte = local_assigns.fetch(:is_owner_connecte, false) %>
 
 <%# income_bracket n'est plus saisie directement : on la dérive de
     household_size + RFR via IncomeBracketCalculator (cf. before_save).
@@ -47,8 +54,18 @@
 <div class="cd">
   <div class="cd-hd" style="background:#5b21b6;display:flex;align-items:center;justify-content:space-between;gap:10px;">
     <span>💶 Aides auxquelles vous avez droit</span>
+    <%# Texte du badge stale, révélé en JS par marquerAidesPerimees() après
+         chaque coche/décoche. Owner : peut cliquer le submit pour obtenir
+         le vrai calcul. Claimant : pas de chemin vers un vrai recalcul tant
+         qu'il n'est pas inscrit — on lui dit honnêtement "estimation
+         indicative". Le JS reste agnostique : il ne fait que basculer
+         display:none → inline-block, le texte est figé côté serveur. %>
     <span id="aides-stale-badge" style="display:none;background:#fbbf24;color:#78350f;font-size:.62rem;font-weight:800;padding:3px 8px;border-radius:10px;text-transform:none;letter-spacing:0;">
-      À recalculer — cliquez "Mettre à jour les aides"
+      <% if is_owner_connecte %>
+        À recalculer — cliquez "Mettre à jour les aides"
+      <% else %>
+        Estimation indicative — créez votre compte pour le calcul exact
+      <% end %>
     </span>
   </div>
 
@@ -73,8 +90,17 @@
                 placeholder: "Avis d'imposition",
                 style: "width:100%;padding:9px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:.85rem;background:#fff;" %>
         </div>
-        <%= f.submit "Recalculer",
-              style: "padding:10px 14px;background:#5b21b6;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.78rem;cursor:pointer;white-space:nowrap;" %>
+        <%# Owner : vrai submit qui poste vers update_income_bracket. Claimant :
+             lien d'inscription au même emplacement — l'action est protégée par
+             authenticate_user! et la saisie RFR serait perdue au sign-in. %>
+        <% if is_owner_connecte %>
+          <%= f.submit "Recalculer",
+                style: "padding:10px 14px;background:#5b21b6;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.78rem;cursor:pointer;white-space:nowrap;" %>
+        <% else %>
+          <%= link_to "Créer un compte pour calculer →",
+                new_user_registration_path,
+                style: "padding:10px 14px;background:#5b21b6;color:#fff;border-radius:8px;font-weight:700;font-size:.78rem;text-decoration:none;display:inline-block;white-space:nowrap;text-align:center;" %>
+        <% end %>
       </div>
 
       <% if property.income_bracket.present? && seuils_foyer %>
@@ -195,10 +221,23 @@
               + <span id="aide-gn-pot-val"><%= number_to_currency(gn_aid[:amount], unit: "€", format: "%n %u", precision: 0, delimiter: " ") %></span>
             </p>
           </div>
+          <%# Invitation à activer Grand Nancy Rénovation Globale.
+               Owner : le bouton « Mettre à jour les aides » existe pour lui et
+               recharge avec le vrai montant. Claimant : le bouton n'existe pas
+               (cf. fix point 1) — référencer son libellé serait mensonger. On
+               renvoie plutôt vers la création de compte. %>
           <p class="bod" style="margin:0;font-size:.78rem;color:#374151;line-height:1.5;">
-            Atteignez l'<strong>objectif B ou A</strong> pour activer cette aide : ajustez la jauge
-            dans la card « Rénovation énergétique » puis cliquez <strong>« Mettre à jour les aides »</strong>.
-            Non comptée dans le total ci-dessus tant que la condition n'est pas remplie.
+            <% if is_owner_connecte %>
+              Atteignez l'<strong>objectif B ou A</strong> pour activer cette aide : ajustez la jauge
+              dans la card « Rénovation énergétique » puis cliquez <strong>« Mettre à jour les aides »</strong>.
+              Non comptée dans le total ci-dessus tant que la condition n'est pas remplie.
+            <% else %>
+              Atteignez l'<strong>objectif B ou A</strong> pour activer cette aide : ajustez la jauge
+              dans la card « Rénovation énergétique », puis
+              <%= link_to "créez votre compte", new_user_registration_path, style: "color:#5b21b6;font-weight:700;text-decoration:underline;" %>
+              pour valider cette estimation. Non comptée dans le total ci-dessus tant que la condition
+              n'est pas remplie.
+            <% end %>
           </p>
         </div>
       <% end %>

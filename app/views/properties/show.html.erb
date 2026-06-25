@@ -340,9 +340,20 @@
           </p>
         </div>
 
+        <%# Owner : vrai submit qui persiste la sélection et recharge la fiche
+             avec @aid_result recalculé. Claimant : à la place, lien
+             d'inscription — le submit serait intercepté par authenticate_user!
+             et la sélection jetée au passage par sign-in (le POST n'est pas
+             rejoué). Mieux vaut un CTA honnête qu'un bouton qui simule. %>
         <div style="display:flex;justify-content:flex-end;align-items:center;margin-top:12px;">
-          <%= f.submit "Mettre à jour les aides",
-                style:"font-size:.82rem;font-weight:700;padding:10px 16px;border-radius:8px;background:#059669;color:#fff;border:none;cursor:pointer;white-space:nowrap;" %>
+          <% if is_owner_connecte %>
+            <%= f.submit "Mettre à jour les aides",
+                  style:"font-size:.82rem;font-weight:700;padding:10px 16px;border-radius:8px;background:#059669;color:#fff;border:none;cursor:pointer;white-space:nowrap;" %>
+          <% else %>
+            <%= link_to "Créer un compte pour enregistrer mes ajustements →",
+                  new_user_registration_path,
+                  style:"font-size:.82rem;font-weight:700;padding:10px 16px;border-radius:8px;background:#059669;color:#fff;text-decoration:none;display:inline-block;white-space:nowrap;" %>
+          <% end %>
         </div>
       <% end %>
 
@@ -366,7 +377,11 @@
 <% if can_see_full_dossier && e %>
 
 <div id="aides">
-  <%= render "simple_aids", property: @property, aid_result: @aid_result, aid_projection: @aid_projection %>
+  <%= render "simple_aids",
+             property: @property,
+             aid_result: @aid_result,
+             aid_projection: @aid_projection,
+             is_owner_connecte: is_owner_connecte %>
 </div>
 
 <div id="financement">
@@ -375,7 +390,8 @@
              aid_result: @aid_result,
              reste: reste,
              ptz_utilise: ptz_utilise,
-             reste_banque: reste_banque %>
+             reste_banque: reste_banque,
+             is_owner_connecte: is_owner_connecte %>
 </div>
 
 <% end %>
