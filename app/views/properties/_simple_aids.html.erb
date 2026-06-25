@@ -70,54 +70,106 @@
   </div>
 
   <div style="padding:20px;">
-    <%# Saisie du foyer fiscal : persiste household_size + rfr en DB via
-        update_income_bracket. income_bracket est dérivé au before_save. %>
-    <%= form_with url: update_income_bracket_property_path(property),
-                  method: :patch,
-                  scope: :property,
-                  data: { turbo: false },
-                  html: { style: "margin:0 0 20px;" } do |f| %>
-      <p class="lbl" style="margin-bottom:8px;">Votre foyer fiscal</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
-        <div>
-          <label style="display:block;font-size:.7rem;font-weight:600;color:#6b7280;margin-bottom:4px;">Nombre de personnes</label>
-          <%= f.number_field :household_size, value: property.household_size, min: 1, max: 19,
-                style: "width:100%;padding:9px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:.85rem;background:#fff;" %>
-        </div>
-        <div>
-          <label style="display:block;font-size:.7rem;font-weight:600;color:#6b7280;margin-bottom:4px;">RFR (€)</label>
-          <%= f.number_field :rfr, value: property.rfr, min: 0, step: 1,
-                placeholder: "Avis d'imposition",
-                style: "width:100%;padding:9px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:.85rem;background:#fff;" %>
-        </div>
-        <%# Owner : vrai submit qui poste vers update_income_bracket. Claimant :
-             lien d'inscription au même emplacement — l'action est protégée par
-             authenticate_user! et la saisie RFR serait perdue au sign-in. %>
-        <% if is_owner_connecte %>
+    <%# ── Bloc foyer fiscal ──────────────────────────────────────────
+         Deux variantes strictement séparées sur is_owner_connecte.
+
+         OWNER : form_with éditable + submit "Recalculer". Inchangé.
+
+         CLAIMANT : pas de <form> du tout. Le piège clavier (touche Entrée
+         dans le champ RFR → POST vers update_income_bracket → intercepté
+         par authenticate_user! → sign-in → saisie jetée) disparaît PAR
+         CONSTRUCTION. Pas par un onsubmit JS qu'on pourrait casser plus
+         tard — par l'absence de form. Les valeurs sont affichées en
+         lecture pure ; le lien d'inscription reste le CTA honnête. %>
+    <% if is_owner_connecte %>
+      <%# Saisie du foyer fiscal (owner) : persiste household_size + rfr
+          en DB via update_income_bracket. income_bracket est dérivé au
+          before_save du modèle. %>
+      <%= form_with url: update_income_bracket_property_path(property),
+                    method: :patch,
+                    scope: :property,
+                    data: { turbo: false },
+                    html: { style: "margin:0 0 20px;" } do |f| %>
+        <p class="lbl" style="margin-bottom:8px;">Votre foyer fiscal</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
+          <div>
+            <label style="display:block;font-size:.7rem;font-weight:600;color:#6b7280;margin-bottom:4px;">Nombre de personnes</label>
+            <%= f.number_field :household_size, value: property.household_size, min: 1, max: 19,
+                  style: "width:100%;padding:9px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:.85rem;background:#fff;" %>
+          </div>
+          <div>
+            <label style="display:block;font-size:.7rem;font-weight:600;color:#6b7280;margin-bottom:4px;">RFR (€)</label>
+            <%= f.number_field :rfr, value: property.rfr, min: 0, step: 1,
+                  placeholder: "Avis d'imposition",
+                  style: "width:100%;padding:9px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:.85rem;background:#fff;" %>
+          </div>
           <%= f.submit "Recalculer",
                 style: "padding:10px 14px;background:#5b21b6;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.78rem;cursor:pointer;white-space:nowrap;" %>
-        <% else %>
+        </div>
+      <% end %>
+    <% else %>
+      <%# Foyer fiscal (claimant) : lecture seule. AUCUN <form>. Affichage
+          des valeurs déjà connues (ou placeholder si nil), puis lien
+          d'inscription. Le pluralize() évite le piège du chiffre "3" isolé
+          dans une page Rails (assertion H3 cherche "3 personnes" en contexte). %>
+      <div style="margin:0 0 20px;">
+        <p class="lbl" style="margin-bottom:8px;">Votre foyer fiscal</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
+          <div>
+            <p class="lbl" style="font-size:.7rem;font-weight:600;color:#6b7280;margin-bottom:4px;text-transform:none;letter-spacing:0;">Nombre de personnes</p>
+            <p style="padding:9px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:.85rem;background:#f9fafb;color:#111;font-weight:600;margin:0;">
+              <% if property.household_size.present? %>
+                <%# Pluriel explicite : ActiveSupport::Inflector ne pluralise pas
+                     "personne" → "personnes" par sa règle anglaise par défaut
+                     (testé empiriquement, rendait "3 personne"). On passe le
+                     pluriel en 3e arg pour court-circuiter l'inflector. %>
+                <%= pluralize(property.household_size, "personne", "personnes") %>
+              <% else %>
+                <span style="color:#9ca3af;font-weight:500;">Non renseigné</span>
+              <% end %>
+            </p>
+          </div>
+          <div>
+            <p class="lbl" style="font-size:.7rem;font-weight:600;color:#6b7280;margin-bottom:4px;text-transform:none;letter-spacing:0;">RFR (€)</p>
+            <p style="padding:9px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:.85rem;background:#f9fafb;color:#111;font-weight:600;margin:0;">
+              <% if property.rfr.present? %>
+                <%= number_to_currency(property.rfr, unit: "€", format: "%n %u", precision: 0, delimiter: " ") %>
+              <% else %>
+                <span style="color:#9ca3af;font-weight:500;">Non renseigné</span>
+              <% end %>
+            </p>
+          </div>
           <%= link_to "Créer un compte pour calculer →",
                 new_user_registration_path,
                 style: "padding:10px 14px;background:#5b21b6;color:#fff;border-radius:8px;font-weight:700;font-size:.78rem;text-decoration:none;display:inline-block;white-space:nowrap;text-align:center;" %>
-        <% end %>
+        </div>
       </div>
+    <% end %>
 
-      <% if property.income_bracket.present? && seuils_foyer %>
-        <p class="lbl" style="margin-top:10px;color:#5b21b6;text-transform:none;letter-spacing:0;font-weight:600;font-size:.72rem;">
-          Tranche dérivée : <strong><%= property.income_bracket.humanize %></strong>
-          <span style="color:#9ca3af;font-weight:500;">
-            (foyer de <%= property.household_size %> ·
-            très modestes ≤ <%= number_with_delimiter(seuils_foyer[:tres_modeste]) %> € ·
-            modestes ≤ <%= number_with_delimiter(seuils_foyer[:modeste]) %> € ·
-            intermédiaires ≤ <%= number_with_delimiter(seuils_foyer[:intermediaire]) %> €)
-          </span>
-        </p>
-      <% elsif property.rfr.blank? %>
-        <p class="lbl" style="margin-top:10px;color:#9ca3af;text-transform:none;letter-spacing:0;font-weight:500;font-size:.72rem;font-style:italic;">
+    <%# ── Tranche dérivée / invitation à renseigner (commun owner + claimant) ──
+         Lecture pure de property.income_bracket (calculé au before_save du
+         modèle). Affiché identique pour owner et claimant — le claimant a
+         droit de voir sa tranche, juste pas de la recalculer.
+         Pour le claimant, "Renseignez vos revenus" suggérerait une saisie
+         possible qui n'existe pas (lecture seule) : on adapte le wording. %>
+    <% if property.income_bracket.present? && seuils_foyer %>
+      <p class="lbl" style="margin-top:10px;color:#5b21b6;text-transform:none;letter-spacing:0;font-weight:600;font-size:.72rem;">
+        Tranche dérivée : <strong><%= property.income_bracket.humanize %></strong>
+        <span style="color:#9ca3af;font-weight:500;">
+          (foyer de <%= property.household_size %> ·
+          très modestes ≤ <%= number_with_delimiter(seuils_foyer[:tres_modeste]) %> € ·
+          modestes ≤ <%= number_with_delimiter(seuils_foyer[:modeste]) %> € ·
+          intermédiaires ≤ <%= number_with_delimiter(seuils_foyer[:intermediaire]) %> €)
+        </span>
+      </p>
+    <% elsif property.rfr.blank? %>
+      <p class="lbl" style="margin-top:10px;color:#9ca3af;text-transform:none;letter-spacing:0;font-weight:500;font-size:.72rem;font-style:italic;">
+        <% if is_owner_connecte %>
           Renseignez vos revenus pour calculer vos aides.
-        </p>
-      <% end %>
+        <% else %>
+          Créez votre compte pour renseigner vos revenus et calculer vos aides.
+        <% end %>
+      </p>
     <% end %>
 
     <% if mpr_aid || cee_aid || gn_aid %>
