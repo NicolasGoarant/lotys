@@ -4,7 +4,16 @@
 <% v         = parsed&.[]("valeur") %>
 <% e         = parsed&.[]("energie") %>
 <% i_        = parsed&.[]("idees") %>
-<% is_owner  = user_signed_in? && current_user == @property.user %>
+<%# Deux notions distinctes :
+     - is_owner_connecte : possède le compte ET le bien. Seul autorisé à
+       *agir* (publier, modifier, supprimer, gérer les documents).
+     - can_see_full_dossier : *voit* le dossier complet (jauge interactive,
+       aides, financement, valeur estimée). Vrai si propriétaire connecté
+       OU détenteur en cookie signé du claim_token du bien (parcours
+       d'estimation anonyme). Le calcul correspondant côté serveur
+       (@aid_result) est élargi de la même façon dans PropertiesController#show. %>
+<% is_owner_connecte    = user_signed_in? && current_user == @property.user %>
+<% can_see_full_dossier = is_owner_connecte || claimable_by_browser?(@property) %>
 
 <% dpe_all    = %w[A B C D E F G] %>
 <% dpe_colors = {"A"=>"#16a34a","B"=>"#4ade80","C"=>"#a3e635","D"=>"#ca8a04","E"=>"#fb923c","F"=>"#ef4444","G"=>"#991b1b"} %>
@@ -27,7 +36,7 @@
    end %>
 
 <%# Travaux cochés (ordre canonique) pour calculs de budget et DPE cible %>
-<% travaux_actifs = is_owner ? @property.travaux_actifs : TravauxMapperService::CANONICAL_CODES %>
+<% travaux_actifs = can_see_full_dossier ? @property.travaux_actifs : TravauxMapperService::CANONICAL_CODES %>
 
 <%# ── Aides : valeurs issues d'AidCalculatorService (source unique de vérité) ─ %>
 <% mpr_entry   = (@aid_result && @aid_result[:subventions]&.find { |s| s[:type] == "mpr" }) %>
@@ -161,9 +170,11 @@
   document.addEventListener('DOMContentLoaded',initPropMap);
   </script>
 
-  <%# Boutons selon profil %>
+  <%# Boutons selon profil — actions qui MUTENT le bien : réservées au
+       propriétaire connecté. Un claimant anonyme ne doit jamais voir
+       Publier ni Modifier (il devra s'inscrire pour récupérer son bien). %>
   <div style="padding:10px 16px;display:flex;gap:8px;flex-wrap:wrap;">
-    <% if is_owner %>
+    <% if is_owner_connecte %>
       <%= link_to "Modifier", edit_property_path(@property), style:"font-size:.78rem;font-weight:600;padding:7px 12px;border-radius:8px;border:1px solid #e5e7eb;color:#374151;text-decoration:none;" %>
       <% if @property.draft? || @property.analyzed? %>
         <%= button_to "Lancer l'analyse →", analyze_property_path(@property), style:"font-size:.78rem;font-weight:700;padding:7px 12px;border-radius:8px;background:#1d4ed8;color:#fff;border:none;cursor:pointer;" %>
@@ -177,8 +188,8 @@
   </div>
 </div>
 
-<%# ── VALEUR (propriétaire uniquement) ───────────────────── %>
-<% if v && is_owner %>
+<%# ── VALEUR (dossier complet : propriétaire ou claimant) ────── %>
+<% if v && can_see_full_dossier %>
 <div class="cd">
   <div class="cd-hd" style="background:#ea580c;">🏷️ Valeur estimée</div>
   <div style="padding:20px;">
@@ -214,8 +225,9 @@
       <p class="bod" style="color:#ea580c;font-size:.82rem;margin-bottom:14px;">⚠️ Interdiction de louer en 2028.</p>
     <% end %>
 
-    <%# Jauge DPE : affichage statique si prestataire, interactive si propriétaire %>
-    <% if !is_owner %>
+    <%# Jauge DPE : statique pour le visiteur artisan, interactive pour
+         qui détient le dossier (propriétaire connecté ou claimant en cookie). %>
+    <% if !can_see_full_dossier %>
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
         <div style="text-align:center;">
           <div style="width:44px;height:44px;border-radius:10px;background:<%= dpe_colors[dpe_cur] %>;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:900;color:#fff;"><%= dpe_cur %></div>
@@ -234,9 +246,10 @@
       </div>
 
     <% else %>
-      <%# Propriétaire : jauge interactive + slider caché qui écoute les changements.
-           Glisser la jauge coche automatiquement les travaux nécessaires (par impact
-           DPE décroissant). Décocher des travaux remonte la jauge estimée. %>
+      <%# Dossier complet (propriétaire OU claimant) : jauge interactive +
+           slider caché qui écoute les changements. Glisser la jauge coche
+           automatiquement les travaux nécessaires (par impact DPE décroissant).
+           Décocher des travaux remonte la jauge estimée. %>
       <div style="position:relative;margin-bottom:6px;">
         <div style="display:flex;margin-bottom:4px;">
           <% dpe_all.each do |l| %>
@@ -268,8 +281,13 @@
       </p>
     <% end %>
 
-    <%# ── Formulaire checkboxes de travaux (propriétaire uniquement) ── %>
-    <% if is_owner && travaux_groupes.any? %>
+    <%# ── Formulaire checkboxes de travaux (dossier complet) ──
+         Affiché aussi au claimant : la simulation côté client (DOM/JS) tourne
+         sans persistance. Le submit "Mettre à jour les aides" est protégé en
+         amont par authenticate_user! sur update_travaux_selection — un anonyme
+         sera redirigé vers la page d'inscription/connexion, ce qui fait office
+         de CTA naturel pour rattacher l'orpheline. %>
+    <% if can_see_full_dossier && travaux_groupes.any? %>
       <%= form_with model: @property,
                     url: update_travaux_selection_property_path(@property),
                     method: :patch,
@@ -344,8 +362,8 @@
 </div>
 <% end %>
 
-<%# ── AIDES + FINANCEMENT (propriétaire uniquement) ───────── %>
-<% if is_owner && e %>
+<%# ── AIDES + FINANCEMENT (dossier complet : propriétaire ou claimant) ── %>
+<% if can_see_full_dossier && e %>
 
 <div id="aides">
   <%= render "simple_aids", property: @property, aid_result: @aid_result, aid_projection: @aid_projection %>
@@ -362,8 +380,8 @@
 
 <% end %>
 
-<%# ── AUTRES PISTES (propriétaire uniquement) ────────────── %>
-<% if is_owner && i_ && i_["scenarios"].present? %>
+<%# ── AUTRES PISTES (dossier complet) ────────────────────── %>
+<% if can_see_full_dossier && i_ && i_["scenarios"].present? %>
 <div class="cd">
   <div class="cd-hd" style="background:#b45309;">💡 Autres pistes</div>
   <div style="padding:0 20px;">
@@ -382,8 +400,10 @@
 </div>
 <% end %>
 
-<%# ── FORMULAIRE PROPOSITION (prestataire) ────────────────── %>
-<% unless is_owner %>
+<%# ── FORMULAIRE PROPOSITION (prestataire) ──────────────────
+     Affiché à qui n'est pas en train de consulter SON dossier. Le claimant
+     anonyme regarde sa propre estimation : il n'a pas à voir le bloc artisan. %>
+<% unless can_see_full_dossier %>
 <%= render "offer_form", property: @property %>
 <% end %>
 
@@ -400,7 +420,7 @@
   </div>
   <% analysis_raw = @property.analysis&.raw_response %>
   <% photo_analysis = analysis_raw&.dig("photo_analysis") %>
-  <% if photo_analysis && is_owner %>
+  <% if photo_analysis && can_see_full_dossier %>
     <div style="padding:0 16px 16px;">
       <p class="lbl" style="margin-bottom:6px;">Analyse IA des photos</p>
       <p class="bod" style="color:#374151;"><%= photo_analysis.is_a?(Hash) ? photo_analysis["etat_general"] : photo_analysis %></p>
@@ -409,8 +429,12 @@
 </div>
 <% end %>
 
-<%# ── DOCUMENTS ────────────────── %>
-<% if is_owner %>
+<%# ── DOCUMENTS ──────────────────
+     Réservé au propriétaire CONNECTÉ : l'upload et la suppression de
+     fichiers sont des écritures persistantes attribuables à un compte. Un
+     claimant anonyme ne doit pas pouvoir attacher de documents tant qu'il
+     n'a pas rattaché son orpheline à un User. %>
+<% if is_owner_connecte %>
 <div class="cd">
   <div style="background:#334155;padding:13px 20px;display:flex;align-items:center;justify-content:space-between;">
     <p style="font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#fff;">Documents (<%= @property.documents.count %>)</p>

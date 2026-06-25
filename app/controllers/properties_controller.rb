@@ -24,7 +24,11 @@ class PropertiesController < ApplicationController
   end
 
   def show
-    if user_signed_in? && current_user == @property.user
+    # Calcul des aides + projection : élargi au détenteur du claim_token
+    # (parcours d'estimation anonyme), pas seulement au propriétaire
+    # connecté. Sans cette extension, la vue rendrait le bloc Aides vide
+    # pour le claimant — c'est le pendant serveur du fix vue.
+    if (user_signed_in? && current_user == @property.user) || claimable_by_browser?(@property)
       # On passe travaux_actifs pour que le calcul d'aides reflète les
       # cases cochées par le propriétaire dans la card "Rénovation énergétique"
       # (travaux_selection jsonb). Sans ce paramètre, le service lirait

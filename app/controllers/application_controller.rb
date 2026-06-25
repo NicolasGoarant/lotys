@@ -1,6 +1,12 @@
 class ApplicationController < ActionController::Base
   include ClaimToken
 
+  # Exposé aux vues : permet à show.html.erb de discriminer
+  # « tient le dossier complet » (propriétaire connecté OU détenteur du
+  # claim_token en cookie) de « propriétaire connecté » (seul autorisé à
+  # publier / modifier / supprimer).
+  helper_method :claimable_by_browser?
+
   layout :layout_by_resource
 
   # Callback global : quand l'utilisateur vient de s'inscrire ou de se
