@@ -1,130 +1,94 @@
 // app/javascript/dpe_slider_logic.js
 //
-// Fonction PURE qui dérive la nouvelle sélection de travaux quand l'utilisateur
-// déplace la jauge DPE. Pilotage BIDIRECTIONNEL :
+// Fonction PURE qui dérive la sélection de travaux correspondant à une cible
+// DPE — modèle CASCADE MONOTONE, DÉTERMINISTE.
 //
-//   - JAUGE → CASES (cette fonction) : bouger la jauge ajuste les cases pour
-//     atteindre la cible. Monter (cible plus ambitieuse) = AJOUTER. Descendre
-//     = RETIRER ce qui devient inutile.
+// ─── Modèle ──────────────────────────────────────────────────────────────
+// Une cible (lettre DPE) = UNE sélection de travaux, fixe, calculée toujours
+// pareil quel que soit le chemin des drags. La fonction NE PREND PAS l'état
+// coché en entrée — la sortie ne dépend que de (currentDpeIdx, targetIdx,
+// dpeImpact, canonicalCodes).
 //
-//   - CASES → JAUGE (côté show.html.erb, dans recalcTravaux) : cocher/décocher
-//     recale la jauge sur la classe atteignable. Inchangé.
+// Algorithme (cascade) :
+//   1. Construire une "file de priorité" canonique : tous les gestes triés
+//      par impact DPE décroissant, avec l'ordre canonicalCodes comme
+//      tie-breaker stable (cas typique : 4 gestes à 0.5 conservent leur ordre
+//      canonique). Cette file est la MÊME pour tous les appels.
+//   2. Pour atteindre un gain G classes DPE : cocher les premiers gestes de
+//      la file tant que le cumul d'impact reste strictement inférieur à G.
+//   3. La sortie est donc un PRÉFIXE de la file canonique, déterminé
+//      uniquement par G.
 //
-// INVARIANT CENTRAL — la garantie qui ferme le bug "menuiseries décochée en
-// passant C→B" :
+// ─── Garanties ───────────────────────────────────────────────────────────
+//   1. CHEMIN-INDÉPENDANCE : deux appels avec le même targetIdx retournent
+//      exactement la même sélection. Une lettre = une sélection. Plus jamais
+//      de "B donne 3 sélections différentes selon le chemin" comme c'était
+//      le cas avec deriveSelection(currentlyChecked).
+//   2. CASCADE MONOTONE EMBOÎTÉE : pour deux cibles tgt1 < tgt2 (tgt1 plus
+//      ambitieuse), gain1 > gain2, donc le préfixe de la file pour gain1 EST
+//      un sur-ensemble du préfixe pour gain2. Monter ne retire jamais rien
+//      — garanti par construction, pas par condition.
+//   3. PURETÉ : aucune lecture DOM, aucun effet de bord, déterministe,
+//      ne mute pas les arrays/objets passés en entrée.
 //
-//   Monter la cible (targetIdx diminue ⇒ gainSouhaite augmente) ne retire
-//   JAMAIS un geste déjà coché. L'ensemble checked ne rétrécit jamais en
-//   passant à une cible plus ambitieuse.
-//
-// Descendre la cible PEUT retirer des gestes (c'est voulu : si la cible est
-// moins ambitieuse, on allège). On retire dans l'ordre d'impact DPE CROISSANT
-// (les moins utiles d'abord), pour ne jamais retirer un geste lourd quand on
-// pouvait alléger sur un geste léger.
-//
-// Garanties :
-//   1. MONOTONIE MONTÉE : currentlyChecked ⊆ checked dès que gainSouhaite ≥
-//      apport actuel. Pas un seul geste perdu en visant mieux.
-//   2. RÉACTIVITÉ : si la cible change et que l'apport des cases ne colle pas,
-//      la fonction modifie checked. Pas de jauge inerte.
-//   3. PURETÉ : aucune lecture DOM, aucun effet de bord, déterministe, ne mute
-//      pas les arrays/objets passés en entrée.
+// ─── Note produit : ordre de la file canonique ──────────────────────────
+// Avec dpeImpact tel quel et canonicalCodes = TravauxMapperService::CANONICAL_CODES,
+// l'ordre est : chauffage (1.5), isolation_toiture (1.0), isolation_murs
+// (1.0), isolation_plancher_bas (0.5), chauffe_eau (0.5), vmc (0.5),
+// menuiseries (0.5). Conséquence : menuiseries est en queue de file, donc
+// cochée seulement pour les cibles très ambitieuses (gain ≥ 5 environ). Ce
+// comportement est désormais cohérent (toujours pareil, jamais "parfois")
+// et prévisible (cascade visible). Si la priorité produit voulait que
+// menuiseries remonte (ex. argument "fenêtres = première chose qu'on voit"),
+// il faut soit changer dpeImpact, soit changer l'ordre dans canonicalCodes.
+// À discuter — pas une décision technique unilatérale.
 
-function deriveSelection({
+function deriveSelectionForTarget({
   currentDpeIdx,
   targetIdx,
-  currentlyChecked,
   dpeImpact,
   canonicalCodes
 }) {
-  // ─── Copie défensive : on ne mute jamais les entrées ───────────────────
-  const checkedSet = new Set(currentlyChecked);
-
-  // ─── Gain DPE souhaité (clampé à >= 0) ─────────────────────────────────
-  // targetIdx >= currentDpeIdx ⇒ aucune amélioration demandée ⇒ gain = 0
-  // (autorise alors le retrait de tous les gestes inutiles).
+  // ─── Gain DPE souhaité (clampé à >= 0) ────────────────────────────────
+  // targetIdx >= currentDpeIdx ⇒ aucune amélioration ⇒ sélection vide.
   const gainSouhaite = Math.max(0, currentDpeIdx - targetIdx);
 
-  // ─── Apport DPE actuellement couvert par les cases cochées ─────────────
-  const apportActuel = sumImpact(checkedSet, dpeImpact);
-
-  if (apportActuel < gainSouhaite) {
-    // ─── MONTÉE : on AJOUTE des gestes hors checked pour combler le déficit.
-    // Aucun retrait : la monotonie est préservée par construction (on ne
-    // touche jamais aux cases déjà cochées dans cette branche).
-    const candidats = candidatsHors(checkedSet, canonicalCodes, dpeImpact);
-    // Tri stable décroissant par impact : gros gestes d'abord, ils couvrent
-    // plus vite la cible. L'ordre canonicalCodes sert de tie-breaker stable
-    // pour les gestes à impact égal (typique : les 4 gestes à 0.5).
-    candidats.sort((a, b) => b.impact - a.impact);
-
-    let cumul = apportActuel;
-    for (const { code, impact } of candidats) {
-      if (cumul >= gainSouhaite) break;
-      checkedSet.add(code);
-      cumul += impact;
-    }
-  } else if (apportActuel > gainSouhaite) {
-    // ─── DESCENTE : on RETIRE des gestes en trop, par impact CROISSANT
-    // (les moins utiles d'abord). On s'arrête dès qu'un retrait
-    // supplémentaire ferait passer sous gainSouhaite — on veut COLLER au
-    // plus près sans descendre dessous.
-    //
-    // Note : retirer "le moins utile d'abord" n'est pas un comportement
-    // arbitraire — c'est le retrait le plus prévisible pour l'utilisateur
-    // (les gestes lourds, qu'il "voit" comme structurants, restent).
-    const candidats = candidatsDans(checkedSet, canonicalCodes, dpeImpact);
-    // Tri stable croissant par impact.
-    candidats.sort((a, b) => a.impact - b.impact);
-
-    let cumul = apportActuel;
-    for (const { code, impact } of candidats) {
-      // Ne retire que si on reste >= gainSouhaite après retrait.
-      if (cumul - impact < gainSouhaite) continue;
-      checkedSet.delete(code);
-      cumul -= impact;
-    }
+  if (gainSouhaite === 0) {
+    return { checked: [] };
   }
-  // Else (apportActuel === gainSouhaite) : on est pile à la cible, rien à
-  // faire. checkedSet inchangé.
 
-  return { checked: Array.from(checkedSet) };
-}
+  // ─── File canonique : (code, impact) trié par impact décroissant ──────
+  // Tie-break stable = ordre d'apparition dans canonicalCodes (Array.sort
+  // est stable depuis ES2019 / Node 12+).
+  //
+  // Copie défensive : on map() depuis canonicalCodes en lecture seule, sans
+  // muter l'array passé en entrée.
+  const file = canonicalCodes
+    .map(code => ({ code, impact: dpeImpact[code] || 0 }))
+    .sort((a, b) => b.impact - a.impact);
 
-// ─── Helpers internes (purs aussi) ──────────────────────────────────────
-
-function sumImpact(set, dpeImpact) {
-  let s = 0;
-  for (const code of set) s += dpeImpact[code] || 0;
-  return s;
-}
-
-// Codes canoniques HORS du set passé, avec leur impact. Préserve l'ordre
-// canonicalCodes (utilisé comme tie-breaker stable par les sorts qui suivent).
-function candidatsHors(set, canonicalCodes, dpeImpact) {
-  const out = [];
-  for (const code of canonicalCodes) {
-    if (!set.has(code)) out.push({ code, impact: dpeImpact[code] || 0 });
+  // ─── Cascade : préfixe de la file jusqu'à atteindre gainSouhaite ──────
+  // Condition `cumul < gainSouhaite` (strict) : on coche tant qu'on n'a pas
+  // encore atteint la cible. Une fois cumul ≥ gainSouhaite, on s'arrête.
+  // Ce critère est aligné avec le code historique (cohérence cumul).
+  const checked = [];
+  let cumul = 0;
+  for (const { code, impact } of file) {
+    if (cumul >= gainSouhaite) break;
+    checked.push(code);
+    cumul += impact;
   }
-  return out;
-}
 
-// Codes canoniques DANS le set. Même remarque sur l'ordre.
-function candidatsDans(set, canonicalCodes, dpeImpact) {
-  const out = [];
-  for (const code of canonicalCodes) {
-    if (set.has(code)) out.push({ code, impact: dpeImpact[code] || 0 });
-  }
-  return out;
+  return { checked };
 }
 
 // ─── Double export : Node CommonJS pour les tests, global pour le browser ──
 //
-// En Node (test) :   const { deriveSelection } = require('./dpe_slider_logic.js')
+// En Node (test) :   const { deriveSelectionForTarget } = require('./dpe_slider_logic.js')
 // En browser (show.html.erb) : le fichier est inclus inline dans un <script>
-//   classique, donc `function deriveSelection(...)` devient une variable
-//   globale accessible par les autres scripts de la page. Le guard ci-dessous
-//   évite `ReferenceError: module is not defined` côté browser.
+//   classique, donc `function deriveSelectionForTarget(...)` devient une
+//   variable globale accessible par les autres scripts de la page. Le guard
+//   ci-dessous évite `ReferenceError: module is not defined` côté browser.
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { deriveSelection };
+  module.exports = { deriveSelectionForTarget };
 }

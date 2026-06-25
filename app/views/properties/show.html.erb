@@ -277,7 +277,7 @@
                oninput="onSliderChange(this.value)">
       </div>
       <p class="lbl" id="dpe-estim-lbl" style="text-align:center;margin-bottom:20px;color:#059669;font-size:.66rem;">
-        Objectif : <span id="dpe-estim-val"><%= dpe_all[tgt_idx] %></span> · estimation indicative · glissez la jauge ou cochez les travaux, les deux se synchronisent
+        Objectif : <span id="dpe-estim-val"><%= dpe_all[tgt_idx] %></span> · estimation indicative · glissez la jauge : les travaux s'ajustent à la cible
       </p>
     <% end %>
 
@@ -659,21 +659,26 @@ function marquerAidesPerimees(){
 }
 
 // Sens 2 : jauge (slider) → checkboxes (utilisé par l'oninput du slider).
-// Wrapper mince autour de deriveSelection (logique pure testée Node, cf.
-// app/javascript/dpe_slider_logic.js + test/javascript/dpe_slider_logic_test.rb).
+// Wrapper mince autour de deriveSelectionForTarget (cascade déterministe,
+// cf. app/javascript/dpe_slider_logic.js + tests P/Q/I/N).
 //
-// Modèle BIDIRECTIONNEL : la jauge et les cases sont deux vues du même
-// état. Bouger la jauge ajuste les cases ; cocher/décocher les cases
-// recale la jauge (cf. recalcTravaux branche L565-571).
+// MODÈLE : une cible (lettre DPE) = une sélection FIXE. La fonction ne lit
+// PAS l'état coché du DOM en entrée — elle dérive la sélection canonique
+// pour la cible demandée. Conséquences :
+//   - Chemin-indépendance : passer par C puis B donne la même sélection
+//     finale que passer directement à B. Plus jamais "B donne 3 sélections
+//     différentes selon le chemin" (bug observé en prod sur d1ac5b5/v101).
+//   - Cascade monotone : sélection(B) ⊇ sélection(C) ⊇ … par construction
+//     (préfixes emboîtés de la file canonique). Monter n'enlève jamais rien.
+//   - SACRIFICE ASSUMÉ : si l'utilisateur a coché des cases à la main entre
+//     deux drags, ces cochages sont écrasés par la cascade au drag suivant.
+//     C'est le prix de la cohérence "une lettre = une sélection". Le
+//     wording sous la jauge le dit honnêtement (cf. ligne d'objectif).
 //
-// INVARIANT : monter la cible (targetIdx diminue) ne RETIRE JAMAIS un
-// geste coché. Descendre PEUT retirer (c'est voulu : on allège).
-//
-// Pas de boucle : `cb.checked = X` (assignation propriété par script)
-// ne dispatch PAS l'event 'change', donc le listener change qui appelle
-// recalcTravaux n'est pas re-déclenché ici. Idem `slider.value = X` dans
-// recalcTravaux ne re-déclenche pas 'input' → pas de rappel à
-// onSliderChange. Propriété structurelle, vérifiée au diagnostic.
+// Pas de boucle : `cb.checked = X` (assignation propriété par script) ne
+// dispatch PAS l'event 'change', donc le listener change qui appelle
+// recalcTravaux n'est pas re-déclenché. Idem `slider.value = X` dans
+// recalcTravaux ne re-déclenche pas 'input'. Propriété structurelle.
 function onSliderChange(newTgtVal){
   var tgtIdx = parseInt(newTgtVal);
 
@@ -689,25 +694,19 @@ function onSliderChange(newTgtVal){
   // reprendre depuis le gain dérivé (évite le rebond cosmétique).
   updateJaugeDPE(tgtIdx);
 
-  // Snapshot des cases actuellement cochées (lecture pure du DOM).
-  var currentlyChecked = [];
-  document.querySelectorAll('.travail-check').forEach(function(row){
-    var cb = row.querySelector('input[type=checkbox].travail-cb');
-    if(cb && cb.checked && row.dataset.code){
-      currentlyChecked.push(row.dataset.code);
-    }
+  // Délégation à la fonction pure. AUCUNE lecture DOM en entrée — la
+  // sortie ne dépend que de (CUR, tgtIdx, DPE_IMPACT, CANONICAL_CODES_JS),
+  // garantissant la chemin-indépendance.
+  var res = deriveSelectionForTarget({
+    currentDpeIdx:   CUR,
+    targetIdx:       tgtIdx,
+    dpeImpact:       DPE_IMPACT,
+    canonicalCodes:  CANONICAL_CODES_JS
   });
 
-  // Délégation à la fonction pure.
-  var res = deriveSelection({
-    currentDpeIdx:    CUR,
-    targetIdx:        tgtIdx,
-    currentlyChecked: currentlyChecked,
-    dpeImpact:        DPE_IMPACT,
-    canonicalCodes:   CANONICAL_CODES_JS
-  });
-
-  // Écriture DOM : on coche exactement ce que res.checked contient.
+  // Écriture DOM : on coche exactement ce que res.checked contient,
+  // on décoche le reste. C'est ici qu'on assume le sacrifice "cochage
+  // manuel ne survit pas à un drag de jauge".
   var checkedSet = new Set(res.checked);
   document.querySelectorAll('.travail-check').forEach(function(row){
     var cb = row.querySelector('input[type=checkbox].travail-cb');
