@@ -1,0 +1,267 @@
+# Moteur DPE 3CL-inspiré (voie absolue §5bis du doc).
+# Spec : docs/MODELE_DPE_3CL.md (à déplacer depuis app/assets après validation).
+# Statut : 3CL-inspiré, non opposable. Limites assumées : voir §9 du doc.
+#
+# Chaîne de calcul (§5bis) :
+#   GV (W/K) → × DH14 × coef_apports → Bch (kWh) → ÷ (Rg × Rerd) → conso finale
+#     → × FacteurEP → kWhEP/m² → classe énergie (§2)
+#     × FacteurCO₂ → kgCO₂/m² → classe carbone (§2)
+#   Classe finale = pire(énergie, carbone).
+class DpeEngineService
+  # ── §3 — U₀ non isolé (W/m².K), notice ADEME 08/10/2021 ────────────────
+  UMUR_NON_ISOLE      = 2.5
+  UPH_NON_ISOLE       = 2.5
+  UPB_DEFAUT          = 0.45
+  UW_SIMPLE_VITRAGE   = 5.8
+  UMUR_PLAFOND_CALCUL = 2.0  # Min(Umur ; 2) appliqué aux calculs 3CL (§3)
+
+  # ── §4 — R minimums réglementaires rénovation (MaPrimeRénov / CEE) ──────
+  R_ITI_MIN            = 3.7
+  R_COMBLES_PERDUS_MIN = 7.0
+  R_PLANCHER_BAS_MIN   = 3.0
+  UW_DOUBLE_VITRAGE    = 1.3
+
+  # R_paroi résiduelle = Rsi + Rse = 0,13 + 0,04 = 0,17 m².K/W
+  # pour paroi verticale (norme NF EN ISO 6946, résistances superficielles
+  # d'échange). Valeur de manuel thermique, constante physique — pas un
+  # coefficient de calibrage. Le §4 du doc cite 0,3–0,5 qui inclut en plus
+  # la résistance de la paroi existante (parpaing/brique) ; on s'en tient
+  # ici aux résistances superficielles pures (légèrement conservatif sur
+  # le U après isolation : 0,258 au lieu de 0,238 pour R_isolant = 3,7).
+  R_RESIDUELLE_PAROI = 0.17
+
+  # ── §1 — coefficients de réduction des déperditions b ──────────────────
+  B_EXTERIEUR    = 1.0
+  B_PLANCHER_BAS = 0.8   # sur vide sanitaire / cave / garage non chauffé
+
+  # §1 — forfait ponts thermiques (fourchette 5–20 %), milieu
+  COEF_PT = 0.12
+
+  # ── §5bis — degrés-heures par zone climatique (arrêté 17/10/2012) ──────
+  DH14 = { h1: 42_030, h2: 33_300, h3: 22_200 }.freeze
+
+  # §5bis — rendements génération (milieu de fourchette)
+  RG = {
+    gaz:         0.95,  # chaudière gaz condensation (§5bis 0,90–1,0)
+    fioul:       0.75,  # chaudière fioul ancienne   (§5bis 0,70–0,80)
+    electricite: 1.00,  # convecteurs effet Joule    (§5bis)
+    bois:        0.75,  # poêle bûches récent (hypothèse Lauze)
+    pac:         3.00,  # PAC air/eau COP saisonnier (§5bis)
+  }.freeze
+  # §5bis émission × distribution × régulation (fourchette 0,85–0,95).
+  # §5ter — borne basse retenue : parc cible Lauze = passoires < 1975 =
+  # installations vieillissantes, radiateurs surdimensionnés, régulation
+  # imparfaite. Bumper à 0,90 pour installations récentes/PAC modernes
+  # serait défensible (modifie ~6 % la conso finale).
+  RERD_DEFAUT = 0.85
+
+  # ── §5a — facteur énergie primaire (arrêté 13/08/2025) ─────────────────
+  FACTEUR_EP = {
+    gaz: 1.0, fioul: 1.0, bois: 1.0,
+    electricite: 1.9,  # depuis 01/01/2026 (était 2,3)
+    pac:         1.9,  # PAC = électricité
+  }.freeze
+
+  # ── §5b — facteur carbone (kgCO₂/kWh d'énergie finale, ACV) ────────────
+  FACTEUR_CO2 = {
+    gaz:         0.234,
+    fioul:       0.300,
+    electricite: 0.079,
+    pac:         0.079,
+    bois:        0.013,
+  }.freeze
+
+  # ── §2 — seuils des 7 classes (logements > 40 m², altitude < 800 m) ────
+  SEUILS_EP  = [[70,'A'],[110,'B'],[180,'C'],[250,'D'],[330,'E'],[420,'F'],[Float::INFINITY,'G']].freeze
+  SEUILS_CO2 = [[6,'A'],[11,'B'],[30,'C'],[50,'D'],[70,'E'],[100,'F'],[Float::INFINITY,'G']].freeze
+
+  # ── §1 — DR : 0,34 × n × V (W/K). 0,34 = ρ_air·cp_air/3600 (constante phys.)
+  CONST_DR = 0.34
+  # §5ter — n par défaut bâti < 1975 sans VMC : borne haute des valeurs
+  # conventionnelles (RT 2005 prenait 0,6 ; les bâtis < 1975 ont des
+  # défauts d'étanchéité réels mesurés à 1,0–1,5 vol/h). Cohérent avec
+  # la cible §5bis « renouv. air = 20–25 % du GV » sur une passoire.
+  N_VENTILATION = {
+    aucune_vmc:      1.0,
+    vmc_simple_flux: 0.5,
+    vmc_double_flux: 0.15,
+  }.freeze
+
+  # ── Hypothèses de modélisation Lauze (non réglementaires, §9 du doc) ───
+  HAUTEUR_SOUS_PLAFOND_DEFAUT = 2.5
+  NIVEAUX_DEFAUT              = 2
+  RATIO_TOITURE_RAMPANTS      = 1.15   # combles aménagés ~30°
+  RATIO_TOITURE_PLATE         = 1.0    # combles perdus / toit terrasse
+  M2_PAR_FENETRE_DEFAUT       = 1.5    # fenêtre ancienne typique
+  RATIO_SURFACE_FENETRES      = 1.0/6  # ratio RT 1/6e si rien de fourni
+
+  # Coef. d'apports gratuits (soleil + occupation) ; Bch = COEF × GV × DH/1000.
+  # Simplification Lauze ; la 3CL fine calcule X^a/(X^a-1). §5ter — 0,95
+  # conservateur pour passoire mal orientée (faibles apports utiles).
+  COEF_APPORTS_DEFAUT = 0.95
+
+  # ECS forfait (kWh/m²/an EF). Justification physique en §5ter du doc :
+  # besoin utile = ρ·c · V · ΔT · 365 ÷ 1000 = 1,162 × 100 × 35 × 365 / 1000
+  # ≈ 1 485 kWh/an (V = 2 occupants × 50 L/j ; ΔT = 35 K conv. 3CL).
+  # Conso finale = besoin ÷ rendement combiné (ballon × distribution).
+  # Hypothèse Lauze N=2 (foyer non interrogé) — borne basse délibérée vs
+  # la 3CL réglementaire (N = 0,025 × Shab) ; voir §5ter.
+  ECS_FORFAIT_EF = {
+    gaz: 15, fioul: 15, bois: 15,  # ballon perf. OU cumulus élec sép. (R≈0,82)
+    electricite: 17,               # cumulus standard (R≈0,73)
+    pac:         7,                # CET thermodynamique COP_ECS ≈ 2,5
+  }.freeze
+
+  ORDRE_CLASSES = %w[A B C D E F G].freeze
+
+  def self.call(**kw) = new(**kw).call
+
+  def initialize(
+    surface_habitable:,
+    annee_construction:,
+    energie_chauffage:,
+    zone_climatique: :h1,
+    isolation_murs: :non_isole,
+    isolation_toiture: :non_isole,
+    isolation_plancher_bas: :non_isole,
+    isolation_menuiseries: :non_isole,
+    niveaux: NIVEAUX_DEFAUT,
+    hauteur_sous_plafond: HAUTEUR_SOUS_PLAFOND_DEFAUT,
+    toiture_rampants: false,
+    ventilation: :aucune_vmc,
+    surface_murs: nil,
+    surface_toiture: nil,
+    surface_plancher_bas: nil,
+    surface_fenetres: nil,
+    nombre_fenetres: nil,
+    # Switches / overrides de calibrage — restent ouverts tant que le
+    # §5ter du doc n'est pas figé.
+    inclure_ecs: false,
+    coef_apports: COEF_APPORTS_DEFAUT,
+    n_ventilation_override: nil,
+    rerd: RERD_DEFAUT
+  )
+    @s_hab = surface_habitable.to_f
+    @annee = annee_construction.to_i
+    @energie = energie_chauffage.to_sym
+    @zone = zone_climatique.to_sym
+    @iso = {
+      murs: isolation_murs.to_sym,
+      toiture: isolation_toiture.to_sym,
+      plancher_bas: isolation_plancher_bas.to_sym,
+      menuiseries: isolation_menuiseries.to_sym
+    }
+    @niveaux = niveaux.to_i
+    @h = hauteur_sous_plafond.to_f
+    @toiture_rampants = toiture_rampants
+    @ventilation = ventilation.to_sym
+    @inclure_ecs = inclure_ecs
+    @coef_apports = coef_apports
+    @n_override = n_ventilation_override
+    @rerd = rerd
+
+    @s_sol = @s_hab / @niveaux
+    @s_mur     = surface_murs        || defaut_surface_murs
+    @s_toiture = surface_toiture     || defaut_surface_toiture
+    @s_pb      = surface_plancher_bas || @s_sol
+    @s_fen     = surface_fenetres ||
+                 (nombre_fenetres ? nombre_fenetres * M2_PAR_FENETRE_DEFAUT
+                                  : @s_hab * RATIO_SURFACE_FENETRES)
+  end
+
+  def call
+    gv_data = calcul_gv
+    bch = @coef_apports * gv_data[:gv] * DH14.fetch(@zone) / 1000.0
+    conso_ch  = bch / (RG.fetch(@energie) * @rerd)
+    conso_ecs = @inclure_ecs ? ECS_FORFAIT_EF.fetch(@energie) * @s_hab : 0.0
+    conso_finale = conso_ch + conso_ecs
+
+    ep  = conso_finale * FACTEUR_EP.fetch(@energie)
+    co2 = conso_finale * FACTEUR_CO2.fetch(@energie)
+    ep_m2  = ep / @s_hab
+    co2_m2 = co2 / @s_hab
+    cl_e = classe(ep_m2, SEUILS_EP)
+    cl_c = classe(co2_m2, SEUILS_CO2)
+
+    {
+      conso_ep_m2: ep_m2.round(1),
+      conso_carbone_m2: co2_m2.round(1),
+      classe_energie: cl_e,
+      classe_carbone: cl_c,
+      classe_finale: pire(cl_e, cl_c),
+      _details: {
+        surfaces: { mur: @s_mur.round(1), toit: @s_toiture.round(1),
+                    plancher_bas: @s_pb.round(1), fenetres: @s_fen.round(1) },
+        gv: gv_data[:gv].round(1),
+        gv_breakdown: gv_data[:breakdown],
+        hierarchie_pct: gv_data[:breakdown].transform_values { |v|
+          (v * 100.0 / gv_data[:gv]).round(1)
+        },
+        bch_kwh: bch.round,
+        conso_chauffage_final_kwh: conso_ch.round,
+        conso_ecs_final_kwh: conso_ecs.round,
+        conso_finale_totale_kwh: conso_finale.round
+      }
+    }
+  end
+
+  private
+
+  def defaut_surface_murs
+    perimetre = 4 * Math.sqrt(@s_sol)         # maison carrée
+    brut = perimetre * @niveaux * @h
+    fen_defaut = @s_hab * RATIO_SURFACE_FENETRES
+    [brut - fen_defaut, 0].max
+  end
+
+  def defaut_surface_toiture
+    @s_sol * (@toiture_rampants ? RATIO_TOITURE_RAMPANTS : RATIO_TOITURE_PLATE)
+  end
+
+  def calcul_gv
+    dp_murs = B_EXTERIEUR    * @s_mur     * u_courant(:murs)
+    dp_toit = B_EXTERIEUR    * @s_toiture * u_courant(:toiture)
+    dp_pb   = B_PLANCHER_BAS * @s_pb      * u_courant(:plancher_bas)
+    dp_fen  = B_EXTERIEUR    * @s_fen     * u_courant(:menuiseries)
+    parois  = dp_murs + dp_toit + dp_pb + dp_fen
+
+    pt = COEF_PT * parois
+    n  = @n_override || N_VENTILATION.fetch(@ventilation)
+    qv = n * (@s_hab * @h)
+    dr = CONST_DR * qv
+
+    {
+      gv: parois + pt + dr,
+      breakdown: {
+        murs: dp_murs.round(1), toit: dp_toit.round(1),
+        plancher_bas: dp_pb.round(1), fenetres: dp_fen.round(1),
+        pt: pt.round(1), renouv_air: dr.round(1)
+      }
+    }
+  end
+
+  def u_courant(poste)
+    case poste
+    when :murs
+      u = (@iso[:murs] == :isole) ? 1.0 / (R_ITI_MIN + R_RESIDUELLE_PAROI)
+                                  : UMUR_NON_ISOLE
+      [u, UMUR_PLAFOND_CALCUL].min     # Min(Umur ; 2) — §3
+    when :toiture
+      (@iso[:toiture] == :isole) ? 1.0 / (R_COMBLES_PERDUS_MIN + R_RESIDUELLE_PAROI)
+                                 : UPH_NON_ISOLE
+    when :plancher_bas
+      (@iso[:plancher_bas] == :isole) ? 1.0 / (R_PLANCHER_BAS_MIN + R_RESIDUELLE_PAROI)
+                                      : UPB_DEFAUT
+    when :menuiseries
+      (@iso[:menuiseries] == :isole) ? UW_DOUBLE_VITRAGE : UW_SIMPLE_VITRAGE
+    end
+  end
+
+  def classe(valeur, seuils)
+    seuils.each { |max, c| return c if valeur <= max }
+  end
+
+  def pire(c1, c2)
+    ORDRE_CLASSES[[ORDRE_CLASSES.index(c1), ORDRE_CLASSES.index(c2)].max]
+  end
+end
