@@ -12,15 +12,12 @@
 # Exemples :
 #   TravauxMapperService.code_for_poste("Remplacement du chauffage électrique par PAC air/eau")
 #     # => "chauffage"
-#   TravauxMapperService::DPE_IMPACT["chauffage"]
-#     # => 1.5
 #   TravauxMapperService.equipements_for(["chauffage"])
 #     # => ["pac_air_eau", "pac_geothermique", "poele_buches", ...]
 #
-# Le barème DPE est une heuristique inspirée des guides ADEME.
-# Il n'est pas précis (le vrai DPE dépend d'un calcul 3CL complet), mais il
-# fournit un ordre de grandeur utile à l'utilisateur pour arbitrer ses travaux.
-# Un disclaimer "estimation indicative" est affiché dans la vue.
+# Le calcul du gain DPE par geste n'est PAS de la responsabilité de ce service.
+# Il vient désormais de PropertyDpeMatrixService (moteur 3CL physique, spécifique
+# au bien) — cf. Temps 3b-2. L'ancien forfait DPE_IMPACT a été supprimé.
 
 class TravauxMapperService
 
@@ -56,20 +53,6 @@ class TravauxMapperService
     "chauffe_eau"            => "🚿",
     "vmc"                    => "💨",
     "menuiseries"            => "🪟"
-  }.freeze
-
-  # Impact DPE estimé par travail (en classes gagnées).
-  # Source : heuristique inspirée des guides ADEME sur les gestes de rénovation.
-  # Plafonné à 5 classes max dans les calculs (un saut F→A est irréaliste
-  # sur un seul bouquet sans rénovation globale complète).
-  DPE_IMPACT = {
-    "isolation_toiture"      => 1.0,
-    "isolation_murs"         => 1.0,
-    "isolation_plancher_bas" => 0.5,
-    "chauffage"              => 1.5,
-    "chauffe_eau"            => 0.5,
-    "vmc"                    => 0.5,
-    "menuiseries"            => 0.5
   }.freeze
 
   # ─── Mapping macro-poste → équipements détaillés ───────────────────
@@ -144,13 +127,6 @@ class TravauxMapperService
     return "isolation_murs"          if p.match?(/mur|facade|façade|ite|iti|isolation.*exterieur|isolation.*extérieur|isolation.*interieur|isolation.*intérieur/)
 
     nil
-  end
-
-  # Total de classes DPE gagnées par un ensemble de codes cochés.
-  # Plafonné à 5 pour rester dans un ordre de grandeur réaliste.
-  def self.gain_dpe(codes_coches)
-    total = codes_coches.to_a.sum { |code| DPE_IMPACT[code].to_f }
-    [total.round, 5].min
   end
 
   # Retourne la liste des codes d'équipements autorisés par un ensemble

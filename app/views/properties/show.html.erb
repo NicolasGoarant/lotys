@@ -75,23 +75,19 @@
                   PropertyDpeMatrixService.call(@property)
                 end %>
 
-<%# ── DPE cible estimé via la matrice serveur (Temps 3b-2 commit 1) ────────
-     Bascule de l'init server-side de tgt_idx_estime depuis le forfait
-     TravauxMapperService.gain_dpe (déconnecté du bâti) vers la classe
-     atteignable réelle calculée par le moteur 3CL pour la combinaison de
-     gestes déjà cochés en DB.
-     Clé de combinaison : `travaux_actifs.sort.join(",")` — format exact
-     produit par PropertyDpeMatrixService#calculer_combinaisons (l. 116).
+<%# ── DPE cible estimé via la matrice serveur (Temps 3b-2 commit 3) ────────
+     `tgt_idx_estime` est la classe atteignable calculée par le moteur 3CL
+     pour la combinaison de gestes déjà cochés en DB. Clé de combinaison :
+     `travaux_actifs.sort.join(",")` — format exact produit par
+     PropertyDpeMatrixService#calculer_combinaisons (l. 116).
 
      CAS DÉGRADÉ (décision γ du diagnostic 3b-2) : si la matrice n'est pas
      calculable (surface ou année manquante, ou utilisateur non autorisé),
-     `tgt_idx_estime` retombe sur `cur_idx` (pas d'estimation, pas de saut).
-     On NE RÉINTRODUIT PAS gain_dpe forfaitaire en repli — l'affichage du
-     cas dégradé sera traité au commit qui touche la jauge interactive.
-
-     NB : la jauge interactive (recalcTravaux + onSliderChange + DPE_IMPACT
-     côté JS) n'est PAS touchée par ce commit — elle continue à tourner sur
-     le forfait. C'est le débranchement des commits 2/3 du Temps 3b-2. -%>
+     `tgt_idx_estime` vaut `cur_idx` (pas d'estimation, pas de saut). La
+     jauge interactive sera désactivée avec un message d'invite (cf. zone
+     « jauge interactive » plus bas, condition `unless dpe_matrix`). Aucun
+     calcul forfaitaire de repli — la jauge ne calcule pas plutôt que de
+     calculer faux. -%>
 <% tgt_idx_estime = if dpe_matrix
                        cle_combi = travaux_actifs.sort.join(",")
                        classe_estimee = dpe_matrix.dig(:combinaisons, cle_combi, :classe)
@@ -282,9 +278,23 @@
     <% else %>
       <%# Dossier complet (propriétaire OU claimant) : jauge interactive +
            slider caché qui écoute les changements. Glisser la jauge coche
-           automatiquement les travaux nécessaires (par impact DPE décroissant).
-           Décocher des travaux remonte la jauge estimée. %>
-      <div style="position:relative;margin-bottom:6px;">
+           automatiquement les travaux atteignant la cible (cascade par
+           priorité réelle calculée serveur sur le moteur 3CL).
+           Décocher des travaux remonte la jauge estimée.
+
+           CAS DÉGRADÉ (décision γ du diagnostic 3b-2) : si la matrice DPE
+           n'est pas calculable (surface ou année manquante), la jauge est
+           désactivée et un message d'invite est affiché. Aucun calcul
+           forfaitaire de repli — la jauge ne calcule pas plutôt que de
+           calculer faux. %>
+      <% unless dpe_matrix %>
+        <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:10px 14px;margin-bottom:12px;">
+          <p class="bod" style="color:#92400e;font-weight:600;font-size:.78rem;line-height:1.4;">
+            ⚠️ Complétez votre dossier (surface et année de construction) pour estimer les classes atteignables.
+          </p>
+        </div>
+      <% end %>
+      <div style="position:relative;margin-bottom:6px;<%= 'opacity:0.55;' unless dpe_matrix %>">
         <div style="display:flex;margin-bottom:4px;">
           <% dpe_all.each do |l| %>
             <div style="flex:1;text-align:center;">
@@ -303,16 +313,22 @@
         <%# Slider HTML posé par-dessus la track A→G (7 segments).
              max=6 pour que chaque segment visuel corresponde à une position
              atteignable. Le clamp à cur_idx-1 (on ne peut pas cibler un DPE
-             pire ou égal au DPE actuel) est fait en JS dans onSliderChange. %>
-        <input type="range" id="dpe-slider"
-               min="0" max="6" step="1"
-               value="<%= tgt_idx %>"
-               style="position:absolute;top:0;left:0;width:100%;height:48px;opacity:0;cursor:grab;margin:0;z-index:10;"
-               oninput="onSliderChange(this.value)">
+             pire ou égal au DPE actuel) est fait en JS dans onSliderChange.
+             Le slider n'est PAS rendu si la matrice est absente (cas dégradé)
+             — la track reste visible mais statique, drag impossible. %>
+        <% if dpe_matrix %>
+          <input type="range" id="dpe-slider"
+                 min="0" max="6" step="1"
+                 value="<%= tgt_idx %>"
+                 style="position:absolute;top:0;left:0;width:100%;height:48px;opacity:0;cursor:grab;margin:0;z-index:10;"
+                 oninput="onSliderChange(this.value)">
+        <% end %>
       </div>
-      <p class="lbl" id="dpe-estim-lbl" style="text-align:center;margin-bottom:20px;color:#059669;font-size:.66rem;">
-        Objectif : <span id="dpe-estim-val"><%= dpe_all[tgt_idx] %></span> · estimation indicative · glissez la jauge : les travaux s'ajustent à la cible
-      </p>
+      <% if dpe_matrix %>
+        <p class="lbl" id="dpe-estim-lbl" style="text-align:center;margin-bottom:20px;color:#059669;font-size:.66rem;">
+          Objectif : <span id="dpe-estim-val"><%= dpe_all[tgt_idx] %></span> · estimation indicative · glissez la jauge : les travaux s'ajustent à la cible
+        </p>
+      <% end %>
     <% end %>
 
     <%# ── Formulaire checkboxes de travaux (dossier complet) ──
@@ -513,19 +529,19 @@
 
 </div>
 
-<%# ── Matrice DPE pré-calculée serveur — future source unique de la jauge ─
+<%# ── Matrice DPE pré-calculée serveur — source UNIQUE de la jauge ────────
      PropertyDpeMatrixService projette le moteur 3CL (DpeEngineService via
      PropertyDpeService) sur les 128 sous-ensembles des 7 gestes canoniques,
      plus un classement de priorité réel spécifique à CE bien.
 
-     Statut Temps 3b-2 commit 1 :
-     - L'init server-side de tgt_idx_estime (~L66) consomme déjà cette matrice
-       à la place du forfait TravauxMapperService.gain_dpe.
-     - La jauge interactive (recalcTravaux + onSliderChange) tourne encore
-       sur DPE_IMPACT (commits 2/3 à venir).
+     Statut Temps 3b-2 commit 3 (final) :
+     - L'init server-side de tgt_idx_estime (~L66) consomme la matrice.
+     - La jauge interactive (recalcTravaux + onSliderChange) consomme aussi
+       la matrice via DPE_MATRIX en JS (cf. zone « État côté client » ci-dessous).
+     - DPE_IMPACT supprimée du codebase entier.
 
      La variable `dpe_matrix` est calculée en haut de la vue (~L65) et
-     réutilisée ici pour la balise JSON consommée plus tard par le JS.
+     réutilisée ici pour la balise JSON consommée par le JS.
      Balise présente uniquement si la matrice a pu être calculée (surface
      + année + autorisation). -%>
 <% if dpe_matrix %>
@@ -549,16 +565,21 @@ var CUR=<%= cur_idx %>;
 // à l'init, c'est SERVER_TGT_IDX qui pilote slider + pin + hidden field.
 var SERVER_TGT_IDX=<%= tgt_idx %>;
 
-// Barème d'impact DPE par travail (cohérent avec TravauxMapperService::DPE_IMPACT)
-var DPE_IMPACT={
-  'isolation_toiture':1.0,
-  'isolation_murs':1.0,
-  'isolation_plancher_bas':0.5,
-  'chauffage':1.5,
-  'chauffe_eau':0.5,
-  'vmc':0.5,
-  'menuiseries':0.5
-};
+// ═══ Matrice DPE serveur — source UNIQUE de la jauge (Temps 3b-2 commit 3) ══
+// Lue UNE FOIS au chargement depuis le script JSON embarqué par
+// PropertyDpeMatrixService. La jauge entière (recalcTravaux + onSliderChange
+// + deriveSelectionForTarget) ne consomme QUE cette matrice. Plus aucun
+// forfait scalaire — DPE_IMPACT est supprimée du codebase.
+//
+// Si la balise dpe-matrix-data est absente (bien sans surface/année, ou
+// utilisateur non autorisé), DPE_MATRIX vaut null : la jauge est désactivée
+// proprement côté ERB (slider non rendu, message d'invite).
+var DPE_MATRIX = (function(){
+  var el = document.getElementById('dpe-matrix-data');
+  if(!el) return null;
+  try { return JSON.parse(el.textContent); }
+  catch(e){ console.error('DPE_MATRIX parse error', e); return null; }
+})();
 
 // ═══ Référence serveur pour le recalcul proportionnel des aides ═══════════
 // Au chargement de la page, on mémorise les vrais chiffres calculés par
@@ -580,10 +601,6 @@ var SERVER_REF = {
 // Permet de savoir si les chiffres affichés sont encore "alignés" sur le serveur.
 var TRAVAUX_DIRTY = false;
 
-// Codes canoniques injectés depuis Ruby (source de vérité = TravauxMapperService).
-// Sert de tie-breaker stable dans deriveSelection.
-var CANONICAL_CODES_JS = <%= raw TravauxMapperService::CANONICAL_CODES.to_json %>;
-
 // ═══ Recalcul temps réel du budget et de la cible DPE selon cases cochées ═
 // Sens 1 : checkboxes → jauge (utilisé par les onchange des checkboxes)
 //
@@ -600,15 +617,28 @@ var CANONICAL_CODES_JS = <%= raw TravauxMapperService::CANONICAL_CODES.to_json %
 // le hidden field form-dpe-target persiste cette cible non choisie au
 // premier submit). On positionne donc la jauge sur SERVER_TGT_IDX et on
 // ne marque rien comme "à recalculer".
+// Lookup direct dans la matrice : pour un ensemble de gestes cochés,
+// retourne l'idx DPE (0..6 = A..G) de la classe atteignable.
+// Retourne null si la matrice est absente OU si la combinaison n'a pas
+// d'entrée — cas dégradé, on s'abstient plutôt que d'inventer.
+function lookupTgtIdxFromMatrix(codesActifs){
+  if(!DPE_MATRIX) return null;
+  var cle = codesActifs.slice().sort().join(',');
+  var entry = DPE_MATRIX.combinaisons[cle];
+  if(!entry || typeof entry.classe !== 'string') return null;
+  return 'ABCDEFG'.indexOf(entry.classe);
+}
+
 function recalcTravaux(skipJaugeUpdate, initialLoad){
-  var total=0, gainDpe=0;
+  var total=0;
+  var codesActifs=[];
   document.querySelectorAll('.travail-check').forEach(function(row){
     var cb=row.querySelector('input[type=checkbox].travail-cb');
     var coche=cb && cb.checked;
     row.classList.toggle('off', !coche);
     if(coche){
       total += parseInt(row.dataset.mediane||'0', 10);
-      gainDpe += DPE_IMPACT[row.dataset.code]||0;
+      codesActifs.push(row.dataset.code);
     }
   });
 
@@ -619,19 +649,22 @@ function recalcTravaux(skipJaugeUpdate, initialLoad){
   }
 
   // Mise à jour de la jauge :
-  //  - à l'init : on cale sur la cible serveur (pas de dérivation depuis gainDpe)
+  //  - à l'init : on cale sur la cible serveur (pas de dérivation depuis les cases)
   //  - au drag slider : la cible est déjà positionnée par onSliderChange
-  //  - sinon (case cochée/décochée par l'utilisateur) : on dérive de gainDpe
+  //  - sinon (case cochée/décochée) : on LOOKUP la classe atteignable dans
+  //    la matrice DPE serveur — plus aucune somme de scalaires forfaitaires.
+  //  - cas dégradé (matrice absente) : on ne touche pas à la jauge.
   if(initialLoad){
     updateJaugeDPE(SERVER_TGT_IDX);
     var sliderInit=document.getElementById('dpe-slider');
     if(sliderInit && sliderInit.value != SERVER_TGT_IDX){ sliderInit.value = SERVER_TGT_IDX; }
   } else if(!skipJaugeUpdate){
-    var gainArr = Math.min(Math.round(gainDpe), 5);
-    var tgtIdx = Math.max(CUR - gainArr, 0);
-    updateJaugeDPE(tgtIdx);
-    var slider=document.getElementById('dpe-slider');
-    if(slider && slider.value != tgtIdx){ slider.value = tgtIdx; }
+    var tgtIdx = lookupTgtIdxFromMatrix(codesActifs);
+    if(tgtIdx !== null){
+      updateJaugeDPE(tgtIdx);
+      var slider=document.getElementById('dpe-slider');
+      if(slider && slider.value != tgtIdx){ slider.value = tgtIdx; }
+    }
   }
 
   // Feedback proportionnel sur les aides et le reste à financer.
@@ -744,17 +777,23 @@ function onSliderChange(newTgtVal){
 
   // Positionner la jauge sur la cible exacte voulue par l'utilisateur.
   // recalcTravaux sera appelé avec skipJaugeUpdate=true pour ne pas la
-  // reprendre depuis le gain dérivé (évite le rebond cosmétique).
+  // reprendre depuis la matrice (évite le rebond cosmétique).
   updateJaugeDPE(tgtIdx);
 
+  // Cas dégradé : pas de matrice → pas de cascade possible. Le slider n'est
+  // de toute façon pas rendu (cf. condition côté ERB), mais on garde la
+  // garde-fou JS au cas où.
+  if(!DPE_MATRIX) return;
+
   // Délégation à la fonction pure. AUCUNE lecture DOM en entrée — la
-  // sortie ne dépend que de (CUR, tgtIdx, DPE_IMPACT, CANONICAL_CODES_JS),
-  // garantissant la chemin-indépendance.
+  // sortie ne dépend que de (CUR, tgtIdx, prioriteGestes, combinaisons),
+  // garantissant la chemin-indépendance. priorite_gestes est l'ordre RÉEL
+  // spécifique au bien (gain EP décroissant, calculé serveur sur le moteur 3CL).
   var res = deriveSelectionForTarget({
     currentDpeIdx:   CUR,
     targetIdx:       tgtIdx,
-    dpeImpact:       DPE_IMPACT,
-    canonicalCodes:  CANONICAL_CODES_JS
+    prioriteGestes:  DPE_MATRIX.priorite_gestes.map(function(g){ return g.code; }),
+    combinaisons:    DPE_MATRIX.combinaisons
   });
 
   // Écriture DOM : on coche exactement ce que res.checked contient,

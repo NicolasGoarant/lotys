@@ -32,9 +32,6 @@ require "json"
 #       emboîtés.
 #   I — Menuiseries : présentes dans le préfixe pour cibles ambitieuses.
 #   N — Pureté : entrées non mutées, idempotent.
-#   C — Compat ancienne signature : la branche dpeImpact + canonicalCodes
-#       reste opérationnelle pendant ce commit (sera supprimée au commit 3
-#       avec DPE_IMPACT).
 class DpeSliderLogicTest < ActiveSupport::TestCase
   NODE_BIN   = "node".freeze
   LOGIC_FILE = Rails.root.join("app/javascript/dpe_slider_logic.js").to_s.freeze
@@ -69,28 +66,6 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
     "chauffage,isolation_murs,isolation_plancher_bas,isolation_toiture,menuiseries,vmc"                 => { "classe" => "B" },  # 6
     "chauffage,chauffe_eau,isolation_murs,isolation_plancher_bas,isolation_toiture,menuiseries,vmc"     => { "classe" => "A" }   # 7
   }.freeze
-
-  # ── 3e copie de DPE_IMPACT — conservée pour le test de compat C ───────
-  # SERA SUPPRIMÉE au Temps 3b-2 commit 3 avec DPE_IMPACT.
-  DPE_IMPACT = {
-    "isolation_toiture"      => 1.0,
-    "isolation_murs"         => 1.0,
-    "isolation_plancher_bas" => 0.5,
-    "chauffage"              => 1.5,
-    "chauffe_eau"            => 0.5,
-    "vmc"                    => 0.5,
-    "menuiseries"            => 0.5
-  }.freeze
-
-  CANONICAL_CODES = %w[
-    isolation_toiture
-    isolation_murs
-    isolation_plancher_bas
-    chauffage
-    chauffe_eau
-    vmc
-    menuiseries
-  ].freeze
 
   setup do
     out, err, st = Open3.capture3(NODE_BIN, "-v")
@@ -252,23 +227,4 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
     end
   end
 
-  # ─── C. COMPAT ANCIENNE SIGNATURE — temporairement préservée ────────────
-  # Le site d'appel show.html.erb:722 passe encore (dpeImpact, canonicalCodes).
-  # On vérifie que cette signature continue de fonctionner pendant ce commit.
-  # SERA SUPPRIMÉ au Temps 3b-2 commit 3 avec DPE_IMPACT.
-  test "C — compat ancienne signature : (dpeImpact, canonicalCodes) reste opérationnelle (compat temporaire commit 3b-2/2)" do
-    cur = 5 # F
-    r = run_derive(
-      currentDpeIdx: cur, targetIdx: 3,    # cible D (gain 2)
-      dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES
-    )
-    # Forfait : gain souhaité 2 ; file canonique triée = [chauffage (1.5),
-    # isolation_toiture (1.0), isolation_murs (1.0), …]. Cumul 1.5 (chauffage)
-    # puis 2.5 (+isolation_toiture). Cumul ≥ 2 ⇒ on s'arrête → checked = [chauffage, isolation_toiture].
-    assert_includes r["checked"], "chauffage",
-      "Ancienne signature dpeImpact doit toujours mettre chauffage en tête (gain forfait 1.5 = max)"
-    assert_equal 2, r["checked"].size,
-      "Ancienne signature : 2 gestes pour gain 2 (chauffage + isolation_toiture). " \
-      "checked=#{r['checked'].inspect}"
-  end
 end

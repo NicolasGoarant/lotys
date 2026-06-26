@@ -82,14 +82,13 @@ class PropertyShowDpeTargetInitTest < ActionDispatch::IntegrationTest
     assert_select "script#dpe-matrix-data", { count: 0 },
       "La balise dpe-matrix-data doit être absente quand l'année manque"
 
-    # cur_idx = index DPE actuel (F = 5). Si gain_dpe était réintroduit en repli,
-    # il vaudrait 0 pour travaux_selection vide → tgt = cur_idx aussi. Mais si
-    # travaux_selection était non vide, gain_dpe le décalerait — d'où le contrôle
-    # avec travaux_selection NON vide ci-dessous.
-    slider = css_select("input#dpe-slider").first
-    assert slider
-    assert_equal DPE_ORDRE.index("F").to_s, slider["value"],
-      "Sans matrice ET avec travaux_selection vide, tgt_idx_estime doit = cur_idx (F=5)"
+    # Décision γ du diagnostic 3b-2 : sans matrice, le slider n'est PAS rendu
+    # (jauge désactivée proprement) et un message d'invite est affiché.
+    # Aucun fallback forfaitaire.
+    assert_nil css_select("input#dpe-slider").first,
+      "Sans matrice, input#dpe-slider ne doit PAS être rendu (jauge désactivée)"
+    assert_match(/Complétez votre dossier/, response.body,
+      "Le message d'invite doit s'afficher quand la matrice ne peut pas être calculée")
   end
 
   # ── 1bis. Verrou Tilleuls anonyme — cohérence init/jauge ────────────────
@@ -132,9 +131,10 @@ class PropertyShowDpeTargetInitTest < ActionDispatch::IntegrationTest
       "pas dérégler cet acquis."
   end
 
-  # ── 2bis. Même cas dégradé mais avec gestes cochés — le test qui prouve qu'on
-  # ne retombe pas sur gain_dpe (sinon le slider sauterait depuis cur_idx).
-  test "Property sans année + gestes cochés : tgt_idx_estime reste cur_idx (PAS de gain_dpe forfaitaire)" do
+  # ── 2bis. Même cas dégradé mais avec gestes cochés — preuve qu'aucun
+  # gain_dpe forfaitaire ne peut être réintroduit : le slider lui-même
+  # n'est pas rendu sans matrice (décision γ).
+  test "Property sans année + gestes cochés : slider non rendu (aucun fallback gain_dpe possible)" do
     p = creer_property_pour_init(
       construction_year: nil,
       dpe_class:         "F",
@@ -145,14 +145,9 @@ class PropertyShowDpeTargetInitTest < ActionDispatch::IntegrationTest
     get property_path(p)
     assert_response :success
 
-    # Si gain_dpe était réintroduit en repli : 1.0+1.0+1.5 = 3.5 → arrondi 4 → tgt=cur_idx-4 = 1 (B)
-    # On veut : tgt = cur_idx = 5 (F), aucun saut, parce que la matrice est
-    # absente et qu'il n'y a PAS de fallback forfaitaire.
-    slider = css_select("input#dpe-slider").first
-    assert slider
-    assert_equal DPE_ORDRE.index("F").to_s, slider["value"],
-      "Sans matrice, même avec 3 gestes cochés, slider doit rester à cur_idx — " \
-      "preuve qu'aucun gain_dpe forfaitaire n'a été réintroduit en repli ; obtenu value=#{slider['value']}"
+    assert_nil css_select("input#dpe-slider").first,
+      "Même avec 3 gestes cochés, slider non rendu si matrice absente — preuve qu'aucun gain_dpe forfaitaire n'a été réintroduit"
+    assert_match(/Complétez votre dossier/, response.body)
   end
 
   private
