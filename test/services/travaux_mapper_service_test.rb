@@ -8,11 +8,10 @@ class TravauxMapperServiceTest < ActiveSupport::TestCase
     assert_equal 7, TravauxMapperService::CANONICAL_CODES.size
   end
 
-  test "CANONICAL_CODES, LABELS, EMOJIS et DPE_IMPACT partagent les mêmes clés" do
+  test "CANONICAL_CODES, LABELS et EMOJIS partagent les mêmes clés" do
     codes = TravauxMapperService::CANONICAL_CODES.sort
     assert_equal codes, TravauxMapperService::LABELS.keys.sort
     assert_equal codes, TravauxMapperService::EMOJIS.keys.sort
-    assert_equal codes, TravauxMapperService::DPE_IMPACT.keys.sort
   end
 
   test "MACRO_TO_EQUIPEMENTS et MACRO_TO_SURFACES couvrent les 7 codes canoniques" do
@@ -54,26 +53,6 @@ class TravauxMapperServiceTest < ActiveSupport::TestCase
     assert_nil TravauxMapperService.code_for_poste("")
     assert_nil TravauxMapperService.code_for_poste(nil)
     assert_nil TravauxMapperService.code_for_poste("   ")
-  end
-
-  # ─── gain_dpe ──────────────────────────────────────────────────────
-
-  test "gain_dpe somme les impacts et plafonne à 5 classes" do
-    # Tous cochés : somme > 5 → capped à 5
-    total = TravauxMapperService::DPE_IMPACT.values.sum
-    assert total >= 5, "Somme des impacts DPE_IMPACT attendue ≥ 5"
-    assert_equal 5, TravauxMapperService.gain_dpe(TravauxMapperService::CANONICAL_CODES)
-  end
-
-  test "gain_dpe renvoie 0 pour une sélection vide" do
-    assert_equal 0, TravauxMapperService.gain_dpe([])
-    assert_equal 0, TravauxMapperService.gain_dpe(nil)
-  end
-
-  test "gain_dpe d'un seul poste correspond à son DPE_IMPACT arrondi" do
-    assert_equal 1, TravauxMapperService.gain_dpe(["isolation_toiture"])  # 1.0
-    assert_equal 2, TravauxMapperService.gain_dpe(["chauffage"])           # 1.5 → 2
-    assert_equal 1, TravauxMapperService.gain_dpe(["vmc"])                 # 0.5 → 1
   end
 
   # ─── equipements_for / surfaces_for ───────────────────────────────

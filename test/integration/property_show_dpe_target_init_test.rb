@@ -92,6 +92,46 @@ class PropertyShowDpeTargetInitTest < ActionDispatch::IntegrationTest
       "Sans matrice ET avec travaux_selection vide, tgt_idx_estime doit = cur_idx (F=5)"
   end
 
+  # ── 1bis. Verrou Tilleuls anonyme — cohérence init/jauge ────────────────
+  # Reproduit le bien oracle Lauze ID 107 : 95 m², 1962, gaz extrait, F.
+  # SANS dpe_target — parcours d'estimation anonyme où tgt_idx_estime pilote
+  # vraiment l'init. Test de régression pour s'assurer qu'à toute évolution
+  # de la jauge interactive (Temps 3b-2 commits 2 et 3), le pin INITIAL reste
+  # cohérent avec ce que la matrice prédit pour la combinaison cochée.
+  test "Tilleuls anonyme — pin initial cohérent avec la matrice (verrou init↔jauge)" do
+    p = creer_property_pour_init(
+      address:                  "14 rue des Tilleuls",
+      city:                     "Vandœuvre-lès-Nancy",
+      zipcode:                  "54500",
+      surface:                  95,
+      construction_year:        1962,
+      energie_chauffage:        "gaz",
+      energie_chauffage_source: "extrait_description",
+      dpe_class:                "F",
+      dpe_target:               nil,
+      travaux_selection:        {
+        "isolation_murs" => true, "isolation_toiture" => true, "menuiseries" => true
+      }
+    )
+
+    matrix          = PropertyDpeMatrixService.call(p)
+    cle             = p.travaux_actifs.sort.join(",")
+    classe_attendue = matrix[:combinaisons][cle][:classe]
+    idx_attendu     = DPE_ORDRE.index(classe_attendue)
+
+    get property_path(p)
+    assert_response :success
+
+    assert_select "script#dpe-matrix-data", { count: 1 },
+      "Sur Tilleuls anonyme, la balise dpe-matrix-data doit être injectée"
+    slider = css_select("input#dpe-slider").first
+    assert slider, "Le slider doit exister sur Tilleuls (matrice présente)"
+    assert_equal idx_attendu.to_s, slider["value"],
+      "Pin initial sur Tilleuls (gestes=#{cle}) doit pointer sur idx=#{idx_attendu} " \
+      "(matrice classe=#{classe_attendue}). Le commit 3b-2/2 puis 3b-2/3 ne doivent " \
+      "pas dérégler cet acquis."
+  end
+
   # ── 2bis. Même cas dégradé mais avec gestes cochés — le test qui prouve qu'on
   # ne retombe pas sur gain_dpe (sinon le slider sauterait depuis cur_idx).
   test "Property sans année + gestes cochés : tgt_idx_estime reste cur_idx (PAS de gain_dpe forfaitaire)" do
