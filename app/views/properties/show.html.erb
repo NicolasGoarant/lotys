@@ -62,10 +62,44 @@
 <% budget_max_brut = travaux_claude.sum{|t| t["cout_max"].to_i} %>
 <% budget_min_brut = travaux_claude.sum{|t| t["cout_min"].to_i} %>
 
-<%# ── DPE cible estimé selon les travaux cochés (heuristique TravauxMapperService) ─ %>
-<% gain_dpe = TravauxMapperService.gain_dpe(travaux_actifs) %>
-<% tgt_idx_estime = [cur_idx - gain_dpe, 0].max %>
-<%# Conserve la cible DB si elle existe, sinon estimation heuristique %>
+<%# ── Matrice DPE pré-calculée (PropertyDpeMatrixService) ───────────────────
+     Calculée UNE FOIS ici et réutilisée plus bas (cf. balise application/json
+     id="dpe-matrix-data" ~L500). Coût : ~80 ms côté serveur, gain : source
+     unique pour l'init server-side ci-dessous ET pour la consommation JS au
+     Temps 3b-2 commit suivant.
+     Conditions : on n'invoque le service que si l'utilisateur peut voir le
+     dossier (claim ou propriétaire) ET que surface/année sont posés (sinon
+     PropertyDpeMatrixService refuserait — il a besoin des deux pour les
+     défauts géométriques §5ter.a). -%>
+<% dpe_matrix = if can_see_full_dossier && @property.surface.present? && @property.construction_year.present?
+                  PropertyDpeMatrixService.call(@property)
+                end %>
+
+<%# ── DPE cible estimé via la matrice serveur (Temps 3b-2 commit 1) ────────
+     Bascule de l'init server-side de tgt_idx_estime depuis le forfait
+     TravauxMapperService.gain_dpe (déconnecté du bâti) vers la classe
+     atteignable réelle calculée par le moteur 3CL pour la combinaison de
+     gestes déjà cochés en DB.
+     Clé de combinaison : `travaux_actifs.sort.join(",")` — format exact
+     produit par PropertyDpeMatrixService#calculer_combinaisons (l. 116).
+
+     CAS DÉGRADÉ (décision γ du diagnostic 3b-2) : si la matrice n'est pas
+     calculable (surface ou année manquante, ou utilisateur non autorisé),
+     `tgt_idx_estime` retombe sur `cur_idx` (pas d'estimation, pas de saut).
+     On NE RÉINTRODUIT PAS gain_dpe forfaitaire en repli — l'affichage du
+     cas dégradé sera traité au commit qui touche la jauge interactive.
+
+     NB : la jauge interactive (recalcTravaux + onSliderChange + DPE_IMPACT
+     côté JS) n'est PAS touchée par ce commit — elle continue à tourner sur
+     le forfait. C'est le débranchement des commits 2/3 du Temps 3b-2. -%>
+<% tgt_idx_estime = if dpe_matrix
+                       cle_combi = travaux_actifs.sort.join(",")
+                       classe_estimee = dpe_matrix.dig(:combinaisons, cle_combi, :classe)
+                       classe_estimee ? dpe_all.index(classe_estimee) : cur_idx
+                     else
+                       cur_idx
+                     end %>
+<%# Conserve la cible DB si elle existe, sinon estimation via matrice %>
 <% tgt_idx = dpe_cib && dpe_all.index(dpe_cib) ? dpe_all.index(dpe_cib) : tgt_idx_estime %>
 <% sauts   = cur_idx - tgt_idx %>
 
@@ -482,19 +516,19 @@
 <%# ── Matrice DPE pré-calculée serveur — future source unique de la jauge ─
      PropertyDpeMatrixService projette le moteur 3CL (DpeEngineService via
      PropertyDpeService) sur les 128 sous-ensembles des 7 gestes canoniques,
-     plus un classement de priorité réel spécifique à CE bien (gain EP de
-     chaque geste seul, calculé depuis son état initial reconstitué).
+     plus un classement de priorité réel spécifique à CE bien.
 
-     Statut Temps 3b-1 : POSÉE EN FILET, NON CONSOMMÉE.
-     - La jauge tourne toujours sur DPE_IMPACT (cf. var DPE_IMPACT plus bas).
-     - Au Temps 3b-2, recalcTravaux et onSliderChange basculent vers cette
-       matrice et DPE_IMPACT est supprimée (Ruby + JS + 3e copie de tests).
+     Statut Temps 3b-2 commit 1 :
+     - L'init server-side de tgt_idx_estime (~L66) consomme déjà cette matrice
+       à la place du forfait TravauxMapperService.gain_dpe.
+     - La jauge interactive (recalcTravaux + onSliderChange) tourne encore
+       sur DPE_IMPACT (commits 2/3 à venir).
 
-     Limite assumée : injecté seulement si l'utilisateur peut voir le dossier
-     complet (claim_token ou propriétaire), car le pré-calcul nécessite
-     surface + année de construction présents. Sinon, balise absente. -%>
-<% if can_see_full_dossier && @property.surface.present? && @property.construction_year.present? %>
-  <% dpe_matrix = PropertyDpeMatrixService.call(@property) %>
+     La variable `dpe_matrix` est calculée en haut de la vue (~L65) et
+     réutilisée ici pour la balise JSON consommée plus tard par le JS.
+     Balise présente uniquement si la matrice a pu être calculée (surface
+     + année + autorisation). -%>
+<% if dpe_matrix %>
   <script type="application/json" id="dpe-matrix-data"><%= raw dpe_matrix.to_json %></script>
 <% end %>
 
