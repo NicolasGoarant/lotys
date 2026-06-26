@@ -878,8 +878,11 @@ function initShow(){
   // selon le gain DPE cumulé des cases cochées). cb.checked = X par script
   // ne dispatch pas 'change', donc onSliderChange ne déclenche pas ce
   // listener — pas de boucle.
+  // IMPORTANT : on enveloppe l'appel pour NE PAS propager l'Event en premier
+  // argument de recalcTravaux — sans ça, skipJaugeUpdate=Event=truthy et la
+  // branche matrice de mise à jour du pin est court-circuitée.
   document.querySelectorAll('.travail-cb').forEach(function(cb){
-    cb.addEventListener('change', recalcTravaux);
+    cb.addEventListener('change', function(){ recalcTravaux(); });
   });
   // Appel d'init : skipJaugeUpdate=true (on ne touche pas à la jauge calculée
   // depuis les cases) ET initialLoad=true (on cale la jauge sur la cible
