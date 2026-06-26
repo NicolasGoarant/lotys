@@ -15,6 +15,27 @@ class DpeEngineService
   UW_SIMPLE_VITRAGE   = 5.8
   UMUR_PLAFOND_CALCUL = 2.0  # Min(Umur ; 2) appliqué aux calculs 3CL (§3)
 
+  # ── §3bis — état :partiel (zone grise 1983-2000, RT 1982/1988/2000) ────
+  # Bâtis avec amorce d'isolation mais sous les standards RT 2000+.
+  # Calage FIGÉ (cf. §3bis du doc, Temps 3a quater) :
+  UMUR_PARTIEL = 1.5    # Ancré sur ID 71 : 5 cm laine intérieure + parpaing
+                        # 20 cm + Rsi+Rse (0,17) → R total ≈ 0,67 → U ≈ 1,5.
+                        # Valeur OBSERVÉE, pas calibrée sur l'oracle.
+                        # Conservative : 1,5 < UMUR_PLAFOND_CALCUL (2,0) donc
+                        # le plafond §3 ne s'applique pas — c'est volontaire.
+  UPH_PARTIEL  = 0.59   # Milieu géométrique entre UPH_NON_ISOLE (2,5) et
+                        # Uph_isolé (≈0,140 : R=7+0,17) : √(2,5 × 0,140) ≈ 0,591.
+                        # Hypothèse Lauze, à affiner si ancrage observé.
+  UW_PARTIEL   = 2.75   # Milieu géométrique entre UW_SIMPLE_VITRAGE (5,8) et
+                        # UW_DOUBLE_VITRAGE (1,3) : √(5,8 × 1,3) ≈ 2,747.
+                        # Cohérent avec « double émergent » années 90 (Uw 2,5-3,0).
+                        # Hypothèse Lauze, à affiner.
+  UPB_PARTIEL  = 0.38   # Milieu géométrique entre UPB_DEFAUT (0,45) et
+                        # Upb_isolé (≈0,316 : R=3+0,17) : √(0,45 × 0,316) ≈ 0,377.
+                        # Note : écart partiel ↔ isolé minime sur ce poste,
+                        # le §3 prend déjà 0,45 « entrevous isolant » comme défaut.
+                        # Hypothèse Lauze, à affiner.
+
   # ── §4 — R minimums réglementaires rénovation (MaPrimeRénov / CEE) ──────
   R_ITI_MIN            = 3.7
   R_COMBLES_PERDUS_MIN = 7.0
@@ -243,17 +264,30 @@ class DpeEngineService
   def u_courant(poste)
     case poste
     when :murs
-      u = (@iso[:murs] == :isole) ? 1.0 / (R_ITI_MIN + R_RESIDUELLE_PAROI)
-                                  : UMUR_NON_ISOLE
+      u = case @iso[:murs]
+          when :isole   then 1.0 / (R_ITI_MIN + R_RESIDUELLE_PAROI)
+          when :partiel then UMUR_PARTIEL                    # §3bis
+          else               UMUR_NON_ISOLE
+          end
       [u, UMUR_PLAFOND_CALCUL].min     # Min(Umur ; 2) — §3
     when :toiture
-      (@iso[:toiture] == :isole) ? 1.0 / (R_COMBLES_PERDUS_MIN + R_RESIDUELLE_PAROI)
-                                 : UPH_NON_ISOLE
+      case @iso[:toiture]
+      when :isole   then 1.0 / (R_COMBLES_PERDUS_MIN + R_RESIDUELLE_PAROI)
+      when :partiel then UPH_PARTIEL                          # §3bis
+      else               UPH_NON_ISOLE
+      end
     when :plancher_bas
-      (@iso[:plancher_bas] == :isole) ? 1.0 / (R_PLANCHER_BAS_MIN + R_RESIDUELLE_PAROI)
-                                      : UPB_DEFAUT
+      case @iso[:plancher_bas]
+      when :isole   then 1.0 / (R_PLANCHER_BAS_MIN + R_RESIDUELLE_PAROI)
+      when :partiel then UPB_PARTIEL                          # §3bis
+      else               UPB_DEFAUT
+      end
     when :menuiseries
-      (@iso[:menuiseries] == :isole) ? UW_DOUBLE_VITRAGE : UW_SIMPLE_VITRAGE
+      case @iso[:menuiseries]
+      when :isole   then UW_DOUBLE_VITRAGE
+      when :partiel then UW_PARTIEL                           # §3bis
+      else               UW_SIMPLE_VITRAGE
+      end
     end
   end
 

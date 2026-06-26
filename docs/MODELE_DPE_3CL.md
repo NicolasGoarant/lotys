@@ -147,11 +147,22 @@ les `U` après travaux.
 **État `:partiel` — zone grise.** Désigne les bâtis 1983-2000 où la
 réglementation imposait une enveloppe meilleure que « rien » sans atteindre
 les standards RT 2000+. Exemple concret observé en DB : bien ID 71 — « Bloc
-béton creux avec isolation intérieure de 5 cm » → R ≈ 0,14 m².K/W,
-Umur ≈ 1,5 W/m².K — ni `:non_isole` (§3 = 2,5), ni `:isole` (§4 ≈ 0,26).
-*Calage Umur proposé pour `:partiel` : **Umur_partiel ≈ 1,0 à 1,5 W/m².K**,
-hypothèse Lauze, intermédiaire entre §3 et §4.* À figer quand le moteur
-apprendra `:partiel` (cf. dette §9).
+béton creux avec isolation intérieure de 5 cm » → R_isolant ≈ 0,14 m².K/W,
+R_paroi existante (parpaing 20 cm) ≈ 0,3-0,5, Rsi+Rse = 0,17, R total ≈ 0,67
+→ **Umur ≈ 1,5 W/m².K**. Ni `:non_isole` (§3 = 2,5), ni `:isole` (§4 ≈ 0,26).
+
+**Calage FIGÉ du moteur pour `:partiel`** (Temps 3a quater, `DpeEngineService` apprend `:partiel`) :
+
+| Poste | Valeur figée | Justification |
+|---|---|---|
+| **Umur_partiel** | **1,5 W/m².K** | **Ancré sur le bien réel ID 71 ci-dessus.** Valeur OBSERVÉE, pas calibrée sur l'oracle. Conservative : 1,5 < UMUR_PLAFOND_CALCUL (2,0) donc le plafond §3 ne l'écrête pas — c'est volontaire. |
+| **Uph_partiel** | **0,59 W/m².K** | Milieu géométrique entre §3 (UPH_NON_ISOLE = 2,5) et §4 (Uph_isolé ≈ 0,140 : R=7 + R_résiduelle 0,17) : √(2,5 × 0,140) ≈ 0,591. *Hypothèse Lauze, à affiner si on trouve un ancrage observé.* |
+| **Uw_partiel** | **2,75 W/m².K** | Milieu géométrique entre §3 (UW_SIMPLE_VITRAGE = 5,8) et §4 (UW_DOUBLE_VITRAGE = 1,3) : √(5,8 × 1,3) ≈ 2,747. Cohérent avec « double émergent » des années 90 (Uw typiques 2,5-3,0). *Hypothèse Lauze, à affiner.* |
+| **Upb_partiel** | **0,38 W/m².K** | Milieu géométrique entre §3 (UPB_DEFAUT = 0,45) et §4 (Upb_isolé ≈ 0,316 : R=3 + R_résiduelle 0,17) : √(0,45 × 0,316) ≈ 0,377. Note : l'écart partiel ↔ isolé est minime sur ce poste, le §3 prend déjà 0,45 « entrevous isolant » comme défaut. *Hypothèse Lauze, à affiner.* |
+
+Test de monotonie automatisé dans `test/services/dpe_engine_service_test.rb` :
+pour un bâti identique, EP / CO₂ / GV de l'état `:partiel` tombent strictement
+entre `:non_isole` et `:isole`.
 
 **Statut de la grille.** Hypothèse de dernier recours, source `:deduit` :
 - s'efface devant toute donnée réelle (extraction ou saisie) ;
@@ -163,11 +174,14 @@ apprendra `:partiel` (cf. dette §9).
 **Test décisif — bien ID 69 (1995, classé D).**
 - Avec le seuil binaire (Temps 2.5) : grille → `:non_isole` partout → moteur
   calcule **F/G** quelle que soit l'énergie → écart -2.
-- Avec la grille §3bis : murs/toiture/menuiseries = `:partiel`. Si le
-  consommateur traduit `:partiel` vers `:isole` côté moteur (en attendant
-  que le moteur apprenne `:partiel`), la classe calculée doit remonter
-  vers **E ou D**. Si elle remonte, la dette (a) est résolue. Si elle
-  reste F/G, la grille est mal calée.
+- Avec la grille §3bis + traduction temporaire `:partiel → :isole`
+  (Temps 3a ter) : meilleure hypothèse = fioul → **D**, écart 0.
+- Avec la grille §3bis + moteur qui gère nativement `:partiel`
+  (Temps 3a quater, plus de traduction) : à mesurer dans
+  `tmp/validate_dpe_engine.rb`. Le moteur applique Umur=1,5 / Uph=0,59 /
+  Uw=2,75 directement. Classe attendue D (confirmation) ou E (acceptable
+  ±1 vu que :partiel est plus conservateur que :isole). Si la classe
+  redescend en F/G, le calage `:partiel` est mal posé.
 
 ### Sources
 
