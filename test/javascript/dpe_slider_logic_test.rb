@@ -5,36 +5,73 @@ require "json"
 # Tests de la fonction PURE deriveSelectionForTarget
 # (app/javascript/dpe_slider_logic.js).
 #
-# Modèle CASCADE MONOTONE :
-#   - Une cible (lettre DPE) → une sélection FIXE, chemin-indépendante.
-#   - La sélection est un PRÉFIXE d'une file canonique (impact décroissant
-#     + tie-break canonicalCodes stable).
-#   - Cibles plus ambitieuses ⇒ préfixes plus longs ⇒ sur-ensembles emboîtés.
+# Temps 3b-2 commit 2 — la cascade marche maintenant sur une PRIORITÉ DE
+# GESTES spécifique au bien (calculée serveur par PropertyDpeMatrixService)
+# et une MATRICE de combinaisons → classe atteignable, au lieu du forfait
+# DPE_IMPACT (déconnecté du bâti, mêmes points pour tous).
+#
+# Modèle CASCADE MONOTONE PAR PRÉFIXES :
+#   - prioriteGestes est une liste ordonnée de codes (gain EP décroissant
+#     côté serveur). Elle joue le rôle de "file canonique" mais spécifique
+#     au bien.
+#   - On marche dans cette liste : pour atteindre une classe cible, on
+#     prend le plus petit préfixe k tel que combinaisons[préfixe.sort.join(",")]
+#     ait une classe ≤ cible.
+#   - Les préfixes sont emboîtés par construction ⇒ cascade monotone par
+#     construction (la propriété Q).
 #
 # Stratégie : exécuter le fichier JS via `node` en CLI depuis Minitest avec
 # Open3, parser le JSON retourné, asserter en Ruby. Pas de runner JS (Lauze
-# n'en a pas), pas de bundler. La fonction est CommonJS pour Node ET déclarée
-# comme fonction globale en script tag classique.
+# n'en a pas), pas de bundler.
 #
 # Cas testés :
-#   P — Chemin-indépendance : deux appels avec même targetIdx ⇒ sélections
-#       identiques. Formalise le bug "B donne 3 sélections différentes
-#       selon le chemin des drags" (vu en prod sur d1ac5b5/v101).
+#   P — Chemin-indépendance : deux appels avec mêmes args ⇒ sélections
+#       identiques. Pas de variable globale, pas d'horloge, pas de random.
 #   Q — Cascade monotone : pour toute la chaîne G→…→A, sélection(tgt-1) ⊇
-#       sélection(tgt). Monter n'enlève jamais rien, c'est garanti par
-#       l'algorithme (préfixes emboîtés), pas par condition.
-#   I — Menuiseries : non exclue arbitrairement. Sur une cible assez
-#       ambitieuse pour exiger la fin de la file, menuiseries EST cochée.
-#       Et son inclusion est STABLE (toujours pareil, pas "parfois").
+#       sélection(tgt). Monter n'enlève jamais rien — garanti par préfixes
+#       emboîtés.
+#   I — Menuiseries : présentes dans le préfixe pour cibles ambitieuses.
 #   N — Pureté : entrées non mutées, idempotent.
-#
-# Si node n'est pas dans le PATH du runner, tous les tests sont skip avec un
-# message clair (cf. setup).
+#   C — Compat ancienne signature : la branche dpeImpact + canonicalCodes
+#       reste opérationnelle pendant ce commit (sera supprimée au commit 3
+#       avec DPE_IMPACT).
 class DpeSliderLogicTest < ActiveSupport::TestCase
   NODE_BIN   = "node".freeze
   LOGIC_FILE = Rails.root.join("app/javascript/dpe_slider_logic.js").to_s.freeze
 
-  # Aligné avec show.html.erb (DPE_IMPACT JS) et TravauxMapperService::DPE_IMPACT.
+  # ── Matrice synthétique (Temps 3b-2 commit 2) ──────────────────────────
+  # Bien type « 1995 :partiel » où priorite_gestes met isolation_murs AVANT
+  # chauffage — exactement le motif observé sur ID 69 dans le Temps 3b-1
+  # (top 1 = isolation_murs, gain EP +95,9). Cet ordre DIFFÈRE du forfait
+  # DPE_IMPACT (qui met chauffage à 1.5, donc en tête). C'est la preuve
+  # que la cascade est devenue spécifique au bien.
+  PRIORITE_SYNTH = %w[
+    isolation_murs
+    chauffage
+    isolation_toiture
+    menuiseries
+    vmc
+    isolation_plancher_bas
+    chauffe_eau
+  ].freeze
+
+  # Matrice : pour chaque préfixe k de PRIORITE_SYNTH, la classe atteignable.
+  # Clé = préfixe.sort.join(","), EXACTEMENT le format de
+  # PropertyDpeMatrixService#calculer_combinaisons (l. 116).
+  # Classe initiale F (5), on descend en ajoutant des gestes.
+  COMBI_SYNTH = {
+    ""                                                                                                  => { "classe" => "F" },  # 0
+    "isolation_murs"                                                                                    => { "classe" => "E" },  # 1
+    "chauffage,isolation_murs"                                                                          => { "classe" => "D" },  # 2
+    "chauffage,isolation_murs,isolation_toiture"                                                        => { "classe" => "C" },  # 3
+    "chauffage,isolation_murs,isolation_toiture,menuiseries"                                            => { "classe" => "B" },  # 4
+    "chauffage,isolation_murs,isolation_toiture,menuiseries,vmc"                                        => { "classe" => "B" },  # 5
+    "chauffage,isolation_murs,isolation_plancher_bas,isolation_toiture,menuiseries,vmc"                 => { "classe" => "B" },  # 6
+    "chauffage,chauffe_eau,isolation_murs,isolation_plancher_bas,isolation_toiture,menuiseries,vmc"     => { "classe" => "A" }   # 7
+  }.freeze
+
+  # ── 3e copie de DPE_IMPACT — conservée pour le test de compat C ───────
+  # SERA SUPPRIMÉE au Temps 3b-2 commit 3 avec DPE_IMPACT.
   DPE_IMPACT = {
     "isolation_toiture"      => 1.0,
     "isolation_murs"         => 1.0,
@@ -57,13 +94,12 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
 
   setup do
     out, err, st = Open3.capture3(NODE_BIN, "-v")
-    skip "node CLI absent du PATH du runner de test (#{err.strip}). Installer node ou exporter PATH avant `bin/rails test`." unless st.success?
+    skip "node CLI absent du PATH du runner (#{err.strip}). Installer node ou exporter PATH avant `bin/rails test`." unless st.success?
     @node_version = out.strip
   end
 
   # Helper : exécute deriveSelectionForTarget(input) via node, retourne le
-  # hash parsé. Le payload JSON arrive en process.argv[1] côté node — pattern
-  # stable qui évite tout échappement de quotes dans le script.
+  # hash parsé. Le payload JSON arrive en process.argv[1] côté node.
   def run_derive(input)
     payload = input.to_json
     script = <<~JS
@@ -76,124 +112,106 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
     JSON.parse(out)
   end
 
-  # ─── P. CHEMIN-INDÉPENDANCE ──────────────────────────────────────────
-  # LE test qui formalise le bug observé en prod : 3 captures sur cible B
-  # donnaient 3 sélections + 3 budgets différents parce que la fonction
-  # précédente prenait `currentlyChecked` en entrée. Ici on n'a plus
-  # d'entrée d'historique — la propriété est garantie par signature.
-  # On l'asserte explicitement pour la formaliser.
-
-  test "P — chemin-indépendance : pour une cible donnée, deux appels retournent exactement la même sélection" do
-    cur = 5 # F
-
-    # Cible B (idx 1), gain 4. On appelle deux fois — pas d'historique
-    # à passer, donc la sortie ne peut dépendre de rien d'autre que des
-    # arguments explicites.
-    res_b_1 = run_derive(
-      currentDpeIdx: cur, targetIdx: 1,
-      dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES
+  # Helper : appel avec la nouvelle signature (matrice).
+  def derive_matrice(current_dpe_idx:, target_idx:,
+                     priorite: PRIORITE_SYNTH, combinaisons: COMBI_SYNTH)
+    run_derive(
+      currentDpeIdx: current_dpe_idx,
+      targetIdx:     target_idx,
+      prioriteGestes: priorite,
+      combinaisons:   combinaisons
     )
-    res_b_2 = run_derive(
-      currentDpeIdx: cur, targetIdx: 1,
-      dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES
-    )
-    assert_equal res_b_1["checked"].sort, res_b_2["checked"].sort,
-                 "Deux appels avec mêmes args ⇒ même sélection. " \
-                 "(Si rouge, la fonction a réintroduit une dépendance cachée — variable globale, " \
-                 "horloge, Math.random, etc. — qui violerait le déterminisme.)"
+  end
 
-    # Et pour insister : toutes les cibles donnent des résultats stables.
+  # ─── P. CHEMIN-INDÉPENDANCE (nouvelle signature) ────────────────────────
+  test "P — chemin-indépendance : deux appels avec mêmes args matrice ⇒ même sélection" do
+    cur = 5 # F (état initial du bien synthétique)
     [5, 4, 3, 2, 1, 0].each do |tgt|
-      a = run_derive(currentDpeIdx: cur, targetIdx: tgt, dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES)
-      b = run_derive(currentDpeIdx: cur, targetIdx: tgt, dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES)
+      a = derive_matrice(current_dpe_idx: cur, target_idx: tgt)
+      b = derive_matrice(current_dpe_idx: cur, target_idx: tgt)
       assert_equal a["checked"].sort, b["checked"].sort,
-                   "tgt=#{tgt} : sélections doivent être identiques entre deux appels"
+        "tgt=#{tgt} : deux appels doivent donner la même sélection (sortie déterministe)"
     end
   end
 
-  # ─── Q. CASCADE MONOTONE EMBOÎTÉE ────────────────────────────────────
-  # Pour toutes les paires (tgt, tgt-1) avec tgt-1 plus ambitieuse :
-  # sélection(tgt-1) ⊇ sélection(tgt). On vérifie sur toute la chaîne.
-
-  test "Q — cascade monotone : sur toute la chaîne G→A, chaque cible plus ambitieuse est un sur-ensemble de la moins ambitieuse" do
-    cur = 6 # G : permet d'explorer toute la gamme de gains 0→6
-
-    # Cibles de la moins ambitieuse (G=6, gain 0) à la plus ambitieuse (A=0, gain 6).
-    cibles = [6, 5, 4, 3, 2, 1, 0]
+  # ─── Q. CASCADE MONOTONE (préfixes emboîtés par construction) ───────────
+  test "Q — cascade monotone : sur la chaîne F→A, chaque cible plus ambitieuse est un sur-ensemble de la précédente" do
+    cur = 5 # F
+    # Cibles de la moins ambitieuse (F=5 → gain 0) à la plus ambitieuse (A=0 → gain 5).
+    cibles = [5, 4, 3, 2, 1, 0]
     selections = cibles.map do |tgt|
-      run_derive(currentDpeIdx: cur, targetIdx: tgt, dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES)["checked"]
+      derive_matrice(current_dpe_idx: cur, target_idx: tgt)["checked"]
     end
 
-    # Pour chaque cran : la cible suivante (plus ambitieuse) doit être un
-    # sur-ensemble de la précédente.
+    # Pour chaque cran : la cible plus ambitieuse doit être un sur-ensemble
+    # de la moins ambitieuse. AUCUN geste perdu en montant.
     cibles.each_with_index do |tgt, i|
       next if i == 0
       moins_ambitieuse = selections[i - 1]
       plus_ambitieuse  = selections[i]
       perdus = moins_ambitieuse - plus_ambitieuse
       assert_empty perdus,
-                   "Passer de tgt=#{cibles[i - 1]} à tgt=#{tgt} (plus ambitieuse) " \
-                   "ne doit jamais perdre de geste. Perdus: #{perdus.inspect}. " \
-                   "moins_ambitieuse=#{moins_ambitieuse.inspect}, plus_ambitieuse=#{plus_ambitieuse.inspect}"
+        "Passer de tgt=#{cibles[i - 1]} à tgt=#{tgt} (plus ambitieuse) " \
+        "ne doit jamais perdre de geste. Perdus: #{perdus.inspect}. " \
+        "moins=#{moins_ambitieuse.inspect}, plus=#{plus_ambitieuse.inspect}"
     end
 
-    # Et par construction (préfixes), chaque sélection plus ambitieuse doit
-    # être au moins aussi grande que la précédente.
+    # Cardinalité croissante par construction (préfixes emboîtés).
     cibles.each_with_index do |_tgt, i|
       next if i == 0
       assert_operator selections[i].size, :>=, selections[i - 1].size,
-                      "|sélection(tgt=#{cibles[i]})| doit être ≥ |sélection(tgt=#{cibles[i - 1]})|"
+        "|sélection(tgt=#{cibles[i]})| doit être ≥ |sélection(tgt=#{cibles[i - 1]})|"
     end
   end
 
-  # ─── I. Menuiseries — inclusion stable, pas arbitraire ───────────────
-  # Avec dpeImpact actuel, menuiseries est en QUEUE de la file canonique.
-  # Elle n'est cochée que pour les cibles très ambitieuses. Ce test acte
-  # ce comportement : pour gain = 6 (G→A), menuiseries est cochée. Et son
-  # inclusion est STABLE — pas "parfois", toujours.
+  # ─── Cas spécifique : preuve que la cascade dépend du bien ──────────────
+  # Avec PRIORITE_SYNTH, le top 1 est isolation_murs (et NON chauffage comme
+  # dans le forfait DPE_IMPACT). Pour une cible modérée (E), la cascade
+  # doit cocher isolation_murs SEUL — pas chauffage.
+  # C'est le motif observé sur ID 69 (1995 :partiel) vs Tilleuls (1962) où
+  # le forfait collait toujours chauffage en tête.
+  test "Q-bis — cascade spécifique au bien : tgt E sur bien :partiel coche isolation_murs, PAS chauffage" do
+    cur = 5 # F
+    r = derive_matrice(current_dpe_idx: cur, target_idx: 4) # E
+    assert_equal ["isolation_murs"], r["checked"],
+      "Cible E sur ce bien doit cocher uniquement isolation_murs (top 1 de priorite), " \
+      "pas chauffage (top 1 du forfait). Obtenu : #{r["checked"].inspect}"
+  end
 
-  test "I — menuiseries : sur cible très ambitieuse (G→A, gain 6), menuiseries EST cochée, et son inclusion est stable" do
-    cur = 6 # G
-
-    # Cible A (idx 0), gain 6. La file totale a un cumul max de 4.5
-    # (1.5+1.0+1.0+0.5+0.5+0.5+0.5 = 5.5). Gain 6 > 5.5 ⇒ on coche TOUT.
-    res = run_derive(
-      currentDpeIdx: cur, targetIdx: 0,
-      dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES
-    )
-    assert_includes res["checked"], "menuiseries",
-                    "G→A (gain 6 > cumul max 5.5) : toutes les cases doivent être cochées, dont menuiseries. " \
-                    "checked=#{res["checked"].inspect}"
-
-    # Stabilité : 5 appels successifs, toujours pareil.
+  # ─── I. MENUISERIES — inclusion stable pour cible ambitieuse ────────────
+  test "I — menuiseries : pour cible ambitieuse (F→B, gain 4), menuiseries est cochée et son inclusion est stable" do
+    cur = 5 # F
+    # Cible B (1). Préfixe 4 atteint B selon COMBI_SYNTH.
+    r = derive_matrice(current_dpe_idx: cur, target_idx: 1)
+    assert_includes r["checked"], "menuiseries",
+      "F→B (préfixe 4 nécessaire) : menuiseries doit être dans le préfixe. " \
+      "checked=#{r["checked"].inspect}"
+    # Stabilité : 5 appels successifs.
     5.times do |i|
-      r = run_derive(currentDpeIdx: cur, targetIdx: 0, dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES)
-      assert_includes r["checked"], "menuiseries",
-                      "Appel ##{i + 1} : menuiseries doit toujours être cochée à G→A"
+      ri = derive_matrice(current_dpe_idx: cur, target_idx: 1)
+      assert_includes ri["checked"], "menuiseries",
+        "Appel ##{i + 1} : menuiseries doit toujours être cochée à F→B"
     end
   end
 
-  # ─── N. PURETÉ ────────────────────────────────────────────────────────
-  # Idempotent + entrées non mutées. Test scripté en UN SEUL process Node
-  # (deux Open3 successifs masqueraient une mutation interne — Node redémarre
-  # à chaque appel CLI).
-
-  test "N — pureté : idempotent, n'altère pas les arrays/objets passés en entrée" do
+  # ─── N. PURETÉ — entrées non mutées, idempotent ─────────────────────────
+  test "N — pureté : idempotent et n'altère pas prioriteGestes ni combinaisons" do
     script = <<~JS
       const { deriveSelectionForTarget } = require(#{LOGIC_FILE.inspect});
-      const dpeImpact  = #{DPE_IMPACT.to_json};
-      const canonical  = #{CANONICAL_CODES.to_json};
+      const priorite     = #{PRIORITE_SYNTH.to_json};
+      const combinaisons = #{COMBI_SYNTH.to_json};
 
-      const snapshotBefore = JSON.stringify({ dpeImpact, canonical });
+      const snapshotBefore = JSON.stringify({ priorite, combinaisons });
 
       const input = {
-        currentDpeIdx: 5, targetIdx: 1,
-        dpeImpact, canonicalCodes: canonical
+        currentDpeIdx: 5, targetIdx: 2,
+        prioriteGestes: priorite,
+        combinaisons:    combinaisons
       };
       const res1 = deriveSelectionForTarget(input);
       const res2 = deriveSelectionForTarget(input);
 
-      const snapshotAfter = JSON.stringify({ dpeImpact, canonical });
+      const snapshotAfter = JSON.stringify({ priorite, combinaisons });
 
       console.log(JSON.stringify({
         idempotent:   JSON.stringify(res1) === JSON.stringify(res2),
@@ -206,13 +224,51 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
 
     out, err, st = Open3.capture3(NODE_BIN, "-e", script)
     assert st.success?, "node script a échoué : #{err}"
-
     data = JSON.parse(out)
     assert data["idempotent"],
-           "Idempotence : deux appels avec mêmes args ⇒ même résultat. " \
-           "res1=#{data["res1"].inspect}, res2=#{data["res2"].inspect}"
+      "Idempotence : deux appels avec mêmes args ⇒ même résultat. " \
+      "res1=#{data['res1'].inspect}, res2=#{data['res2'].inspect}"
     assert data["inputsIntact"],
-           "Non-mutation : dpeImpact et canonicalCodes ne doivent pas être modifiés. " \
-           "Avant: #{data["before"]}, Après: #{data["after"]}"
+      "Non-mutation : prioriteGestes et combinaisons ne doivent pas être modifiés. " \
+      "Avant: #{data['before']}, Après: #{data['after']}"
+  end
+
+  # ─── Cohérence du tri lexicographique (JS vs Ruby) ──────────────────────
+  # Le préfixe est trié côté JS via Array.prototype.sort (lexicographique
+  # par défaut). PropertyDpeMatrixService trie côté Ruby via Array#sort
+  # (idem lexicographique sur strings ASCII). Tant que les codes sont du
+  # ASCII pur (aucun accent dans nos 7 macro-postes), les ordres sont
+  # identiques. Test bout-à-bout : on construit un préfixe en JS, on
+  # lookuper la clé dans COMBI_SYNTH (rédigée à la main avec sort Ruby).
+  # Si la lookup réussit, le sort lexico marche pareil dans les deux.
+  test "Cohérence tri JS = tri Ruby — toute la chaîne de cibles trouve sa combinaison" do
+    cur = 5
+    [5, 4, 3, 2, 1, 0].each do |tgt|
+      r = derive_matrice(current_dpe_idx: cur, target_idx: tgt)
+      # Si la fonction retourne quelque chose (autre que vide pour tgt < cur),
+      # c'est qu'elle a trouvé une combinaison qui matchait → tri JS = tri Ruby.
+      # Pour tgt = cur (5), checked = [] (cas géré séparément).
+      assert r.key?("checked"), "tgt=#{tgt} : fonction doit retourner {checked: ...}"
+    end
+  end
+
+  # ─── C. COMPAT ANCIENNE SIGNATURE — temporairement préservée ────────────
+  # Le site d'appel show.html.erb:722 passe encore (dpeImpact, canonicalCodes).
+  # On vérifie que cette signature continue de fonctionner pendant ce commit.
+  # SERA SUPPRIMÉ au Temps 3b-2 commit 3 avec DPE_IMPACT.
+  test "C — compat ancienne signature : (dpeImpact, canonicalCodes) reste opérationnelle (compat temporaire commit 3b-2/2)" do
+    cur = 5 # F
+    r = run_derive(
+      currentDpeIdx: cur, targetIdx: 3,    # cible D (gain 2)
+      dpeImpact: DPE_IMPACT, canonicalCodes: CANONICAL_CODES
+    )
+    # Forfait : gain souhaité 2 ; file canonique triée = [chauffage (1.5),
+    # isolation_toiture (1.0), isolation_murs (1.0), …]. Cumul 1.5 (chauffage)
+    # puis 2.5 (+isolation_toiture). Cumul ≥ 2 ⇒ on s'arrête → checked = [chauffage, isolation_toiture].
+    assert_includes r["checked"], "chauffage",
+      "Ancienne signature dpeImpact doit toujours mettre chauffage en tête (gain forfait 1.5 = max)"
+    assert_equal 2, r["checked"].size,
+      "Ancienne signature : 2 gestes pour gain 2 (chauffage + isolation_toiture). " \
+      "checked=#{r['checked'].inspect}"
   end
 end
