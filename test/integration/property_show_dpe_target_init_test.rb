@@ -131,6 +131,74 @@ class PropertyShowDpeTargetInitTest < ActionDispatch::IntegrationTest
       "pas dérégler cet acquis."
   end
 
+  # ── 3. Régression curseur≠cases — la matrice prime sur dpe_target ET dpe_cib ─
+  # Cas qui buggait : sur un bien avec une cible DB héritée (dpe_target="C") et
+  # une analyse Claude qui propose aussi "C" comme cible, mais 5 gestes cochés
+  # dont la matrice prédit la classe A, le curseur initial s'affichait en C —
+  # contradiction visuelle avec les cases cochées qui mènent à A.
+  # Comportement attendu après correction (option 1) : le curseur suit la
+  # matrice (= classe A), pas la cible héritée. Ce test resterait vert même si
+  # un futur changement remettait dpe_target ou dpe_cib en première position.
+  test "dpe_target='C' DB + analysis.dpe_cible='C' + 5 gestes → matrice (A) gagne" do
+    p = creer_property_pour_init(
+      address:                  "14 rue des Tilleuls",
+      city:                     "Vandœuvre-lès-Nancy",
+      zipcode:                  "54500",
+      surface:                  95,
+      construction_year:        1962,
+      energie_chauffage:        "gaz",
+      energie_chauffage_source: "extrait_description",
+      dpe_class:                "F",
+      dpe_target:               "C",
+      travaux_selection: {
+        "isolation_toiture" => true, "isolation_murs" => true,
+        "chauffage" => true, "menuiseries" => true, "vmc" => true
+      }
+    )
+    # Analyse Claude complète : travaux nécessaires pour que travaux_groupes
+    # soit non vide (sinon le form du parcours est masqué et hidden field absent).
+    Analysis.create!(property: p, content: {
+      "energie" => {
+        "dpe_estime" => "F",
+        "dpe_cible"  => "C",
+        "travaux"    => [
+          { "poste" => "Isolation des combles",  "priorite" => 1, "cout_min" => 4_000,  "cout_max" => 8_000 },
+          { "poste" => "Isolation des murs ITE", "priorite" => 2, "cout_min" => 12_000, "cout_max" => 18_000 },
+          { "poste" => "Pompe à chaleur",        "priorite" => 3, "cout_min" => 10_000, "cout_max" => 15_000 },
+          { "poste" => "Remplacement fenêtres",  "priorite" => 4, "cout_min" => 8_000,  "cout_max" => 12_000 },
+          { "poste" => "VMC double flux",        "priorite" => 5, "cout_min" => 3_000,  "cout_max" => 5_000  }
+        ]
+      },
+      "valeur"  => {}, "idees" => { "scenarios" => [] }
+    }.to_json)
+
+    matrix          = PropertyDpeMatrixService.call(p)
+    cle             = p.travaux_actifs.sort.join(",")
+    classe_attendue = matrix[:combinaisons][cle][:classe]
+    idx_attendu     = DPE_ORDRE.index(classe_attendue)
+    assert_equal "A", classe_attendue,
+      "Pré-requis du test : la matrice doit prédire A pour cette combinaison sur Tilleuls"
+
+    get property_path(p)
+    assert_response :success
+
+    slider = css_select("input#dpe-slider").first
+    assert slider, "Le slider doit exister (matrice présente)"
+    refute_equal "2", slider["value"],
+      "Le slider NE DOIT PAS rester sur C (idx 2) hérité de dpe_target/dpe_cible"
+    assert_equal idx_attendu.to_s, slider["value"],
+      "Le slider doit être sur idx=#{idx_attendu} (classe matrice=#{classe_attendue}), " \
+      "ignorant dpe_target='C' et analysis.dpe_cible='C'."
+
+    # Le hidden field qui pilote le submit doit lui aussi refléter la classe
+    # matrice (option 1 : un submit no-interaction persiste une cible cohérente
+    # avec ce que l'utilisateur voit, pas la valeur DB héritée).
+    hidden = css_select("input#form-dpe-target").first
+    assert hidden, "Le hidden field form-dpe-target doit exister"
+    assert_equal classe_attendue, hidden["value"],
+      "Le hidden field doit porter la classe matrice (#{classe_attendue}), pas 'C' hérité"
+  end
+
   # ── 2bis. Même cas dégradé mais avec gestes cochés — preuve qu'aucun
   # gain_dpe forfaitaire ne peut être réintroduit : le slider lui-même
   # n'est pas rendu sans matrice (décision γ).
