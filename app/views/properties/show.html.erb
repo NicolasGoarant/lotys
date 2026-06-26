@@ -479,6 +479,25 @@
 
 </div>
 
+<%# ── Matrice DPE pré-calculée serveur — future source unique de la jauge ─
+     PropertyDpeMatrixService projette le moteur 3CL (DpeEngineService via
+     PropertyDpeService) sur les 128 sous-ensembles des 7 gestes canoniques,
+     plus un classement de priorité réel spécifique à CE bien (gain EP de
+     chaque geste seul, calculé depuis son état initial reconstitué).
+
+     Statut Temps 3b-1 : POSÉE EN FILET, NON CONSOMMÉE.
+     - La jauge tourne toujours sur DPE_IMPACT (cf. var DPE_IMPACT plus bas).
+     - Au Temps 3b-2, recalcTravaux et onSliderChange basculent vers cette
+       matrice et DPE_IMPACT est supprimée (Ruby + JS + 3e copie de tests).
+
+     Limite assumée : injecté seulement si l'utilisateur peut voir le dossier
+     complet (claim_token ou propriétaire), car le pré-calcul nécessite
+     surface + année de construction présents. Sinon, balise absente. -%>
+<% if can_see_full_dossier && @property.surface.present? && @property.construction_year.present? %>
+  <% dpe_matrix = PropertyDpeMatrixService.call(@property) %>
+  <script type="application/json" id="dpe-matrix-data"><%= raw dpe_matrix.to_json %></script>
+<% end %>
+
 <script>
 // ═══ Logique pure de dérivation jauge → travaux (testée Node) ═════════════
 // Inlinée depuis app/javascript/dpe_slider_logic.js. Le fichier est aussi
