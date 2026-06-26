@@ -95,8 +95,15 @@
                      else
                        cur_idx
                      end %>
-<%# Conserve la cible DB si elle existe, sinon estimation via matrice %>
-<% tgt_idx = dpe_cib && dpe_all.index(dpe_cib) ? dpe_all.index(dpe_cib) : tgt_idx_estime %>
+<%# ── tgt_idx : init cohérente cases↔curseur ────────────────────────────
+     Le curseur de la jauge se cale TOUJOURS sur la classe atteignable
+     calculée par la matrice pour la combinaison de gestes cochés. Plus
+     aucune lecture de `dpe_cib` (analyse Claude) ni de `@property.dpe_target`
+     (colonne DB) à l'init du curseur : ces deux sources étaient des suggestions
+     forfaitaires qui pouvaient diverger de la réalité thermique du bien
+     (symptôme : curseur sur C alors que les 5 cases cochées menaient à A).
+     `tgt_idx_estime` intègre déjà le cas dégradé γ (matrice absente → cur_idx). -%>
+<% tgt_idx = tgt_idx_estime %>
 <% sauts   = cur_idx - tgt_idx %>
 
 <%# Aides totales : source = AidCalculatorService %>
@@ -347,8 +354,12 @@
         <%# Hidden field qui porte la cible DPE courante (positionnée par le slider).
              Mis à jour en JS à chaque changement du slider et des checkboxes, pour
              que le controller persiste aussi dpe_target et que Grand Nancy
-             rénovation globale bascule en "active" si cible A/B. -%>
-        <%= hidden_field_tag "property[dpe_target]", (@property.dpe_target || dpe_all[tgt_idx]), id: "form-dpe-target" %>
+             rénovation globale bascule en "active" si cible A/B.
+             Init aligné sur `tgt_idx` (= classe matrice des cases cochées) : un
+             submit "no-interaction" persiste donc une cible cohérente avec ce
+             que l'utilisateur voit, pas une valeur DB héritée d'une suggestion
+             forfaitaire antérieure. -%>
+        <%= hidden_field_tag "property[dpe_target]", dpe_all[tgt_idx], id: "form-dpe-target" %>
 
         <%# Titre d'invitation explicite + actions rapides %>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;padding:10px 14px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;">
