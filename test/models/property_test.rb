@@ -47,4 +47,115 @@ class PropertyTest < ActiveSupport::TestCase
     assert property.errors[:base].any? { |msg| msg.include?("rattaché") },
            "L'erreur doit porter sur :base avec un message parlant de rattachement, reçu : #{property.errors[:base].inspect}"
   end
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Énergie de chauffage : champ typé + source de capture
+  # ──────────────────────────────────────────────────────────────────────
+
+  # Helper : Property persistée minimale (claim_token suffit pour rattachable)
+  def build_persisted_property
+    Property.create!(base_attrs.merge(claim_token: SecureRandom.uuid))
+  end
+
+  test "energie_chauffage accepte les 5 énergies du moteur + :inconnue" do
+    p = build_persisted_property
+    %w[gaz fioul electricite bois pac inconnue].each do |e|
+      assert_nothing_raised { p.energie_chauffage = e }
+      assert p.save, "energie=#{e} devrait être enregistrable : #{p.errors.full_messages}"
+    end
+  end
+
+  test "energie_chauffage rejette une valeur inconnue (Rails enum lève ArgumentError)" do
+    p = Property.new(base_attrs.merge(claim_token: SecureRandom.uuid))
+    assert_raises(ArgumentError) { p.energie_chauffage = "gaz_naturel_legacy" }
+  end
+
+  test "energie_chauffage_source accepte les 5 sources prévues" do
+    p = build_persisted_property
+    %w[extrait_dpe extrait_description deduit confirme_utilisateur inconnue].each do |s|
+      assert_nothing_raised { p.energie_chauffage_source = s }
+      assert p.save
+    end
+  end
+
+  test "energie_chauffage par défaut = :inconnue (migration default + null: false)" do
+    p = build_persisted_property
+    assert_equal "inconnue", p.energie_chauffage
+    assert_equal "inconnue", p.energie_chauffage_source
+  end
+
+  # ── Hiérarchie de confiance ────────────────────────────────────────────
+  test "upgrade_energie_source? : :extrait_description > :inconnue" do
+    assert Property.upgrade_energie_source?(nil,        "extrait_description")
+    assert Property.upgrade_energie_source?("inconnue", "extrait_description")
+  end
+
+  test "upgrade_energie_source? : :deduit > :inconnue" do
+    assert Property.upgrade_energie_source?("inconnue", "deduit")
+  end
+
+  test "upgrade_energie_source? : :extrait_description > :deduit (extrait JAMAIS écrasé par déduit)" do
+    assert Property.upgrade_energie_source?("deduit", "extrait_description")
+    refute Property.upgrade_energie_source?("extrait_description", "deduit"),
+      ":extrait_description ne doit JAMAIS être écrasé par :deduit (proxy fioul)"
+  end
+
+  test "upgrade_energie_source? : :extrait_dpe > :extrait_description (DPE plus autoritaire)" do
+    assert Property.upgrade_energie_source?("extrait_description", "extrait_dpe")
+    refute Property.upgrade_energie_source?("extrait_dpe", "extrait_description")
+  end
+
+  test "upgrade_energie_source? : :confirme_utilisateur au sommet" do
+    %w[inconnue deduit extrait_description extrait_dpe].each do |inferieure|
+      assert Property.upgrade_energie_source?(inferieure, "confirme_utilisateur"),
+        "confirme_utilisateur doit pouvoir écraser #{inferieure}"
+      refute Property.upgrade_energie_source?("confirme_utilisateur", inferieure),
+        "confirme_utilisateur ne doit PAS être écrasable par #{inferieure}"
+    end
+  end
+
+  test "upgrade_energie_source? : même source → false (pas de re-écriture inutile)" do
+    refute Property.upgrade_energie_source?("deduit", "deduit")
+    refute Property.upgrade_energie_source?("extrait_description", "extrait_description")
+  end
+
+  # ── Proxy fioul depuis equipements_selection["depose_fioul"] ───────────
+  test "proxy fioul : depose_fioul=true + énergie :inconnue → :fioul / :deduit" do
+    p = build_persisted_property
+    p.update!(equipements_selection: { "depose_fioul" => true })
+    assert p.appliquer_proxy_fioul_depuis_equipements!
+    p.reload
+    assert_equal "fioul",  p.energie_chauffage
+    assert_equal "deduit", p.energie_chauffage_source
+  end
+
+  test "proxy fioul : N'écrase PAS un :extrait_description (priorité respectée)" do
+    p = build_persisted_property
+    p.update!(
+      energie_chauffage: "gaz",
+      energie_chauffage_source: "extrait_description",
+      equipements_selection: { "depose_fioul" => true }
+    )
+    refute p.appliquer_proxy_fioul_depuis_equipements!,
+      "Le proxy doit retourner false sans toucher à un :extrait_description"
+    p.reload
+    assert_equal "gaz",                 p.energie_chauffage
+    assert_equal "extrait_description", p.energie_chauffage_source
+  end
+
+  test "proxy fioul : depose_fioul=false → no-op" do
+    p = build_persisted_property
+    p.update!(equipements_selection: { "depose_fioul" => false })
+    refute p.appliquer_proxy_fioul_depuis_equipements!
+    p.reload
+    assert_equal "inconnue", p.energie_chauffage
+  end
+
+  test "proxy fioul : depose_fioul absent → no-op" do
+    p = build_persisted_property
+    p.update!(equipements_selection: {})
+    refute p.appliquer_proxy_fioul_depuis_equipements!
+    p.reload
+    assert_equal "inconnue", p.energie_chauffage
+  end
 end
