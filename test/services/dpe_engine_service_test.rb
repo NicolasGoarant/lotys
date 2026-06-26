@@ -174,4 +174,93 @@ class DpeEngineServiceTest < ActiveSupport::TestCase
     assert ap[:_details][:conso_finale_totale_kwh] < av[:_details][:conso_finale_totale_kwh],
       "La conso après doit être inférieure à la conso avant"
   end
+
+  # ────────────────────────────────────────────────────────────────────────
+  # TEMPS 3a quater — le moteur apprend l'état :partiel (§3bis figé)
+  # ────────────────────────────────────────────────────────────────────────
+
+  ETAT_TOUT_PARTIEL = {
+    isolation_murs:         :partiel,
+    isolation_toiture:      :partiel,
+    isolation_plancher_bas: :partiel,
+    isolation_menuiseries:  :partiel
+  }.freeze
+  ETAT_TOUT_ISOLE = {
+    isolation_murs:         :isole,
+    isolation_toiture:      :isole,
+    isolation_plancher_bas: :isole,
+    isolation_menuiseries:  :isole
+  }.freeze
+
+  # ── Non-régression CRITIQUE : oracle §7 avec chiffres exacts ─────────────
+  # Ces chiffres sont les ancres du Temps 1. Toute dérive = régression du moteur.
+  test "ANCRAGE oracle §7 — chiffres exacts inchangés après ajout de :partiel" do
+    av = DpeEngineService.call(**ORACLE_BASE.merge(ETAT_NON_ISOLE))
+    ap = DpeEngineService.call(**ORACLE_BASE.merge(ETAT_TRAVAUX_ORACLE))
+    # Avant — passoire fioul 1962
+    assert_equal 302.8, av[:conso_ep_m2],      "EP avant : ancre Temps 1"
+    assert_equal 90.8,  av[:conso_carbone_m2], "CO₂ avant : ancre Temps 1"
+    assert_equal "F",   av[:classe_finale]
+    # Après — murs + toiture + menuiseries isolés
+    assert_equal 107.0, ap[:conso_ep_m2],      "EP après : ancre Temps 1"
+    assert_equal 32.1,  ap[:conso_carbone_m2], "CO₂ après : ancre Temps 1"
+    assert_equal "D",   ap[:classe_finale]
+  end
+
+  # ── Monotonie stricte : isolé < partiel < non isolé ─────────────────────
+  test ":partiel — monotonie sur EP : isolé < partiel < non isolé" do
+    r_non = DpeEngineService.call(**ORACLE_BASE.merge(ETAT_NON_ISOLE))
+    r_par = DpeEngineService.call(**ORACLE_BASE.merge(ETAT_TOUT_PARTIEL))
+    r_iso = DpeEngineService.call(**ORACLE_BASE.merge(ETAT_TOUT_ISOLE))
+
+    assert_operator r_iso[:conso_ep_m2], :<, r_par[:conso_ep_m2],
+      "EP isolé (#{r_iso[:conso_ep_m2]}) doit être < EP partiel (#{r_par[:conso_ep_m2]})"
+    assert_operator r_par[:conso_ep_m2], :<, r_non[:conso_ep_m2],
+      "EP partiel (#{r_par[:conso_ep_m2]}) doit être < EP non isolé (#{r_non[:conso_ep_m2]})"
+  end
+
+  test ":partiel — monotonie sur CO₂ : isolé < partiel < non isolé" do
+    r_non = DpeEngineService.call(**ORACLE_BASE.merge(ETAT_NON_ISOLE))
+    r_par = DpeEngineService.call(**ORACLE_BASE.merge(ETAT_TOUT_PARTIEL))
+    r_iso = DpeEngineService.call(**ORACLE_BASE.merge(ETAT_TOUT_ISOLE))
+
+    assert_operator r_iso[:conso_carbone_m2], :<, r_par[:conso_carbone_m2]
+    assert_operator r_par[:conso_carbone_m2], :<, r_non[:conso_carbone_m2]
+  end
+
+  test ":partiel — monotonie sur GV : isolé < partiel < non isolé" do
+    r_non = DpeEngineService.call(**ORACLE_BASE.merge(ETAT_NON_ISOLE))
+    r_par = DpeEngineService.call(**ORACLE_BASE.merge(ETAT_TOUT_PARTIEL))
+    r_iso = DpeEngineService.call(**ORACLE_BASE.merge(ETAT_TOUT_ISOLE))
+
+    assert_operator r_iso[:_details][:gv], :<, r_par[:_details][:gv]
+    assert_operator r_par[:_details][:gv], :<, r_non[:_details][:gv]
+  end
+
+  # ── Valeur figée du Umur partiel ────────────────────────────────────────
+  # On lit DPmurs depuis le breakdown et on divise par S_mur pour récupérer
+  # le U appliqué. Avec ORACLE_BASE on a surface_murs=80 et b_extérieur=1,
+  # donc U_appliqué = DPmurs / 80.
+  test ":partiel — U appliqué aux murs = 1,5 W/m².K (§3bis, ancré ID 71)" do
+    r = DpeEngineService.call(
+      **ORACLE_BASE,
+      isolation_murs:         :partiel,
+      isolation_toiture:      :non_isole,
+      isolation_plancher_bas: :non_isole,
+      isolation_menuiseries:  :non_isole
+    )
+    dp_murs = r[:_details][:gv_breakdown][:murs]
+    u_applique = dp_murs / 80.0
+    assert_in_delta 1.5, u_applique, 0.01,
+      "§3bis figé : Umur_partiel doit être 1,5 W/m².K (5 cm laine intérieure + parpaing → R total ≈ 0,67), obtenu #{u_applique}"
+  end
+
+  # ── Pas de régression sur les autres tests existants ────────────────────
+  test ":partiel — Umur partiel < UMUR_PLAFOND_CALCUL = 2,0 (donc pas de plafonnement applicable)" do
+    # Le plafond §3 Min(Umur ; 2) ne doit pas masquer un Umur_partiel mal calé.
+    # 1,5 < 2,0, donc on doit observer exactement 1,5 (testé ci-dessus). Si
+    # quelqu'un montait Umur_partiel à 2,5 par erreur, le plafond lisserait
+    # à 2,0 et le test précédent échouerait — c'est volontaire.
+    assert_operator 1.5, :<, DpeEngineService::UMUR_PLAFOND_CALCUL
+  end
 end
