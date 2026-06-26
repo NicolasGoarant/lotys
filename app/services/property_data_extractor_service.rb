@@ -143,6 +143,23 @@ class PropertyDataExtractorService
 
     updates[:is_copropriete] = true if data["is_copropriete"] == true
 
+    # ── Capture structurée de l'énergie de chauffage ──────────────────
+    # heating_system est déjà parsé en JSON par extract_structured_data.
+    # On le normalise via HeatingEnergyNormalizer (source de vérité unique)
+    # et on écrit en colonne typée Property#energie_chauffage. La hiérarchie
+    # de confiance protège un :extrait_dpe ou un :confirme_utilisateur
+    # déjà posé contre l'écrasement (cf. Property.upgrade_energie_source?).
+    # NB : on garde EN PARALLÈLE l'écriture historique dans description
+    # (texte libre) — pas de régression sur l'affichage existant.
+    if data["heating_system"].present?
+      energie = HeatingEnergyNormalizer.call(data["heating_system"])
+      if energie != :inconnue &&
+         Property.upgrade_energie_source?(@property.energie_chauffage_source, "extrait_description")
+        updates[:energie_chauffage]        = energie.to_s
+        updates[:energie_chauffage_source] = "extrait_description"
+      end
+    end
+
     if @property.description.blank?
       extras = []
       extras << "Chauffage : #{data['heating_system']}"       if data["heating_system"].present?

@@ -19,6 +19,62 @@ class Property < ApplicationRecord
   enum :status, { draft: 0, analyzing: 1, analyzed: 2, published: 3 }
   enum :property_type, { appartement: "appartement", maison: "maison" }, prefix: :kind
 
+  # ─── Énergie de chauffage (entrée du moteur DpeEngineService) ─────────
+  # Les 5 énergies modélisées par le moteur 3CL §5a/§5b + :inconnue pour
+  # gérer l'absence honnête de donnée. Préfixe :energie pour éviter le
+  # conflit de scope avec energie_chauffage_source qui partage :inconnue.
+  ENERGIES_CHAUFFAGE = %w[gaz fioul electricite bois pac inconnue].freeze
+  enum :energie_chauffage,
+       ENERGIES_CHAUFFAGE.zip(ENERGIES_CHAUFFAGE).to_h,
+       prefix: :energie
+
+  # Source de capture de energie_chauffage. La hiérarchie de confiance est
+  # définie dans ENERGIE_SOURCE_HIERARCHIE ci-dessous ; une source basse ne
+  # peut PAS écraser une source haute (cf. upgrade_energie_source?).
+  ENERGIE_CHAUFFAGE_SOURCES = %w[
+    extrait_dpe extrait_description deduit confirme_utilisateur inconnue
+  ].freeze
+  enum :energie_chauffage_source,
+       ENERGIE_CHAUFFAGE_SOURCES.zip(ENERGIE_CHAUFFAGE_SOURCES).to_h,
+       prefix: :source
+
+  # Hiérarchie de confiance des sources (rang croissant = plus fiable).
+  # Une nouvelle source écrase l'actuelle UNIQUEMENT si son rang est supérieur.
+  #   inconnue (0) — aucune info
+  #   deduit (1)   — proxy (ex. equipements_selection["depose_fioul"]=true → fioul)
+  #   extrait_description (2) — heating_system JSON Claude depuis ai_summary/PDF
+  #   extrait_dpe (3) — extraction directe d'un PDF DPE (plus autoritaire)
+  #   confirme_utilisateur (4) — saisie explicite du propriétaire (sommet)
+  ENERGIE_SOURCE_HIERARCHIE = {
+    "inconnue"             => 0,
+    "deduit"               => 1,
+    "extrait_description"  => 2,
+    "extrait_dpe"          => 3,
+    "confirme_utilisateur" => 4
+  }.freeze
+
+  # Vrai si source_nouvelle est plus fiable que source_actuelle.
+  # Garantit qu'un proxy déduit n'écrase jamais une extraction réelle,
+  # et qu'une extraction ne contredit jamais une confirmation utilisateur.
+  def self.upgrade_energie_source?(source_actuelle, source_nouvelle)
+    cur = ENERGIE_SOURCE_HIERARCHIE.fetch((source_actuelle.presence || "inconnue").to_s)
+    nv  = ENERGIE_SOURCE_HIERARCHIE.fetch(source_nouvelle.to_s)
+    nv > cur
+  end
+
+  # Proxy fioul : si l'analyse a marqué depose_fioul=true dans
+  # equipements_selection (sémantique du prompt PropertyAnalysisService :
+  # « depose_fioul = true si chauffage fioul actuel détecté »), on en déduit
+  # energie_chauffage = :fioul, source = :deduit.
+  # Ne touche à rien si une source plus fiable a déjà été posée.
+  # Retourne true si l'écriture a eu lieu, false sinon.
+  def appliquer_proxy_fioul_depuis_equipements!
+    selection = equipements_selection || {}
+    return false unless ActiveModel::Type::Boolean.new.cast(selection["depose_fioul"])
+    return false unless Property.upgrade_energie_source?(energie_chauffage_source, "deduit")
+    update(energie_chauffage: "fioul", energie_chauffage_source: "deduit")
+  end
+
   # ─── Constantes partagées (inclusions de validations) ────────────────
   DPE_CLASSES      = %w[A B C D E F G].freeze
   INCOME_BRACKETS  = %w[tres_modeste modeste intermediaire superieur].freeze

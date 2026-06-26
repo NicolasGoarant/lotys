@@ -35,6 +35,16 @@ class PropertyAnalysisJob < ApplicationJob
     LocalAidCalculator.new(property).call
     sync_analysis_fields(property)
 
+    # ── Proxy fioul ────────────────────────────────────────────────────
+    # sync_analysis_fields vient de propager equipements["depose_fioul"]
+    # depuis le JSON Claude vers Property#equipements_selection. Si ce
+    # booléen est à true ET que personne (extracteur, futur DPE PDF,
+    # utilisateur) n'a déjà posé une source plus fiable, on déduit
+    # energie_chauffage = :fioul / source = :deduit.
+    # La méthode respecte la hiérarchie : :extrait_* / :confirme_utilisateur
+    # ne sont JAMAIS écrasés par ce proxy.
+    property.reload.appliquer_proxy_fioul_depuis_equipements!
+
     # Extraction incomplète : si Claude n'a pas pu remplir surface ou
     # dpe_class à partir des documents fournis, on remet en :draft plutôt
     # qu'en :analyzed. La vue affichera un bandeau "complétez ces champs"
