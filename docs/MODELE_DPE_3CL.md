@@ -102,6 +102,91 @@ Le `Min(Umur ; 2)` est appliqué dans la 3CL pour les calculs de déperdition (p
 
 ---
 
+## 3bis. Grille de rétro-déduction de l'état d'isolation par période de construction
+
+> **Statut : hypothèse de modélisation Lauze, source `:deduit` (dernier recours).**
+> S'applique uniquement quand aucune donnée d'isolation réelle n'est disponible
+> (extraction DPE, description, saisie utilisateur). Toute source plus fiable
+> l'écrase. La jauge devra l'afficher comme « supposée d'après l'année, à
+> confirmer », jamais comme un fait.
+
+Le §3 fournit les `U₀` « non isolé » par défaut, applicables sans nuance aux
+bâtis < 1975. Mais l'application aveugle de ces `U₀` à *tout* bâti construit
+avant 2000 fait déraper les bâtiments 1980-2000 : la RT 1974 puis la
+RT 1988 imposaient déjà des seuils d'enveloppe que la valeur §3 ignore.
+
+Le bien **ID 69** (Nancy, **1995**, classé **D** au DPE réel) illustre la
+dette : au seuil binaire `<2000 = :non_isole` (Temps 2.5), le moteur le
+calcule en F/G, écart -2 quelle que soit l'énergie testée. C'est exactement
+ce que cette grille corrige.
+
+### Table — état d'isolation par tranche de construction
+
+| Période | RT applicable | Ubât typique (W/m².K) | Murs | Toiture | Menuiseries |
+|---|---|---|---|---|---|
+| **avant 1974**   | aucune                | ~1,8  | `:non_isole` | `:non_isole` | `:non_isole` (vitrage simple) |
+| **1974 – 1982**  | RT 1974               | ~1,4  | `:non_isole` | `:non_isole` | `:non_isole` (vitrage simple) |
+| **1983 – 1989**  | RT 1982 / RT 1988     | ~1,15 | `:partiel`   | `:partiel`   | `:non_isole` (simple → double émergent) |
+| **1990 – 2000**  | RT 1988 / RT 2000     | ~0,95 | `:partiel`   | `:partiel`   | `:partiel` (double émergent) |
+| **2001 – 2006**  | RT 2000               | ~0,8  | `:isole`     | `:isole`     | `:isole` (double standard) |
+| **2007 – 2012**  | RT 2005               | ~0,75 | `:isole`     | `:isole`     | `:isole` (double performant) |
+| **2013 et après**| RT 2012 / RE 2020     | ~0,4  | `:isole` (BBC) | `:isole`   | `:isole` (double ou triple) |
+
+Bornes inclusives à droite (`year ≤ 1973`, `1974 ≤ year ≤ 1982`, etc.).
+`year` inconnu → repli `:non_isole` partout (défaut conservateur).
+
+### Notes
+
+**Ubât vs Umur.** Le Ubât est un coefficient d'enveloppe **global** (somme
+des déperditions parois rapportée à la SHON), pas un U_mur de paroi
+individuelle. Il sert à *déduire l'état d'isolation* d'un bâti par période,
+pas à fournir un `U` directement utilisable dans la formule §1 du moteur.
+La table §3 reste la référence pour les `U₀` non isolé ; la table §4 pour
+les `U` après travaux.
+
+**État `:partiel` — zone grise.** Désigne les bâtis 1983-2000 où la
+réglementation imposait une enveloppe meilleure que « rien » sans atteindre
+les standards RT 2000+. Exemple concret observé en DB : bien ID 71 — « Bloc
+béton creux avec isolation intérieure de 5 cm » → R ≈ 0,14 m².K/W,
+Umur ≈ 1,5 W/m².K — ni `:non_isole` (§3 = 2,5), ni `:isole` (§4 ≈ 0,26).
+*Calage Umur proposé pour `:partiel` : **Umur_partiel ≈ 1,0 à 1,5 W/m².K**,
+hypothèse Lauze, intermédiaire entre §3 et §4.* À figer quand le moteur
+apprendra `:partiel` (cf. dette §9).
+
+**Statut de la grille.** Hypothèse de dernier recours, source `:deduit` :
+- s'efface devant toute donnée réelle (extraction ou saisie) ;
+- n'écrase jamais une source de rang supérieur (même principe de hiérarchie
+  que l'énergie au §5ter : `extrait > deduit > inconnue`) ;
+- la jauge affichera la classe calculée avec un drapeau « supposée d'après
+  l'année, à confirmer » quand l'état d'isolation provient de la grille.
+
+**Test décisif — bien ID 69 (1995, classé D).**
+- Avec le seuil binaire (Temps 2.5) : grille → `:non_isole` partout → moteur
+  calcule **F/G** quelle que soit l'énergie → écart -2.
+- Avec la grille §3bis : murs/toiture/menuiseries = `:partiel`. Si le
+  consommateur traduit `:partiel` vers `:isole` côté moteur (en attendant
+  que le moteur apprenne `:partiel`), la classe calculée doit remonter
+  vers **E ou D**. Si elle remonte, la dette (a) est résolue. Si elle
+  reste F/G, la grille est mal calée.
+
+### Sources
+
+- **Ubât typique par période** : analyse comparative Choisir.com des performances
+  des bâtis français selon la période de construction (déperditions enveloppe
+  rapportées à la SHON).
+- **Dates des RT** : Wikipédia « Réglementation thermique des bâtiments » +
+  arrêtés ministériels —
+  RT 1974 (arrêté 10/04/1974, premier choc pétrolier, premières exigences
+  de limitation des déperditions) ;
+  RT 1982 / RT 1988 (révisions progressives, double vitrage en généralisation
+  fin années 80) ;
+  RT 2000 (arrêté 29/11/2000, première RT globale, isolation systématique) ;
+  RT 2005 (arrêté 24/05/2006, renforcement isolation et étanchéité) ;
+  RT 2012 (label BBC, Cep_max ≈ 50 kWhEP/m²/an) ;
+  RE 2020 (carbone-orienté, applicable depuis 01/01/2022).
+
+---
+
 ## 4. U après travaux — déduits des résistances réglementaires (R)
 
 `U = 1 / (R_isolant + R_paroi_résiduelle)`. R_paroi résiduelle ≈ 0,3–0,5 m².K/W.
