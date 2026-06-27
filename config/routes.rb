@@ -1,6 +1,6 @@
 Rails.application.routes.draw do
   get "pages/home"
-  devise_for :users
+  devise_for :users, controllers: { confirmations: "users/confirmations" }
 
   root "pages#home"
   get "/a-propos", to: "pages#about", as: :about
