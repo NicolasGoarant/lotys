@@ -83,14 +83,8 @@
 
     <%# Hub 3 personae — colonnes à filet (refonte vitrine).
         Conservé sur fond sombre (theme :dark du composant) pour rester
-        cohérent avec l'image fixe en arrière-plan.
-        Overlay porté à 0.80 (vs 0.55 dans le hero plus haut et la carte
-        plus bas) car les corps des 3 paragraphes — gris clair par défaut —
-        passaient sous le seuil WCAG AA sur les zones claires de la photo.
-        Couplé à body_color: "#e5e7eb" (gray-200, plus lumineux que le
-        slate-300 par défaut) pour passer AA partout, sans noircir la
-        section au point de perdre la photo derrière. %>
-    <section style="background:rgba(0,0,0,0.80); padding:56px 24px 88px;
+        cohérent avec l'image fixe en arrière-plan. %>
+    <section style="background:rgba(0,0,0,0.55); padding:56px 24px 88px;
                     backdrop-filter:blur(4px);
                     -webkit-backdrop-filter:blur(4px);">
       <div style="max-width:1100px; margin:0 auto;">
@@ -116,7 +110,6 @@
 
         <%= render "shared/feature_columns",
               theme: :dark,
-              body_color: "#e5e7eb",
               items: [
                 { numero: "01",
                   emoji:  "🏠",

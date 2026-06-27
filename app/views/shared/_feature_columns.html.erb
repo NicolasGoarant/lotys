@@ -27,12 +27,7 @@
   rule_color  = ink ? "#34d399" : "#059669"
   numero_color = rule_color
   title_color  = ink ? "#ffffff" : "#0f172a"
-  # body_color: override optionnel. Sert quand le fond derrière la section
-  # n'est pas un noir plein (cf. home.html.erb, section « Lauze, pour qui ? »
-  # posée sur une photo fixée au viewport) et qu'il faut remonter la
-  # luminance du corps pour atteindre WCAG AA même sur les zones claires
-  # de l'image. Défaut conservé pour tous les autres callers.
-  body_color   = local_assigns[:body_color] || (ink ? "#cbd5e1" : "#334155")
+  body_color   = ink ? "#cbd5e1" : "#334155"
   link_color   = ink ? "#34d399" : "#059669"
 %>
 <div style="display:grid;
