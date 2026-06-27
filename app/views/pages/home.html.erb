@@ -36,11 +36,18 @@
         <div class="relative z-10 mx-auto flex w-full max-w-5xl flex-col
                     items-center px-6 py-20 text-center">
 
-          <%# H1 — formulation simple sur 2 lignes. %>
-          <h1 class="font-black text-white leading-none"
+          <%# H1 — formulation simple sur 2 lignes.
+              Mobile/tablette : max-w-[900px] permet à « Votre rénovation
+              thermique, » de se replier naturellement quand la taille de
+              police descend pour ne pas déborder.
+              Desktop (≥ lg / 1024 px) : on retire le max-width (lg:max-w-none)
+              et on applique whitespace-nowrap sur la 1ère ligne pour qu'elle
+              tienne sur UNE seule ligne (≈ 1000 px au clamp max), ce qui rentre
+              dans le max-w-5xl (1024 px) du conteneur parent. %>
+          <h1 class="font-black text-white leading-none max-w-[900px] lg:max-w-none"
               style="font-size:clamp(2.8rem,6vw,4.5rem);
-                     letter-spacing:-0.03em; max-width:900px;">
-            <span class="block">Votre rénovation thermique,</span>
+                     letter-spacing:-0.03em;">
+            <span class="block lg:whitespace-nowrap">Votre rénovation thermique,</span>
             <span class="text-emerald-400">en quelques clics</span>
           </h1>
 
