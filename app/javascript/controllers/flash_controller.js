@@ -11,11 +11,15 @@ import { Controller } from "@hotwired/stimulus"
 //
 // Personnalisation optionnelle :
 //   data-flash-delay-value (ms avant fondu, défaut 4000)
-//   data-flash-fade-value  (ms de la transition opacity, défaut 400)
+//   data-flash-fade-value  (ms de la transition opacity, défaut 800)
+//
+// La courbe (ease-out) est portée par l'inline-style du <div> côté layout
+// pour rester lisible et applicable sans JS — voir application.html.erb /
+// devise.html.erb.
 export default class extends Controller {
   static values = {
     delay: { type: Number, default: 4000 },
-    fade:  { type: Number, default: 400 }
+    fade:  { type: Number, default: 800 }
   }
 
   connect() {
