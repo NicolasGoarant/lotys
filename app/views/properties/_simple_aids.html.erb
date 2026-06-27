@@ -24,6 +24,12 @@
 
 <% aid_projection   ||= nil %>
 <% is_owner_connecte = local_assigns.fetch(:is_owner_connecte, false) %>
+<%# Cible DPE affichée dans la phrase « Vos aides actuelles sont calculées
+    sur votre objectif X ». Vient du controller (matrice quand dispo, forfait
+    DB sinon) pour rester aligné avec ce que AidCalculatorService a réellement
+    utilisé. Fallback sur property.dpe_target si le caller historique ne passe
+    pas encore le local — évite une régression silencieuse. -%>
+<% dpe_target_effectif = local_assigns.fetch(:dpe_target_effectif, property.dpe_target).to_s.upcase %>
 
 <%# income_bracket n'est plus saisie directement : on la dérive de
     household_size + RFR via IncomeBracketCalculator (cf. before_save).
@@ -244,7 +250,7 @@
         <% delta_arrondi = aid_projection[:delta] >= 1000 ? (aid_projection[:delta] / 500.0).round * 500 : aid_projection[:delta] %>
         <div style="margin-top:14px;padding:14px 16px;background:#faf5ff;border:2px dashed #c4b5fd;border-radius:12px;">
           <p class="bod" style="margin:0 0 6px;font-size:.82rem;color:#374151;">
-            Vos aides actuelles sont calculées sur votre objectif <strong><%= property.dpe_target %></strong>.
+            Vos aides actuelles sont calculées sur votre objectif <strong><%= dpe_target_effectif %></strong>.
           </p>
           <p class="bod" style="margin:0;font-size:.82rem;color:#374151;line-height:1.5;">
             En visant <strong><%= aid_projection[:target] %></strong>, vous débloqueriez environ
@@ -337,7 +343,7 @@
         <% delta_arrondi = aid_projection[:delta] >= 1000 ? (aid_projection[:delta] / 500.0).round * 500 : aid_projection[:delta] %>
         <div style="padding:14px 16px;background:#faf5ff;border:2px dashed #c4b5fd;border-radius:12px;">
           <p class="bod" style="margin:0 0 6px;font-size:.82rem;color:#374151;">
-            Vos aides actuelles sont calculées sur votre objectif <strong><%= property.dpe_target %></strong>.
+            Vos aides actuelles sont calculées sur votre objectif <strong><%= dpe_target_effectif %></strong>.
           </p>
           <p class="bod" style="margin:0;font-size:.82rem;color:#374151;line-height:1.5;">
             En visant <strong><%= aid_projection[:target] %></strong>, vous débloqueriez environ

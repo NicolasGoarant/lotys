@@ -18,18 +18,29 @@ class AidProjectionService
   # de la cible courante pour trouver le premier saut qui débloque vraiment.
   ORDRE_DPE_ASC = %w[G F E D C B A].freeze
 
-  def self.call(property, current_total:, travaux_actifs: nil)
-    new(property, current_total: current_total, travaux_actifs: travaux_actifs).call
+  def self.call(property, current_total:, travaux_actifs: nil, current_target: nil)
+    new(property,
+        current_total:  current_total,
+        travaux_actifs: travaux_actifs,
+        current_target: current_target).call
   end
 
-  def initialize(property, current_total:, travaux_actifs: nil)
+  # current_target: classe DPE qui sert de point de départ à l'itération
+  # vers les cibles supérieures. Quand le caller (PropertiesController#show)
+  # a calculé la classe atteignable via PropertyDpeMatrixService, il la
+  # passe ici pour que la projection parte du *réel* (matrice) et pas du
+  # forfait DB. Absent → fallback historique sur @property.dpe_target,
+  # ce qui garde le service compatible avec ses callers existants et avec
+  # ses tests unitaires (aucune cassure pour qui n'a pas la matrice).
+  def initialize(property, current_total:, travaux_actifs: nil, current_target: nil)
     @property        = property
     @current_total   = current_total.to_i
     @travaux_actifs  = travaux_actifs
+    @current_target  = current_target&.to_s&.upcase
   end
 
   def call
-    current = @property.dpe_target&.upcase
+    current = @current_target.presence || @property.dpe_target&.upcase
     return nil if current.blank?
 
     idx = ORDRE_DPE_ASC.index(current)

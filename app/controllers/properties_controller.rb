@@ -43,9 +43,45 @@ class PropertiesController < ApplicationController
       #     (ex. {"chauffage"=>false,...}) → on passe [] au service pour
       #     refléter le choix explicite de l'utilisateur (aides = 0).
       travaux_actifs_param = @property.travaux_selection.present? ? @property.travaux_actifs : nil
+
+      # Matrice DPE pré-calculée (PropertyDpeMatrixService) : on la calcule
+      # ICI plutôt que dans la vue pour deux raisons.
+      #   1. Le calcul d'aides ci-dessous a besoin de la classe atteignable
+      #      par les gestes cochés pour rester aligné avec la jauge — sans
+      #      ça, AidCalculator lit @property.dpe_target (forfait) et donne
+      #      des montants incohérents avec ce que voit l'utilisateur.
+      #   2. La vue réutilise @dpe_matrix tel quel (cf. show.html.erb), donc
+      #      on ne paie le coût (~80 ms) qu'une fois par requête.
+      # Conditions d'invocation identiques à celles historiquement utilisées
+      # par la vue : surface + année. Le contrôle d'accès est déjà fait par
+      # le if englobant — on est forcément autorisé ici.
+      @dpe_matrix = if @property.surface.present? && @property.construction_year.present?
+                      PropertyDpeMatrixService.call(@property)
+                    end
+
+      # Classe DPE réellement atteignable pour les gestes cochés. C'est la
+      # même valeur qui pilote le pin de la jauge (cf. show.html.erb:91).
+      # Clé de combinaison = `travaux_actifs.sort.join(",")` — format exact
+      # produit par PropertyDpeMatrixService#calculer_combinaisons.
+      # Reste nil si la matrice est absente (surface/année manquantes) ou
+      # si la clé ne matche aucune combinaison (défensif) — AidCalculator
+      # retombera alors sur @property.dpe_target via son fallback existant
+      # (chemin de dégradation explicite, jamais silencieux).
+      matrix_classe = if @dpe_matrix
+                        cle = @property.travaux_actifs.sort.join(",")
+                        @dpe_matrix.dig(:combinaisons, cle, :classe)
+                      end
+
+      # Cible DPE exposée à la vue pour le libellé « objectif X » de la
+      # card Aides. Source unique = matrice quand disponible, sinon forfait
+      # DB. Garantit que le label suit toujours ce que le calculateur a
+      # effectivement utilisé.
+      @dpe_target_effectif = (matrix_classe || @property.dpe_target).to_s.upcase
+
       @aid_result = AidCalculatorService.new(
         @property,
-        travaux_actifs: travaux_actifs_param
+        travaux_actifs:      travaux_actifs_param,
+        dpe_target_override: matrix_classe
       ).call
 
       # Projection LECTURE SEULE : "à la cible supérieure la plus proche
@@ -53,10 +89,14 @@ class PropertiesController < ApplicationController
       # (cf. AidProjectionService, garde-fous testés).
       # Retourne nil si rien à proposer (déjà optimal, revenus manquants,
       # ou aucune cible supérieure ne change le total) → pas d'invitation.
+      # current_target : point de départ de l'itération vers les cibles
+      # supérieures = classe matrice quand disponible, pour ne pas projeter
+      # depuis le forfait DB pendant que la jauge montre autre chose.
       @aid_projection = AidProjectionService.call(
         @property,
         current_total:  @aid_result[:total_subventions],
-        travaux_actifs: travaux_actifs_param
+        travaux_actifs: travaux_actifs_param,
+        current_target: @dpe_target_effectif
       )
     end
     respond_to do |format|

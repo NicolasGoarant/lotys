@@ -63,17 +63,16 @@
 <% budget_min_brut = travaux_claude.sum{|t| t["cout_min"].to_i} %>
 
 <%# ── Matrice DPE pré-calculée (PropertyDpeMatrixService) ───────────────────
-     Calculée UNE FOIS ici et réutilisée plus bas (cf. balise application/json
-     id="dpe-matrix-data" ~L500). Coût : ~80 ms côté serveur, gain : source
-     unique pour l'init server-side ci-dessous ET pour la consommation JS au
-     Temps 3b-2 commit suivant.
-     Conditions : on n'invoque le service que si l'utilisateur peut voir le
-     dossier (claim ou propriétaire) ET que surface/année sont posés (sinon
-     PropertyDpeMatrixService refuserait — il a besoin des deux pour les
-     défauts géométriques §5ter.a). -%>
-<% dpe_matrix = if can_see_full_dossier && @property.surface.present? && @property.construction_year.present?
-                  PropertyDpeMatrixService.call(@property)
-                end %>
+     Désormais calculée dans PropertiesController#show (cf. @dpe_matrix) pour
+     que AidCalculatorService puisse aligner sa cible DPE sur la classe
+     atteignable réelle (override dpe_target_override) plutôt que sur le
+     forfait DB @property.dpe_target. La vue se contente de relire l'ivar :
+     même valeur, une seule instanciation par requête (~80 ms économisés),
+     et garantie d'alignement entre les aides calculées et la jauge.
+     Quand le bloc Aides n'est pas rendu (visiteur sans claim), le
+     controller n'instancie pas la matrice → @dpe_matrix reste nil ici,
+     ce qui active le cas dégradé γ plus bas (jauge désactivée). -%>
+<% dpe_matrix = @dpe_matrix %>
 
 <%# ── DPE cible estimé via la matrice serveur (Temps 3b-2 commit 3) ────────
      `tgt_idx_estime` est la classe atteignable calculée par le moteur 3CL
@@ -442,6 +441,7 @@
              property: @property,
              aid_result: @aid_result,
              aid_projection: @aid_projection,
+             dpe_target_effectif: @dpe_target_effectif,
              is_owner_connecte: is_owner_connecte %>
 </div>
 
