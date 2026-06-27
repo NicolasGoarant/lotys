@@ -18,7 +18,12 @@
   <%= render "shared/navbar" %>
 
   <% if notice.present? %>
-    <div class="mx-auto mt-4 w-full max-w-5xl rounded-xl bg-green-50 px-4 py-3 text-green-700">
+    <%# Auto-disparition après 4 s (cf. controllers/flash_controller.js). Les
+        alertes ci-dessous ne portent PAS data-controller="flash" — un message
+        d'erreur doit rester affiché tant que l'utilisateur ne navigue pas. %>
+    <div class="mx-auto mt-4 w-full max-w-5xl rounded-xl bg-green-50 px-4 py-3 text-green-700"
+         data-controller="flash"
+         style="transition: opacity 400ms ease">
       <%= notice %>
     </div>
   <% end %>
