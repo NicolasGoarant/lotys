@@ -1,6 +1,11 @@
 
-<%# Bloc vert mobile %>
-<div class="lg-hide" style="background:linear-gradient(135deg,#059669,#065f46);padding:20px 20px 24px;">
+<%# Version mobile du bloc de valeur (« Votre bien mérite une analyse complète »
+    + 3 arguments DVF / aides / biens à rénover). Désormais masquée sur toutes
+    les tailles d'écran pour que le formulaire soit immédiat sur mobile, sans
+    forcer l'utilisateur à scroller. La version desktop (colonne verte latérale
+    plus bas, classe `lg-show`) reste affichée ≥1024px et n'est pas touchée.
+    Markup conservé pour pouvoir réactiver le bloc mobile sans rien rebâtir. %>
+<div class="hidden" style="background:linear-gradient(135deg,#059669,#065f46);padding:20px 20px 24px;">
   <p style="color:white;font-size:1.3rem;font-weight:900;line-height:1.25;margin:0 0 14px;">Votre bien mérite<br>une analyse complète.</p>
   <div style="display:flex;flex-direction:column;gap:8px;">
     <% [
