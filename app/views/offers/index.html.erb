@@ -152,8 +152,6 @@
           <%# — Construction du scénario précis — %>
           <% dpe = property.dpe_class&.upcase %>
           <% dpe_info = dpe_labels[dpe] %>
-          <% desc = property.description.to_s.downcase %>
-
           <%# Phrase descriptive du bien %>
           <% type_label = property.property_type == "maison" ? "Maison" : "Appartement"
              rooms_label = property.nb_rooms.present? ? " T#{property.nb_rooms}" : ""
@@ -171,38 +169,6 @@
           end %>
 
           <% scenario_phrases = [] %>
-
-          <% has_renovation = %w[F G].include?(dpe) || desc.include?("rénov") || desc.include?("isolation") || desc.include?("travaux") %>
-
-          <% if has_renovation %>
-            <% phrase = "Rénovation thermique"
-               phrase += " (DPE #{dpe} → #{dpe_cible})" if dpe && dpe_cible
-               scenario_phrases << { emoji: "🔨", text: phrase, color: "bg-blue-50 border-blue-200 text-blue-800" }
-            %>
-          <% end %>
-          <% if dpe == "E" || desc.include?("louer") || desc.include?("location") || desc.include?("locatif") %>
-            <% scenario_phrases << { emoji: "🔑", text: "Mise en location envisagée#{dpe == 'E' ? ' (avant interdiction 2028)' : ''}", color: "bg-teal-50 border-teal-200 text-teal-800" } %>
-          <% end %>
-          <% if desc.include?("promoteur") || desc.include?("investisseur") || desc.include?("bloc") || (property.is_copropriete && property.valuation&.bulk_sale_estimate) %>
-            <% lots_txt = property.is_copropriete ? " — #{property.nb_lots} lots à réunir" : ""
-               scenario_phrases << { emoji: "🏗️", text: "Ouvert à offre promoteur#{lots_txt}", color: "bg-orange-50 border-orange-200 text-orange-800" }
-            %>
-          <% end %>
-
-          <%# Financement : déclenché si travaux importants (DPE F/G ou surface > 60m²) ou mention explicite %>
-          <% sim = property.device_simulation %>
-          <% reste_a_charge = sim ? [sim.total_aid_estimate * 1.8 - sim.total_aid_estimate, 0].max.round(-2) : nil %>
-          <% needs_financing = has_renovation && (
-               %w[F G].include?(dpe) ||
-               (property.surface.to_i > 60) ||
-               desc.include?("financ") || desc.include?("banq") || desc.include?("prêt") || desc.include?("ptz")
-             ) %>
-          <% if needs_financing %>
-            <% financement_txt = "Financement travaux à challenger"
-               financement_txt += " — reste à charge est. #{number_to_currency(reste_a_charge, unit: '€', format: '%n %u', precision: 0)}" if reste_a_charge && reste_a_charge > 0
-               scenario_phrases << { emoji: "🏦", text: financement_txt, color: "bg-purple-50 border-purple-200 text-purple-800" }
-            %>
-          <% end %>
 
           <% if scenario_phrases.empty? %>
             <% scenario_phrases << { emoji: "📋", text: "Dossier en cours d'orientation", color: "bg-gray-50 border-gray-200 text-gray-600" } %>
