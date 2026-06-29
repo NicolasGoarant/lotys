@@ -46,6 +46,12 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # Épinglage minitest — sans plafond, Bundler résout sur la dernière publiée
+  # (actuellement 6.x), qui a retiré Minitest.run_one_method au niveau du module.
+  # ActiveSupport 7.2 fait encore cet appel dans sa parallélisation des tests,
+  # ce qui fait planter silencieusement les workers et fige `bin/rails test`.
+  gem "minitest", "~> 5.25"
 end
 
 group :development do
