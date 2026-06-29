@@ -53,6 +53,11 @@ class EnergieChauffageBackfillService
     end
 
     libelle = extraire_libelle_chauffage(property.description.to_s)
+    if libelle.nil?
+      rapport[:restent_inconnues] << property.id
+      return
+    end
+
     energie = HeatingEnergyNormalizer.call(libelle)
 
     if energie == :inconnue
@@ -72,19 +77,18 @@ class EnergieChauffageBackfillService
     }
   end
 
-  # Format structuré posé historiquement par PropertyDataExtractorService :
+  # Format structuré posé par PropertyDataExtractorService :
   #   "Chauffage : Chaudière gaz ancienne | Isolation murs : … | Prix : …"
-  # Quand ce préfixe est présent, on isole le segment pour ne pas que des
-  # mots-clés d'un autre poste (« gaz » dans « Cuisinière au gaz » d'une
-  # description libre, par exemple) parasitent le matching.
-  # Sinon on retombe sur la description entière — HeatingEnergyNormalizer
-  # accepte tout libellé et applique ses regex (cf. cas ID 64 « Appartement
-  # hérité… Chauffage au fioul collectif »).
+  # On n'opère QUE sur ce préfixe technique. Le champ description n'est
+  # plus alimenté par l'utilisateur (text_area retirée du formulaire),
+  # donc tout texte sans ce préfixe est soit hérité d'avant ce changement
+  # — déjà classifié par le passage précédent du backfill — soit du bruit
+  # qu'on refuse explicitement de parser pour éviter de réintroduire des
+  # :inconnue ou des faux positifs.
+  # Retourne nil quand le préfixe est absent : le caller traite alors le
+  # bien comme « pas de signal exploitable ».
   def extraire_libelle_chauffage(desc)
-    if (m = desc.match(/Chauffage\s*:\s*([^|]+)/i))
-      m[1].strip
-    else
-      desc
-    end
+    return nil unless (m = desc.match(/Chauffage\s*:\s*([^|]+)/i))
+    m[1].strip
   end
 end

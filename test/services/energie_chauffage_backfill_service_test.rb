@@ -103,15 +103,22 @@ class EnergieChauffageBackfillServiceTest < ActiveSupport::TestCase
       "Deuxième passage ne doit produire aucun nouveau bascul (idempotent)"
   end
 
-  # ── 5. Description non structurée (sans « Chauffage : ») mais grepable ─
-  test "description en texte libre (sans préfixe Chauffage :) — fallback regex sur la chaîne entière" do
+  # ── 5. Description sans préfixe « Chauffage : » → ignorée ────────────
+  # Depuis le retrait du champ libre côté UI, description n'est plus
+  # alimentée que par PropertyDataExtractorService au format structuré.
+  # Tout texte sans ce préfixe n'est plus jamais parsé : on refuse de
+  # deviner sur du bruit (et d'éventuel texte libre hérité reste géré
+  # par le passage initial du backfill avant cette restriction).
+  test "description sans préfixe Chauffage : → reste :inconnue (aucun fallback texte libre)" do
     p = Property.create!(base_attrs.merge(
       description: "Appartement hérité de ma grand-mère. Chauffage au fioul collectif. Je veux comprendre…"
     ))
-    EnergieChauffageBackfillService.call(Property.where(id: p.id))
+    rapport = EnergieChauffageBackfillService.call(Property.where(id: p.id))
     p.reload
-    assert_equal "fioul", p.energie_chauffage
-    assert_equal "extrait_description", p.energie_chauffage_source
+    assert_equal "inconnue", p.energie_chauffage,
+      "sans préfixe technique, on n'extrait rien — pas de devinette sur texte libre"
+    assert_equal "inconnue", p.energie_chauffage_source
+    assert_includes rapport[:restent_inconnues], p.id
   end
 
   # ── 6. Mix : un bien bascule, un reste :inconnue ──────────────────────
