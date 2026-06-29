@@ -71,9 +71,10 @@
           </div>
           <div style="<%= reverse ? 'direction:ltr;' : '' %>">
             <%= render "shared/screenshot",
-                  path:    step[:image],
-                  eyebrow: "Étape #{step[:numero]}",
-                  title:   step[:titre] %>
+                  path:             step[:image],
+                  background_image: step[:background_image],
+                  eyebrow:          "Étape #{step[:numero]}",
+                  title:            step[:titre] %>
           </div>
         </div>
       <% end %>
