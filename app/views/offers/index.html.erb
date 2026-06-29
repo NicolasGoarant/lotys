@@ -160,14 +160,6 @@
              city_label = property.city.present? ? " · #{property.city}" : ""
              bien_label = "#{type_label}#{rooms_label}#{surface_label}#{copro_label}#{city_label}" %>
 
-          <%# Phrase scénario principale %>
-          <% dpe_cible = case dpe
-            when "G" then "C ou mieux"
-            when "F" then "C"
-            when "E" then "D"
-            else nil
-          end %>
-
           <% scenario_phrases = [] %>
 
           <% if scenario_phrases.empty? %>
