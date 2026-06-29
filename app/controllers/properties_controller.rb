@@ -364,7 +364,7 @@ class PropertiesController < ApplicationController
     params.require(:property).permit(
       :address, :city, :zipcode, :surface, :property_type,
       :construction_year, :dpe_class, :nb_rooms, :nb_lots,
-      :is_copropriete, :description, :vacant, :source,
+      :is_copropriete, :vacant, :source,
       :vacancy_duration, :vacancy_reason, :dpe_target, :income_bracket,
       :household_size, :rfr,
       photos: []
