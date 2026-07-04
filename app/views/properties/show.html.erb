@@ -891,12 +891,24 @@ function onSliderChange(newTgtVal){
     return;
   }
 
+  // Coûts médians extraits du DOM (data-mediane sur chaque .travail-check).
+  // deriveSelectionForTarget les utilise pour choisir "l'ensemble le moins
+  // cher" quand plusieurs combinaisons atteignent la classe visée (fix
+  // anomalie 2 — plus de rebond du pin sur E parce que la cascade
+  // court-circuitait vers D via un préfixe non-optimal).
+  var travauxCosts = {};
+  document.querySelectorAll('.travail-check').forEach(function(row){
+    if(row.dataset.code){
+      travauxCosts[row.dataset.code] = parseInt(row.dataset.mediane || '0', 10) || 0;
+    }
+  });
+
   // Délégation à la fonction pure. AUCUNE lecture DOM en entrée.
   var res = deriveSelectionForTarget({
-    currentDpeIdx:   CUR,
-    targetIdx:       tgtIdx,
-    prioriteGestes:  DPE_MATRIX.priorite_gestes.map(function(g){ return g.code; }),
-    combinaisons:    DPE_MATRIX.combinaisons
+    currentDpeIdx:  CUR,
+    targetIdx:      tgtIdx,
+    combinaisons:   DPE_MATRIX.combinaisons,
+    travauxCosts:   travauxCosts
   });
 
   // Écriture DOM : on coche exactement ce que res.checked contient,

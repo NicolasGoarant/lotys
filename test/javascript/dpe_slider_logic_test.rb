@@ -2,241 +2,86 @@ require "test_helper"
 require "open3"
 require "json"
 
-# Tests de la fonction PURE deriveSelectionForTarget
-# (app/javascript/dpe_slider_logic.js).
+# Tests des deux fonctions pures de app/javascript/dpe_slider_logic.js :
 #
-# Temps 3b-2 commit 2 — la cascade marche maintenant sur une PRIORITÉ DE
-# GESTES spécifique au bien (calculée serveur par PropertyDpeMatrixService)
-# et une MATRICE de combinaisons → classe atteignable, au lieu du forfait
-# DPE_IMPACT (déconnecté du bâti, mêmes points pour tous).
+#   - deriveSelectionForTarget  : classe cible → sélection travaux à cocher.
+#   - deriveTargetFromSelection : cases cochées → classe atteignable (label).
 #
-# Modèle CASCADE MONOTONE PAR PRÉFIXES :
-#   - prioriteGestes est une liste ordonnée de codes (gain EP décroissant
-#     côté serveur). Elle joue le rôle de "file canonique" mais spécifique
-#     au bien.
-#   - On marche dans cette liste : pour atteindre une classe cible, on
-#     prend le plus petit préfixe k tel que combinaisons[préfixe.sort.join(",")]
-#     ait une classe ≤ cible.
-#   - Les préfixes sont emboîtés par construction ⇒ cascade monotone par
-#     construction (la propriété Q).
+# Post-fix anomalies 1 et 2 :
+#   ANOMALIE 1 — deriveTargetFromSelection plafonne désormais à currentDpeIdx
+#   (jamais pire que la classe actuelle). Fix du cas prod "toiture seule
+#   cochée → OBJECTIF : G" alors que la classe actuelle est F.
 #
-# Stratégie : exécuter le fichier JS via `node` en CLI depuis Minitest avec
-# Open3, parser le JSON retourné, asserter en Ruby. Pas de runner JS (Lauze
-# n'en a pas), pas de bundler.
+#   ANOMALIE 2 — deriveSelectionForTarget énumère TOUTES les combinaisons
+#   de la matrice (plus juste les préfixes de priorite), permettant
+#   d'atteindre les classes seulement accessibles par une combinaison
+#   non-préfixe (ex : E via isolation_toiture seule quand murs seul donne D).
+#   Signature : (currentDpeIdx, targetIdx, combinaisons, travauxCosts).
 #
-# Cas testés :
-#   P — Chemin-indépendance : deux appels avec mêmes args ⇒ sélections
-#       identiques. Pas de variable globale, pas d'horloge, pas de random.
-#   Q — Cascade monotone : pour toute la chaîne G→…→A, sélection(tgt-1) ⊇
-#       sélection(tgt). Monter n'enlève jamais rien — garanti par préfixes
-#       emboîtés.
-#   I — Menuiseries : présentes dans le préfixe pour cibles ambitieuses.
-#   N — Pureté : entrées non mutées, idempotent.
+# Stratégie : exécuter le JS via `node` en CLI, parser le JSON retourné.
+# Pas de runner JS, pas de bundler.
 class DpeSliderLogicTest < ActiveSupport::TestCase
   NODE_BIN   = "node".freeze
   LOGIC_FILE = Rails.root.join("app/javascript/dpe_slider_logic.js").to_s.freeze
 
-  # ── Matrice synthétique (Temps 3b-2 commit 2) ──────────────────────────
-  # Bien type « 1995 :partiel » où priorite_gestes met isolation_murs AVANT
-  # chauffage — exactement le motif observé sur ID 69 dans le Temps 3b-1
-  # (top 1 = isolation_murs, gain EP +95,9). Cet ordre DIFFÈRE du forfait
-  # DPE_IMPACT (qui met chauffage à 1.5, donc en tête). C'est la preuve
-  # que la cascade est devenue spécifique au bien.
-  PRIORITE_SYNTH = %w[
-    isolation_murs
-    chauffage
-    isolation_toiture
-    menuiseries
-    vmc
-    isolation_plancher_bas
-    chauffe_eau
-  ].freeze
-
-  # Matrice : pour chaque préfixe k de PRIORITE_SYNTH, la classe atteignable.
-  # Clé = préfixe.sort.join(","), EXACTEMENT le format de
-  # PropertyDpeMatrixService#calculer_combinaisons (l. 116).
-  # Classe initiale F (5), on descend en ajoutant des gestes.
+  # ── Matrice synthétique (chaîne monotone de préfixes) ──────────────────
+  # Bien F, cascade classique où ajouter des gestes descend la classe.
+  # Une seule entrée par classe → pas de choix ambigu pour l'algo cheapest.
   COMBI_SYNTH = {
-    ""                                                                                                  => { "classe" => "F" },  # 0
-    "isolation_murs"                                                                                    => { "classe" => "E" },  # 1
-    "chauffage,isolation_murs"                                                                          => { "classe" => "D" },  # 2
-    "chauffage,isolation_murs,isolation_toiture"                                                        => { "classe" => "C" },  # 3
-    "chauffage,isolation_murs,isolation_toiture,menuiseries"                                            => { "classe" => "B" },  # 4
-    "chauffage,isolation_murs,isolation_toiture,menuiseries,vmc"                                        => { "classe" => "B" },  # 5
-    "chauffage,isolation_murs,isolation_plancher_bas,isolation_toiture,menuiseries,vmc"                 => { "classe" => "B" },  # 6
-    "chauffage,chauffe_eau,isolation_murs,isolation_plancher_bas,isolation_toiture,menuiseries,vmc"     => { "classe" => "A" }   # 7
+    ""                                                                                              => { "classe" => "F" },  # 0 gestes
+    "isolation_murs"                                                                                => { "classe" => "E" },  # 1
+    "chauffage,isolation_murs"                                                                      => { "classe" => "D" },  # 2
+    "chauffage,isolation_murs,isolation_toiture"                                                    => { "classe" => "C" },  # 3
+    "chauffage,isolation_murs,isolation_toiture,menuiseries"                                        => { "classe" => "B" },  # 4
+    "chauffage,isolation_murs,isolation_toiture,menuiseries,vmc"                                    => { "classe" => "B" },  # 5
+    "chauffage,isolation_murs,isolation_plancher_bas,isolation_toiture,menuiseries,vmc"             => { "classe" => "B" },  # 6
+    "chauffage,chauffe_eau,isolation_murs,isolation_plancher_bas,isolation_toiture,menuiseries,vmc" => { "classe" => "A" }   # 7
+  }.freeze
+
+  # Coûts MONOTONES CROISSANTS : chaque geste coûte plus cher que la somme
+  # de tous les précédents. Garantit que quand plusieurs combinaisons
+  # atteignent la même classe (comme B ci-dessus, atteignable en k=4/5/6),
+  # la MOINS CHÈRE est le plus petit préfixe.
+  # (En prod, les coûts viennent de data-mediane sur .travail-check —
+  # PropertyAnalysisService les calcule à partir de Claude. On simule ici
+  # l'ordre naturel « murs plus léger que menuiseries plus léger que VMC ».)
+  COSTS_SYNTH = {
+    "isolation_murs"         => 1,
+    "chauffage"              => 10,
+    "isolation_toiture"      => 100,
+    "menuiseries"            => 1_000,
+    "vmc"                    => 10_000,
+    "isolation_plancher_bas" => 100_000,
+    "chauffe_eau"            => 1_000_000
   }.freeze
 
   setup do
-    out, err, st = Open3.capture3(NODE_BIN, "-v")
-    skip "node CLI absent du PATH du runner (#{err.strip}). Installer node ou exporter PATH avant `bin/rails test`." unless st.success?
-    @node_version = out.strip
+    _, err, st = Open3.capture3(NODE_BIN, "-v")
+    skip "node CLI absent du PATH du runner (#{err.strip})." unless st.success?
   end
 
-  # Helper : exécute deriveSelectionForTarget(input) via node, retourne le
-  # hash parsé. Le payload JSON arrive en process.argv[1] côté node.
+  # ── Helpers ────────────────────────────────────────────────────────────
   def run_derive(input)
     payload = input.to_json
     script = <<~JS
       const { deriveSelectionForTarget } = require(#{LOGIC_FILE.inspect});
-      const input = JSON.parse(process.argv[1]);
-      console.log(JSON.stringify(deriveSelectionForTarget(input)));
+      console.log(JSON.stringify(deriveSelectionForTarget(JSON.parse(process.argv[1]))));
     JS
     out, err, st = Open3.capture3(NODE_BIN, "-e", script, payload)
     raise "node failed (#{st.exitstatus}): #{err}" unless st.success?
     JSON.parse(out)
   end
 
-  # Helper : appel avec la nouvelle signature (matrice).
   def derive_matrice(current_dpe_idx:, target_idx:,
-                     priorite: PRIORITE_SYNTH, combinaisons: COMBI_SYNTH)
+                     combinaisons: COMBI_SYNTH, costs: COSTS_SYNTH)
     run_derive(
       currentDpeIdx: current_dpe_idx,
       targetIdx:     target_idx,
-      prioriteGestes: priorite,
-      combinaisons:   combinaisons
+      combinaisons:  combinaisons,
+      travauxCosts:  costs
     )
   end
 
-  # ─── P. CHEMIN-INDÉPENDANCE (nouvelle signature) ────────────────────────
-  test "P — chemin-indépendance : deux appels avec mêmes args matrice ⇒ même sélection" do
-    cur = 5 # F (état initial du bien synthétique)
-    [5, 4, 3, 2, 1, 0].each do |tgt|
-      a = derive_matrice(current_dpe_idx: cur, target_idx: tgt)
-      b = derive_matrice(current_dpe_idx: cur, target_idx: tgt)
-      assert_equal a["checked"].sort, b["checked"].sort,
-        "tgt=#{tgt} : deux appels doivent donner la même sélection (sortie déterministe)"
-    end
-  end
-
-  # ─── Q. CASCADE MONOTONE (préfixes emboîtés par construction) ───────────
-  test "Q — cascade monotone : sur la chaîne F→A, chaque cible plus ambitieuse est un sur-ensemble de la précédente" do
-    cur = 5 # F
-    # Cibles de la moins ambitieuse (F=5 → gain 0) à la plus ambitieuse (A=0 → gain 5).
-    cibles = [5, 4, 3, 2, 1, 0]
-    selections = cibles.map do |tgt|
-      derive_matrice(current_dpe_idx: cur, target_idx: tgt)["checked"]
-    end
-
-    # Pour chaque cran : la cible plus ambitieuse doit être un sur-ensemble
-    # de la moins ambitieuse. AUCUN geste perdu en montant.
-    cibles.each_with_index do |tgt, i|
-      next if i == 0
-      moins_ambitieuse = selections[i - 1]
-      plus_ambitieuse  = selections[i]
-      perdus = moins_ambitieuse - plus_ambitieuse
-      assert_empty perdus,
-        "Passer de tgt=#{cibles[i - 1]} à tgt=#{tgt} (plus ambitieuse) " \
-        "ne doit jamais perdre de geste. Perdus: #{perdus.inspect}. " \
-        "moins=#{moins_ambitieuse.inspect}, plus=#{plus_ambitieuse.inspect}"
-    end
-
-    # Cardinalité croissante par construction (préfixes emboîtés).
-    cibles.each_with_index do |_tgt, i|
-      next if i == 0
-      assert_operator selections[i].size, :>=, selections[i - 1].size,
-        "|sélection(tgt=#{cibles[i]})| doit être ≥ |sélection(tgt=#{cibles[i - 1]})|"
-    end
-  end
-
-  # ─── Cas spécifique : preuve que la cascade dépend du bien ──────────────
-  # Avec PRIORITE_SYNTH, le top 1 est isolation_murs (et NON chauffage comme
-  # dans le forfait DPE_IMPACT). Pour une cible modérée (E), la cascade
-  # doit cocher isolation_murs SEUL — pas chauffage.
-  # C'est le motif observé sur ID 69 (1995 :partiel) vs Tilleuls (1962) où
-  # le forfait collait toujours chauffage en tête.
-  test "Q-bis — cascade spécifique au bien : tgt E sur bien :partiel coche isolation_murs, PAS chauffage" do
-    cur = 5 # F
-    r = derive_matrice(current_dpe_idx: cur, target_idx: 4) # E
-    assert_equal ["isolation_murs"], r["checked"],
-      "Cible E sur ce bien doit cocher uniquement isolation_murs (top 1 de priorite), " \
-      "pas chauffage (top 1 du forfait). Obtenu : #{r["checked"].inspect}"
-  end
-
-  # ─── I. MENUISERIES — inclusion stable pour cible ambitieuse ────────────
-  test "I — menuiseries : pour cible ambitieuse (F→B, gain 4), menuiseries est cochée et son inclusion est stable" do
-    cur = 5 # F
-    # Cible B (1). Préfixe 4 atteint B selon COMBI_SYNTH.
-    r = derive_matrice(current_dpe_idx: cur, target_idx: 1)
-    assert_includes r["checked"], "menuiseries",
-      "F→B (préfixe 4 nécessaire) : menuiseries doit être dans le préfixe. " \
-      "checked=#{r["checked"].inspect}"
-    # Stabilité : 5 appels successifs.
-    5.times do |i|
-      ri = derive_matrice(current_dpe_idx: cur, target_idx: 1)
-      assert_includes ri["checked"], "menuiseries",
-        "Appel ##{i + 1} : menuiseries doit toujours être cochée à F→B"
-    end
-  end
-
-  # ─── N. PURETÉ — entrées non mutées, idempotent ─────────────────────────
-  test "N — pureté : idempotent et n'altère pas prioriteGestes ni combinaisons" do
-    script = <<~JS
-      const { deriveSelectionForTarget } = require(#{LOGIC_FILE.inspect});
-      const priorite     = #{PRIORITE_SYNTH.to_json};
-      const combinaisons = #{COMBI_SYNTH.to_json};
-
-      const snapshotBefore = JSON.stringify({ priorite, combinaisons });
-
-      const input = {
-        currentDpeIdx: 5, targetIdx: 2,
-        prioriteGestes: priorite,
-        combinaisons:    combinaisons
-      };
-      const res1 = deriveSelectionForTarget(input);
-      const res2 = deriveSelectionForTarget(input);
-
-      const snapshotAfter = JSON.stringify({ priorite, combinaisons });
-
-      console.log(JSON.stringify({
-        idempotent:   JSON.stringify(res1) === JSON.stringify(res2),
-        inputsIntact: snapshotBefore === snapshotAfter,
-        before:       snapshotBefore,
-        after:        snapshotAfter,
-        res1, res2
-      }));
-    JS
-
-    out, err, st = Open3.capture3(NODE_BIN, "-e", script)
-    assert st.success?, "node script a échoué : #{err}"
-    data = JSON.parse(out)
-    assert data["idempotent"],
-      "Idempotence : deux appels avec mêmes args ⇒ même résultat. " \
-      "res1=#{data['res1'].inspect}, res2=#{data['res2'].inspect}"
-    assert data["inputsIntact"],
-      "Non-mutation : prioriteGestes et combinaisons ne doivent pas être modifiés. " \
-      "Avant: #{data['before']}, Après: #{data['after']}"
-  end
-
-  # ─── Cohérence du tri lexicographique (JS vs Ruby) ──────────────────────
-  # Le préfixe est trié côté JS via Array.prototype.sort (lexicographique
-  # par défaut). PropertyDpeMatrixService trie côté Ruby via Array#sort
-  # (idem lexicographique sur strings ASCII). Tant que les codes sont du
-  # ASCII pur (aucun accent dans nos 7 macro-postes), les ordres sont
-  # identiques. Test bout-à-bout : on construit un préfixe en JS, on
-  # lookuper la clé dans COMBI_SYNTH (rédigée à la main avec sort Ruby).
-  # Si la lookup réussit, le sort lexico marche pareil dans les deux.
-  test "Cohérence tri JS = tri Ruby — toute la chaîne de cibles trouve sa combinaison" do
-    cur = 5
-    [5, 4, 3, 2, 1, 0].each do |tgt|
-      r = derive_matrice(current_dpe_idx: cur, target_idx: tgt)
-      # Si la fonction retourne quelque chose (autre que vide pour tgt < cur),
-      # c'est qu'elle a trouvé une combinaison qui matchait → tri JS = tri Ruby.
-      # Pour tgt = cur (5), checked = [] (cas géré séparément).
-      assert r.key?("checked"), "tgt=#{tgt} : fonction doit retourner {checked: ...}"
-    end
-  end
-
-  # ═════════════════════════════════════════════════════════════════════════
-  # deriveTargetFromSelection — sens INVERSE (cases → classe atteignable)
-  #
-  # Ajouté après le bug prod « MÊME set de cases affiche tantôt A tantôt B
-  # selon l'historique des manipulations ». Cette fonction est la source
-  # de vérité UNIQUE de l'objectif : label + pin + hidden field passent
-  # tous par elle après chaque changement de case.
-  # ═════════════════════════════════════════════════════════════════════════
-
-  # Helper : exécute deriveTargetFromSelection(input) via node.
   def run_target(codes_actifs, combinaisons: COMBI_SYNTH, current_dpe_idx: 5)
     payload = {
       codesActifs:   codes_actifs,
@@ -245,109 +90,268 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
     }.to_json
     script = <<~JS
       const { deriveTargetFromSelection } = require(#{LOGIC_FILE.inspect});
-      const input = JSON.parse(process.argv[1]);
-      console.log(JSON.stringify(deriveTargetFromSelection(input)));
+      console.log(JSON.stringify(deriveTargetFromSelection(JSON.parse(process.argv[1]))));
     JS
     out, err, st = Open3.capture3(NODE_BIN, "-e", script, payload)
     raise "node failed (#{st.exitstatus}): #{err}" unless st.success?
     JSON.parse(out)
   end
 
+  # ═════════════════════════════════════════════════════════════════════════
+  # deriveSelectionForTarget — sens JAUGE → CASES (drag slider)
+  # ═════════════════════════════════════════════════════════════════════════
+
+  # ─── P. CHEMIN-INDÉPENDANCE ────────────────────────────────────────────
+  test "P — chemin-indépendance : deux appels avec mêmes args ⇒ même sélection" do
+    cur = 5
+    [5, 4, 3, 2, 1, 0].each do |tgt|
+      a = derive_matrice(current_dpe_idx: cur, target_idx: tgt)
+      b = derive_matrice(current_dpe_idx: cur, target_idx: tgt)
+      assert_equal a["checked"].sort, b["checked"].sort,
+        "tgt=#{tgt} : deux appels doivent donner la même sélection"
+    end
+  end
+
+  # ─── Q. CASCADE MONOTONE (préservée par les coûts monotones) ───────────
+  # Coûts monotones ⇒ pour une classe atteignable par plusieurs
+  # combinaisons, la moins chère est le plus petit préfixe de la chaîne.
+  # La cascade reste donc monotone-emboîtée pour COMBI_SYNTH.
+  test "Q — cascade monotone : chaque cible plus ambitieuse est un sur-ensemble de la précédente" do
+    cur = 5
+    cibles = [5, 4, 3, 2, 1, 0]
+    selections = cibles.map { |tgt| derive_matrice(current_dpe_idx: cur, target_idx: tgt)["checked"] }
+
+    cibles.each_with_index do |tgt, i|
+      next if i == 0
+      perdus = selections[i - 1] - selections[i]
+      assert_empty perdus,
+        "Passer de tgt=#{cibles[i - 1]} à tgt=#{tgt} (plus ambitieuse) ne doit pas perdre de geste. " \
+        "Perdus: #{perdus.inspect}"
+    end
+
+    cibles.each_with_index do |_tgt, i|
+      next if i == 0
+      assert_operator selections[i].size, :>=, selections[i - 1].size
+    end
+  end
+
+  # ─── Q-bis. Cascade spécifique au bien ─────────────────────────────────
+  # Sur COMBI_SYNTH, la seule combinaison atteignant E est [isolation_murs].
+  test "Q-bis — cible E sur bien :partiel coche isolation_murs uniquement" do
+    r = derive_matrice(current_dpe_idx: 5, target_idx: 4)
+    assert_equal ["isolation_murs"], r["checked"]
+  end
+
+  # ─── I. MENUISERIES stables pour cible ambitieuse B ────────────────────
+  test "I — cible B : menuiseries incluse et stable sur 5 appels" do
+    5.times do |i|
+      r = derive_matrice(current_dpe_idx: 5, target_idx: 1)
+      assert_includes r["checked"], "menuiseries",
+        "Appel ##{i + 1} : menuiseries doit être dans la sélection F→B"
+    end
+  end
+
+  # ─── N. PURETÉ — entrées non mutées, idempotent ────────────────────────
+  test "N — pureté : idempotent et n'altère pas combinaisons ni travauxCosts" do
+    script = <<~JS
+      const { deriveSelectionForTarget } = require(#{LOGIC_FILE.inspect});
+      const combinaisons = #{COMBI_SYNTH.to_json};
+      const travauxCosts = #{COSTS_SYNTH.to_json};
+      const snapshotBefore = JSON.stringify({ combinaisons, travauxCosts });
+      const input = { currentDpeIdx: 5, targetIdx: 2, combinaisons, travauxCosts };
+      const res1 = deriveSelectionForTarget(input);
+      const res2 = deriveSelectionForTarget(input);
+      const snapshotAfter = JSON.stringify({ combinaisons, travauxCosts });
+      console.log(JSON.stringify({
+        idempotent:   JSON.stringify(res1) === JSON.stringify(res2),
+        inputsIntact: snapshotBefore === snapshotAfter
+      }));
+    JS
+    _, err, st = Open3.capture3(NODE_BIN, "-e", script)
+    out, = Open3.capture3(NODE_BIN, "-e", script)
+    assert st.success?, "node script a échoué : #{err}"
+    data = JSON.parse(out)
+    assert data["idempotent"],   "Idempotence"
+    assert data["inputsIntact"], "Non-mutation"
+  end
+
+  # ─── ANOMALIE 2 — classes seulement accessibles par NON-préfixe ────────
+  # Reproduit le bug prod : sur ce bien, E est atteignable UNIQUEMENT via
+  # isolation_toiture SEULE (pas via un préfixe de priorite). L'ancien
+  # algo « cascade sur préfixes » court-circuitait vers murs+D (mieux
+  # que E), le pin rebondissait vers D. L'énumération trouve désormais
+  # exactement E.
+  test "anomalie 2 — cible E atteignable via combinaison non-préfixe (toiture seule)" do
+    combi = {
+      ""                                => { "classe" => "F" },
+      "isolation_toiture"               => { "classe" => "E" },  # non-préfixe : atteint E seul
+      "isolation_murs"                  => { "classe" => "D" },  # murs seul saute à D (skip E)
+      "isolation_murs,isolation_toiture"=> { "classe" => "C" }
+    }
+    costs = { "isolation_toiture" => 100, "isolation_murs" => 50 }
+
+    r = derive_matrice(current_dpe_idx: 5, target_idx: 4,
+                       combinaisons: combi, costs: costs)
+    assert_equal ["isolation_toiture"], r["checked"],
+      "Cible E doit trouver la combinaison non-préfixe isolation_toiture seule, " \
+      "au lieu de rebondir sur murs seul (D). Obtenu : #{r["checked"].inspect}"
+  end
+
+  # ─── ANOMALIE 2 — stabilité slider : glisser deux fois sur X donne pareil ─
+  # Verrou anti-régression : pour CHAQUE classe atteignable via COMBI_SYNTH,
+  # deux drags successifs sur la même classe produisent le même ensemble.
+  test "stabilité slider : deux drags sur la même classe donnent la même sélection" do
+    cur = 5
+    [0, 1, 2, 3, 4].each do |tgt|
+      a = derive_matrice(current_dpe_idx: cur, target_idx: tgt)
+      b = derive_matrice(current_dpe_idx: cur, target_idx: tgt)
+      assert_equal a["checked"], b["checked"],
+        "tgt=#{tgt} : deux drags successifs doivent produire exactement la même sélection"
+    end
+  end
+
+  # ─── ANOMALIE 2 — bouclage : drag → sélection → classe → == demandée ──
+  # Pour chaque classe A→E, drag produit une sélection dont la classe
+  # dérivée est EXACTEMENT la classe demandée (pas de rebond).
+  test "bouclage jauge↔travaux : drag sur X → sélection → classe dérivée == X (pas de rebond)" do
+    cur = 5
+    [0, 1, 2, 3, 4].each do |tgt|
+      selection = derive_matrice(current_dpe_idx: cur, target_idx: tgt)["checked"]
+      classe_derivee = run_target(selection, current_dpe_idx: cur)
+      assert_equal tgt, classe_derivee,
+        "Boucle rompue pour tgt=#{tgt} : drag produit #{selection.inspect} qui dérive à #{classe_derivee}, " \
+        "attendu #{tgt}. Le pin va rebondir."
+    end
+  end
+
+  # ─── ANOMALIE 2 — cible inatteignable → pessimiste, jamais mieux ──────
+  # Si la classe demandée n'existe dans aucune combinaison, l'algo
+  # retombe sur la classe atteignable la plus proche CÔTÉ PIRE (jamais
+  # mieux que demandé).
+  test "cible inatteignable → pessimiste (classe plus proche > cible, jamais mieux)" do
+    # Bien F. Matrice : F et D seulement — E n'existe nulle part.
+    combi = {
+      ""                => { "classe" => "F" },
+      "isolation_murs"  => { "classe" => "D" }
+    }
+    costs = { "isolation_murs" => 10 }
+
+    # Cible E (4) inatteignable. Pessimiste = F (5, > E) plutôt que D (3, < E).
+    r = derive_matrice(current_dpe_idx: 5, target_idx: 4,
+                       combinaisons: combi, costs: costs)
+    assert_equal [], r["checked"],
+      "Cible E inatteignable : plutôt F (rien coché, jamais mieux que demandé) que D (murs, mieux que demandé). " \
+      "Obtenu : #{r["checked"].inspect}"
+  end
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # deriveTargetFromSelection — sens CASES → JAUGE (source de vérité label)
+  # ═════════════════════════════════════════════════════════════════════════
+
   # ─── Cas nominal ──────────────────────────────────────────────────────
-  test "T-nominal : combinaison connue → renvoie l'idx de la classe atteignable" do
-    # F (5) initial. Préfixe [isolation_murs, chauffage] atteint D (COMBI_SYNTH ligne « 2 »).
-    assert_equal 3, run_target(%w[isolation_murs chauffage]),
-      "isolation_murs+chauffage → D=3 selon COMBI_SYNTH"
-
-    # Préfixe [isolation_murs, chauffage, isolation_toiture] atteint C=2.
-    assert_equal 2, run_target(%w[isolation_murs chauffage isolation_toiture]),
-      "trio → C=2"
-
-    # Sélection vide → F (5, classe initiale).
-    assert_equal 5, run_target([]), "vide → F=5"
+  test "T-nominal : combinaison connue → idx de la classe atteignable" do
+    assert_equal 3, run_target(%w[isolation_murs chauffage])
+    assert_equal 2, run_target(%w[isolation_murs chauffage isolation_toiture])
+    assert_equal 5, run_target([])
   end
 
-  # ─── Fallback pessimiste (cœur du fix bug prod) ───────────────────────
-  test "T-fallback : combinaison manquante dans la matrice → currentDpeIdx (pessimiste)" do
-    # Cette combinaison n'existe pas dans COMBI_SYNTH (menuiseries seule
-    # ni « chauffage,menuiseries » ne sont listées) → retour = currentDpeIdx.
-    r = run_target(%w[menuiseries], current_dpe_idx: 5)
+  # ─── ANOMALIE 1 — plafond anti-dégradation ────────────────────────────
+  # Reproduit et fixe le bug prod « aucun travail coché → OBJECTIF : G »
+  # sur un bien F. Cause : la matrice recalcule la classe initiale via
+  # PropertyDpeService sur un état reconstruit ; ce recalcul aboutit
+  # parfois à G alors que Property#dpe_class (source Claude) dit F. Le
+  # plafond évite d'afficher un objectif pire que la classe actuelle.
+  test "anomalie 1 — aucun travail coché → objectif == classe actuelle, jamais pire" do
+    # Matrice buggy : "" donne G (idx 6), alors que le bien est F (idx 5).
+    combi_buggy = { "" => { "classe" => "G" } }
+    r = run_target([], combinaisons: combi_buggy, current_dpe_idx: 5)
     assert_equal 5, r,
-      "Entrée manquante → CUR (pas d'objectif inventé). Le bug prod venait de retourner null " \
-      "et de laisser le label stale à sa valeur précédente."
+      "Bien F + aucun travail : label doit rester F (pas d'amélioration), pas G (dégradation absurde). " \
+      "Obtenu : #{r} (attendu 5=F)"
   end
 
-  test "T-fallback : matrice absente (combinaisons=null) → currentDpeIdx" do
-    r = run_target(%w[isolation_murs], combinaisons: nil, current_dpe_idx: 4)
-    assert_equal 4, r, "Matrice absente → CUR (fallback pessimiste)"
+  test "anomalie 1 — un seul geste mineur qui dégraderait selon le moteur → plafonné à F" do
+    # Matrice buggy : toiture seule fait passer à G selon le moteur (absurde).
+    combi_buggy = {
+      ""                  => { "classe" => "F" },
+      "isolation_toiture" => { "classe" => "G" }
+    }
+    r = run_target(%w[isolation_toiture], combinaisons: combi_buggy, current_dpe_idx: 5)
+    assert_equal 5, r,
+      "Un geste d'isolation ne peut PAS afficher un objectif pire que la classe actuelle. " \
+      "Plafond min(idx_matrice, currentDpeIdx) actif."
   end
 
-  test "T-fallback : entrée avec classe non-string (donnée corrompue) → currentDpeIdx" do
-    combi_corrompue = { "isolation_murs" => { "classe" => nil } }
-    r = run_target(%w[isolation_murs], combinaisons: combi_corrompue, current_dpe_idx: 5)
-    assert_equal 5, r
+  test "anomalie 1 — invariant : deriveTargetFromSelection ne retourne JAMAIS > currentDpeIdx" do
+    # Balaye les 8 combinaisons de COMBI_SYNTH — pour chacune, l'objectif
+    # doit être <= currentDpeIdx. C'est le cœur de l'invariant produit.
+    cur = 5
+    COMBI_SYNTH.each_key do |cle|
+      codes = cle == "" ? [] : cle.split(",")
+      idx = run_target(codes, current_dpe_idx: cur)
+      assert_operator idx, :<=, cur,
+        "Combinaison #{codes.inspect} : idx retourné (#{idx}) > currentDpeIdx (#{cur}). " \
+        "Le plafond anti-dégradation a été percé."
+    end
   end
 
-  test "T-fallback : classe hors A-G (donnée corrompue) → currentDpeIdx" do
-    combi_corrompue = { "isolation_murs" => { "classe" => "Z" } }
-    r = run_target(%w[isolation_murs], combinaisons: combi_corrompue, current_dpe_idx: 5)
-    assert_equal 5, r
+  # ─── Fallbacks pessimistes ────────────────────────────────────────────
+  test "T-fallback : combinaison manquante → currentDpeIdx" do
+    assert_equal 5, run_target(%w[menuiseries], current_dpe_idx: 5)
   end
 
-  # ─── Déterminisme — verrou du bug prod ────────────────────────────────
-  test "T-déterminisme : le même codesActifs donne toujours le même objectif" do
+  test "T-fallback : matrice absente (null) → currentDpeIdx" do
+    assert_equal 4, run_target(%w[isolation_murs], combinaisons: nil, current_dpe_idx: 4)
+  end
+
+  test "T-fallback : classe non-string → currentDpeIdx" do
+    combi = { "isolation_murs" => { "classe" => nil } }
+    assert_equal 5, run_target(%w[isolation_murs], combinaisons: combi, current_dpe_idx: 5)
+  end
+
+  test "T-fallback : classe hors A-G → currentDpeIdx" do
+    combi = { "isolation_murs" => { "classe" => "Z" } }
+    assert_equal 5, run_target(%w[isolation_murs], combinaisons: combi, current_dpe_idx: 5)
+  end
+
+  # ─── Déterminisme + ordre invariant ───────────────────────────────────
+  test "T-déterminisme : même codesActifs → même objectif à chaque appel" do
     codes = %w[isolation_murs chauffage isolation_toiture]
-    resultats = 5.times.map { run_target(codes) }
-    assert_equal [resultats.first] * 5, resultats,
-      "Le même set doit produire le même objectif à chaque appel — c'est LA garantie du fix. " \
-      "Résultats obtenus : #{resultats.inspect}"
+    r = 5.times.map { run_target(codes) }
+    assert_equal [r.first] * 5, r
   end
 
-  test "T-ordre-invariant : réordonner codesActifs ne change pas l'objectif (tri interne)" do
+  test "T-ordre-invariant : réordonner codesActifs ne change pas l'objectif" do
     a = run_target(%w[isolation_murs chauffage isolation_toiture])
     b = run_target(%w[isolation_toiture chauffage isolation_murs])
-    c = run_target(%w[chauffage isolation_toiture isolation_murs])
     assert_equal a, b
-    assert_equal b, c
   end
 
-  # ─── Décocher fait remonter l'objectif, recocher le fait redescendre ──
-  test "T-check-uncheck : décocher un geste fait REMONTER l'objectif (moins bonne classe)" do
-    # Sélection F→C (préfixe 3) : chauffage + murs + toiture → C=2.
-    c_target = run_target(%w[chauffage isolation_murs isolation_toiture])
-    assert_equal 2, c_target
-
-    # Décocher isolation_toiture → chauffage + murs → D=3. Remonte (pire).
-    d_target = run_target(%w[chauffage isolation_murs])
-    assert_equal 3, d_target
-    assert_operator d_target, :>, c_target,
-      "Décocher un geste doit ramener vers une classe moins bonne (idx plus grand)"
-
-    # Recocher → retour à C=2.
+  # ─── Check / uncheck / recheck ────────────────────────────────────────
+  test "T-check-uncheck : décocher fait remonter, recocher fait redescendre au même idx" do
+    c = run_target(%w[chauffage isolation_murs isolation_toiture])
+    assert_equal 2, c
+    d = run_target(%w[chauffage isolation_murs])
+    assert_equal 3, d
+    assert_operator d, :>, c
     c_again = run_target(%w[chauffage isolation_murs isolation_toiture])
-    assert_equal c_target, c_again,
-      "Recocher doit ramener EXACTEMENT au même objectif — pas d'état interne parasite"
+    assert_equal c, c_again
   end
 
-  # ─── Purity : entrées non mutées ──────────────────────────────────────
-  test "T-purity : deriveTargetFromSelection ne mute pas codesActifs ni combinaisons" do
+  # ─── Purity ──────────────────────────────────────────────────────────
+  test "T-purity : deriveTargetFromSelection ne mute pas ses entrées" do
     script = <<~JS
       const { deriveTargetFromSelection } = require(#{LOGIC_FILE.inspect});
       const codes = #{%w[isolation_murs chauffage].to_json};
       const combi = #{COMBI_SYNTH.to_json};
       const snapshotBefore = JSON.stringify({ codes, combi });
-      deriveTargetFromSelection({
-        codesActifs: codes, combinaisons: combi, currentDpeIdx: 5
-      });
-      deriveTargetFromSelection({
-        codesActifs: codes, combinaisons: combi, currentDpeIdx: 5
-      });
+      deriveTargetFromSelection({ codesActifs: codes, combinaisons: combi, currentDpeIdx: 5 });
+      deriveTargetFromSelection({ codesActifs: codes, combinaisons: combi, currentDpeIdx: 5 });
       const snapshotAfter = JSON.stringify({ codes, combi });
       console.log(JSON.stringify({ intact: snapshotBefore === snapshotAfter }));
     JS
     out, err, st = Open3.capture3(NODE_BIN, "-e", script)
     assert st.success?, "node script a échoué : #{err}"
-    assert JSON.parse(out)["intact"],
-      "codesActifs et combinaisons ne doivent JAMAIS être mutés"
+    assert JSON.parse(out)["intact"]
   end
 end

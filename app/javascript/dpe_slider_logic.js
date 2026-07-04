@@ -1,91 +1,135 @@
 // app/javascript/dpe_slider_logic.js
 //
-// Fonction PURE qui dérive la sélection de travaux correspondant à une cible
-// DPE — modèle CASCADE MONOTONE PAR PRÉFIXES.
+// Deux fonctions PURES qui pilotent la jauge DPE interactive :
+//   - deriveSelectionForTarget : cible DPE → sélection de travaux à cocher
+//     (sens JAUGE → CASES).
+//   - deriveTargetFromSelection : cases cochées → classe atteignable
+//     (sens CASES → JAUGE, source de vérité unique de l'objectif affiché).
 //
-// ─── Modèle (Temps 3b-2 commit 3, final) ─────────────────────────────────
-// Entrées : (currentDpeIdx, targetIdx, prioriteGestes, combinaisons) où
-//   - prioriteGestes : liste ordonnée de codes (gain EP décroissant
-//     SPÉCIFIQUE au bien, calculée serveur par PropertyDpeMatrixService).
-//   - combinaisons   : lookup { "<clé triée alphabétique>": {classe, ...} }.
+// ─── Modèle (post-fix anomalies 1 et 2) ───────────────────────────────────
+// Entrée matrice : combinaisons = lookup { "<clé triée alphabétique>":
+//   {classe, ...} }, format exact de PropertyDpeMatrixService#calculer_combinaisons.
+// La matrice contient 2^N entrées (128 pour N=7 gestes) → énumérable
+// intégralement côté client à moindre coût.
 //
-// Cascade : itérer k de 0 à N, prendre le préfixe prioriteGestes.slice(0, k),
-// construire la clé prefixe.slice().sort().join(",") — format exact de
-// PropertyDpeMatrixService#calculer_combinaisons (l. 116) — et chercher le
-// plus petit k tel que combinaisons[clé].classe ≤ targetClasse.
+// ─── deriveSelectionForTarget — algorithme ────────────────────────────────
+// L'ancien modèle "cascade par préfixes de prioriteGestes" a été remplacé
+// par une ÉNUMÉRATION complète de la matrice. Motivation : certaines
+// classes (E notamment) sont ATTEIGNABLES par une combinaison non-préfixe
+// (ex : isolation_toiture SEULE), donc le drag jauge sur E court-circuitait
+// vers D ou F et le pin rebondissait. En énumérant, on trouve TOUJOURS
+// l'ensemble le moins cher qui atteint la classe visée (si elle existe).
 //
-// ─── Garanties (P/Q/I/N) ─────────────────────────────────────────────────
-//   1. CHEMIN-INDÉPENDANCE : deux appels avec mêmes args ⇒ même sélection.
-//      Aucune lecture DOM, aucun état global, aucune horloge.
-//   2. CASCADE MONOTONE EMBOÎTÉE : pour deux cibles tgt1 < tgt2 (tgt1 plus
-//      ambitieuse), sélection(tgt1) ⊇ sélection(tgt2). Garantie par
-//      construction (préfixes emboîtés) + monotonie de la matrice (testée
-//      au Temps 3b-1 : ajouter un geste ne dégrade jamais la classe).
-//   3. PURETÉ : entrées non mutées (slice() défensif), idempotent.
-//   4. INCLUSION STABLE de menuiseries : pour cibles ambitieuses qui exigent
-//      le préfixe long, menuiseries est cochée — stable, pas "parfois".
+//   1. Recherche EXACTE : parmi toutes les combinaisons dont classe ==
+//      targetIdx, retourne la moins chère (Σ travauxCosts). Ties brisés
+//      par cardinalité croissante puis lexicographique (déterminisme).
+//   2. FALLBACK PESSIMISTE : si aucune combinaison n'atteint EXACTEMENT
+//      targetIdx, on retourne la combinaison dont la classe est la plus
+//      PROCHE de targetIdx CÔTÉ PIRE (classeIdx > targetIdx). Jamais mieux
+//      que ce que l'utilisateur a demandé — cohérent avec le principe
+//      projet "pas d'affichage plus favorable que ce que les données
+//      justifient". Contrainte de plafond : classeIdx <= currentDpeIdx —
+//      on ne propose jamais une sélection qui empirerait par rapport à
+//      la classe actuelle du bien.
+//   3. Sinon (rien) : sélection vide.
 //
-// ─── Note produit ────────────────────────────────────────────────────────
-// L'ordre dans prioriteGestes est SPÉCIFIQUE AU BIEN. Sur ID 69 (1995
-// :partiel) le top 1 est isolation_murs (gain EP +95,9). Sur Tilleuls
-// (1962 :non_isole) le top 1 est chauffage (gain EP +128,0). La cascade
-// reflète le LEVIER RÉEL du bien, plus un classement forfaitaire.
+// ─── Garanties ────────────────────────────────────────────────────────────
+//   * Chemin-indépendance : deux appels avec mêmes args ⇒ même sélection.
+//   * Pureté : entrées non mutées.
+//   * Stabilité slider (anomalie 2) : glisser vers X et re-glisser vers
+//     X redonne EXACTEMENT le même ensemble, donc la même classe dérivée.
+//     Plus de rebond du pin entre deux valeurs différentes pour la même
+//     cible slider.
 
 function deriveSelectionForTarget({
   currentDpeIdx,
   targetIdx,
-  prioriteGestes,
-  combinaisons
+  combinaisons,
+  travauxCosts
 }) {
   // targetIdx >= currentDpeIdx ⇒ aucune amélioration ⇒ sélection vide.
   if (targetIdx >= currentDpeIdx) {
     return { checked: [] };
   }
+  if (!combinaisons) {
+    return { checked: [] };
+  }
 
-  // Ordre canonique DPE figé par l'arrêté : "ABCDEFG" (A meilleur = idx 0).
   const ORDRE = "ABCDEFG";
+  const costs = travauxCosts || {};
 
-  for (let k = 0; k <= prioriteGestes.length; k++) {
-    // slice() — copie défensive (pureté : ne mute pas prioriteGestes).
-    const prefixe = prioriteGestes.slice(0, k);
-    // Tri lexicographique côté JS — coïncide avec Ruby Array#sort sur ASCII.
-    const cle = prefixe.slice().sort().join(",");
-    const entry = combinaisons[cle];
+  // Énumération : matérialiser chaque entrée valide en { codes, classeIdx, cost }.
+  const options = [];
+  for (const key in combinaisons) {
+    if (!Object.prototype.hasOwnProperty.call(combinaisons, key)) continue;
+    const entry = combinaisons[key];
     if (!entry || typeof entry.classe !== 'string') continue;
     const classeIdx = ORDRE.indexOf(entry.classe);
-    if (classeIdx >= 0 && classeIdx <= targetIdx) {
-      return { checked: prefixe };
+    if (classeIdx < 0) continue;
+    const codes = key === "" ? [] : key.split(",");
+    let cost = 0;
+    for (let i = 0; i < codes.length; i++) {
+      cost += costs[codes[i]] || 0;
     }
+    options.push({ codes, classeIdx, cost });
   }
-  // Aucun préfixe n'atteint la cible — on rend tout (préfixe complet).
-  // Cas typique : cible A demandée mais matrice s'arrête à B. Honnête.
-  return { checked: prioriteGestes.slice() };
+
+  // Comparateur "moins cher" — tie-breaks pour un ordre total déterministe :
+  // cost < cardinalité < lexicographique (par la clé triée).
+  const cheaperFirst = (a, b) => {
+    if (a.cost !== b.cost) return a.cost - b.cost;
+    if (a.codes.length !== b.codes.length) return a.codes.length - b.codes.length;
+    return a.codes.slice().sort().join(',') < b.codes.slice().sort().join(',') ? -1 : 1;
+  };
+
+  // 1. Match exact sur targetIdx : la moins chère gagne.
+  const exacts = options.filter(o => o.classeIdx === targetIdx);
+  if (exacts.length > 0) {
+    exacts.sort(cheaperFirst);
+    return { checked: exacts[0].codes.slice() };
+  }
+
+  // 2. Pessimist : classe > targetIdx (pire que demandé) ET <= currentDpeIdx
+  //    (pas pire que la classe actuelle). Plus proche de targetIdx d'abord
+  //    (classeIdx croissant), puis moins cher.
+  const pessimists = options.filter(
+    o => o.classeIdx > targetIdx && o.classeIdx <= currentDpeIdx
+  );
+  if (pessimists.length > 0) {
+    pessimists.sort((a, b) => {
+      if (a.classeIdx !== b.classeIdx) return a.classeIdx - b.classeIdx;
+      return cheaperFirst(a, b);
+    });
+    return { checked: pessimists[0].codes.slice() };
+  }
+
+  // 3. Rien de valide (matrice vide ou entrées corrompues) : sélection vide.
+  return { checked: [] };
 }
 
 // ─────────────────────────────────────────────────────────────────────────
 // Fonction PURE — sens INVERSE : sélection de travaux → classe atteignable.
 //
-// Motivation : jusqu'ici, la vue avait ce lookup INLINE dans show.html.erb
-// (lookupTgtIdxFromMatrix), et retournait null quand la combinaison n'avait
-// pas d'entrée valide dans la matrice. En cas de null, recalcTravaux
-// n'appelait pas updateJaugeDPE — label + pin + hidden field restaient
-// à leur ANCIENNE valeur (issue du drag précédent ou de SERVER_TGT_IDX).
-// Résultat en prod : la MÊME liste de cases cochées affichait « OBJECTIF : A »
-// ou « OBJECTIF : B » selon l'historique des manipulations.
-//
-// Contrat de cette fonction :
+// Contrat :
 //   - source de vérité unique = codesActifs (ensemble des cases cochées),
 //   - retourne l'idx (0..6 pour A..G) de la classe atteignable par cet
 //     ensemble, tel que pré-calculé par PropertyDpeMatrixService,
+//   - PLAFOND ANTI-DÉGRADATION (fix anomalie 1) : on ne retourne JAMAIS
+//     un idx pire que currentDpeIdx. Motivation : la matrice est parfois
+//     calculée sur un état initial reconstruit qui n'aboutit pas
+//     exactement à la classe DPE observée (Property#dpe_class venant de
+//     Claude). Si le moteur pense que "" ou un geste minimal donne G
+//     alors que le bien est F, on affiche F — "pas d'amélioration" est
+//     honnête ; "G" (dégradation) est absurde et déroutant.
 //   - FALLBACK PESSIMISTE : si la matrice est absente, l'entrée manquante
-//     ou classe non-string, retourne currentDpeIdx (aucune amélioration
-//     affichée — jamais d'objectif optimiste sans donnée qui le justifie).
+//     ou classe non-string, retourne currentDpeIdx (même sémantique que
+//     le plafond).
 //
 // Garanties :
 //   * Chemin-indépendance : la sortie ne dépend QUE de codesActifs et de la
 //     matrice figée. Deux ensembles identiques → même objectif, quel que
-//     soit l'historique (verrou du bug prod).
-//   * Purity : entrées non mutées (slice défensif sur codesActifs).
+//     soit l'historique.
+//   * Purity : entrées non mutées.
 //
 function deriveTargetFromSelection({
   codesActifs,
@@ -100,13 +144,16 @@ function deriveTargetFromSelection({
   const entry = combinaisons[cle];
 
   if (!entry || typeof entry.classe !== 'string') {
-    // Entrée manquante ou incomplète : on ne devine pas — pessimiste.
     return currentDpeIdx;
   }
 
   const idx = ORDRE.indexOf(entry.classe);
-  // classe hors A-G (donnée corrompue) → pessimiste.
-  return idx >= 0 ? idx : currentDpeIdx;
+  if (idx < 0) return currentDpeIdx;
+
+  // Plafond anti-dégradation : jamais pire que la classe actuelle.
+  // Math.min sur des idx où 0=A (meilleur) et 6=G (pire) →
+  // min(matrixIdx, currentDpeIdx) = le meilleur des deux = le plus petit idx.
+  return Math.min(idx, currentDpeIdx);
 }
 
 // ─── Double export : Node CommonJS pour les tests, global pour le browser ──
