@@ -1,0 +1,9 @@
+# Dépendances système consommées par heroku-community/apt.
+# Ajouter le buildpack sur Heroku si absent :
+#   heroku buildpacks:add --index 1 heroku-community/apt
+#
+# poppler-utils fournit :
+#   - pdftotext  → PropertyDataExtractorService#extract_pdf_text
+#                  DocumentAnalysisService#extract_text
+#   - pdftoppm   → DocumentAnalysisService#pdf_to_images (fallback Vision)
+poppler-utils

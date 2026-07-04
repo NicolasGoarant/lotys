@@ -48,10 +48,11 @@ class ConstructionYearRegexFallbackTest < ActiveSupport::TestCase
     assert_equal 1928, ConstructionYearRegexFallback.call(text)
   end
 
-  # ── Cas prod (bug Malzéville) : pdf-reader restitue la valeur DPE
-  # tabulaire sur une ligne séparée, parfois avec une ligne vide entre
-  # le libellé et la valeur. La regex doit rester tolérante à ce split
-  # (fenêtre bornée pour éviter de capturer une année trois § plus loin).
+  # ── Cas prod (bug Malzéville) : même avec `pdftotext -layout`,
+  # certains DPE tabulaires restituent la valeur sur une ligne séparée,
+  # parfois avec une ligne vide entre le libellé et la valeur. La regex
+  # doit rester tolérante à ce split (fenêtre bornée pour éviter de
+  # capturer une année trois § plus loin).
   test "spécimen DPE tabulaire : libellé, ligne vide, valeur → renvoie 1928" do
     text = <<~TXT
       Adresse : 12 rue du Haut-Rivage

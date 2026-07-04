@@ -1,3 +1,5 @@
+require "open3"
+
 class PropertyDataExtractorService
   ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 
@@ -74,13 +76,23 @@ class PropertyDataExtractorService
     Rails.logger.info("PropertyDataExtractor: filet regex a comblé construction_year=#{year}")
   end
 
+  # Extraction via `pdftotext -layout` (poppler-utils).
+  # -layout préserve l'alignement tabulaire des DPE : le libellé et la
+  # valeur restent sur la même ligne quand c'est le cas dans le PDF
+  # source, ce qui bénéficie autant à l'extraction LLM qu'aux filets
+  # regex en aval. `-` en sortie envoie sur stdout.
+  # Dépendance système : poppler-utils (cf. Aptfile pour Heroku).
   def extract_pdf_text(document)
     Tempfile.create(["doc", ".pdf"]) do |tmp|
       tmp.binmode
       tmp.write(document.file.download)
       tmp.rewind
-      reader = PDF::Reader.new(tmp.path)
-      reader.pages.map(&:text).join("\n")
+      stdout, stderr, status = Open3.capture3("pdftotext", "-layout", tmp.path, "-")
+      unless status.success?
+        Rails.logger.error("pdftotext error (exit #{status.exitstatus}): #{stderr.strip}")
+        return ""
+      end
+      stdout
     end
   rescue => e
     Rails.logger.error("PDF extraction error: #{e.message}")

@@ -67,9 +67,10 @@ class SurfaceRegexFallbackTest < ActiveSupport::TestCase
   end
 
   # ── Multi-lignes : mise en page tabulaire des DPE ────────────────────
-  # pdf-reader restitue souvent le libellé et la valeur sur des lignes
-  # différentes quand le DPE d'origine utilise une mise en page en
-  # colonnes. Même famille de bug que ConstructionYearRegexFallback.
+  # Même avec `pdftotext -layout`, certains DPE restituent le libellé et
+  # la valeur sur des lignes différentes quand le PDF d'origine utilise
+  # une mise en page en colonnes. Même famille de cas que
+  # ConstructionYearRegexFallback.
 
   test "spécimen DPE tabulaire : libellé, ligne vide, valeur → renvoie 95" do
     text = <<~TXT

@@ -1,3 +1,5 @@
+require "open3"
+
 class DocumentAnalysisService
   ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
   MAX_VISION_PAGES = 4
@@ -58,13 +60,20 @@ class DocumentAnalysisService
     end
   end
 
+  # Extraction via `pdftotext -layout` (poppler-utils, cf. Aptfile).
+  # Cohérent avec PropertyDataExtractorService#extract_pdf_text — même
+  # outil, mêmes garanties de mise en page tabulaire.
   def extract_text
     Tempfile.create(["doc", ".pdf"]) do |tmp|
       tmp.binmode
       tmp.write(@document.file.download)
       tmp.rewind
-      reader = PDF::Reader.new(tmp.path)
-      reader.pages.map(&:text).join("\n").strip
+      stdout, stderr, status = Open3.capture3("pdftotext", "-layout", tmp.path, "-")
+      unless status.success?
+        Rails.logger.error("pdftotext error (exit #{status.exitstatus}): #{stderr.strip}")
+        return ""
+      end
+      stdout.strip
     end
   rescue => e
     Rails.logger.error("PDF text extraction error: #{e.message}")

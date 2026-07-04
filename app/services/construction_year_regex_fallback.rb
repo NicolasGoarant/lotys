@@ -15,11 +15,12 @@ class ConstructionYearRegexFallback
   #
   # NB fenêtre : [^0-9]{0,40} borne le trou entre le contexte et le
   # nombre à 40 caractères non-digit. On AUTORISE les sauts de ligne
-  # dans cette fenêtre : pdf-reader restitue souvent les DPE tabulaires
-  # avec le libellé et la valeur sur des lignes différentes (parfois
-  # une ligne vide entre les deux). Une fenêtre de 40 couvre ce cas
-  # sans laisser passer une année située un paragraphe plus loin — cf.
-  # test "NC + Facture 2026" qui reste à ~42 chars du libellé (nil).
+  # dans cette fenêtre : même avec `pdftotext -layout`, certains DPE
+  # restituent le libellé et la valeur sur des lignes différentes
+  # (parfois une ligne vide entre les deux). Une fenêtre de 40 couvre
+  # ce cas sans laisser passer une année située un paragraphe plus
+  # loin — cf. test "NC + Facture 2026" qui reste à ~42 chars du
+  # libellé (nil).
   ANNEE_CONSTRUCTION_RE = /ann[eé]e\s+de\s+construction[^0-9]{0,40}(\d{4})\b/i
   DATE_CONSTRUCTION_RE  = /date\s+de\s+construction[^0-9]{0,40}(\d{4})\b/i
   # Pour "construit(e) en <année>", pas de fenêtre : \s+ après "en"

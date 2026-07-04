@@ -67,7 +67,9 @@ gem "httparty"           # pour DVF API
 
 # Upload & traitement documents
 gem "image_processing", "~> 1.2"
-gem "pdf-reader"         # lecture PDF côté serveur pour passer à Claude
+# Extraction texte PDF : shell-out à `pdftotext -layout` (poppler-utils,
+# cf. Aptfile). L'ancienne gem pdf-reader ne préservait pas la mise en
+# page tabulaire des DPE, ce qui coupait libellé/valeur.
 
 # UI
 gem "pagy"               # pagination
