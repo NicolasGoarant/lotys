@@ -78,14 +78,40 @@ class Property < ApplicationRecord
   # ─── Constantes partagées (inclusions de validations) ────────────────
   DPE_CLASSES      = %w[A B C D E F G].freeze
   INCOME_BRACKETS  = %w[tres_modeste modeste intermediaire superieur].freeze
+  ADDRESS_SOURCES  = %w[dpe titre_propriete facture manuel].freeze
 
   # ─── Validations ─────────────────────────────────────────────────────
-  # Champs strictement requis : sans eux, impossible d'analyser ou de publier.
-  validates :address, :city, :zipcode, presence: true
+  # ── Adresse : substituable par des documents ───────────────────────
+  # Depuis C2, l'adresse n'est plus strictement requise à la création.
+  # Un utilisateur peut soumettre soit l'adresse (address+city+zipcode),
+  # soit au moins un document (DPE, titre, facture) — le pipeline
+  # d'extraction essaiera de déduire l'adresse.
+  #
+  # Le controller signale la présence d'uploads via documents_pending
+  # AVANT save (les Documents ne sont attachés qu'après create). Pour un
+  # bien déjà persisté, on regarde aussi documents.exists? — un update
+  # ultérieur reste valide tant qu'il y a bien un document rattaché.
+  attr_accessor :documents_pending
+
+  validate :address_or_documents_provided
   validates :zipcode, format: {
     with: /\A\d{5}\z/,
     message: "doit être un code postal à 5 chiffres"
-  }
+  }, allow_blank: true
+
+  # Provenance de l'adresse : source d'extraction (dpe/titre_propriete/
+  # facture) ou "manuel" si l'utilisateur a saisi lui-même. Optionnel
+  # tant que l'adresse n'est pas confirmée — laisse la place au flux
+  # de détection avant confirmation.
+  validates :address_source, inclusion: { in: ADDRESS_SOURCES }, allow_blank: true
+
+  # Publication : l'adresse doit être CONFIRMÉE. Sans ça, la commune
+  # n'est pas fiable → LocalAidCalculator peut publier des aides à
+  # côté de la plaque, /offers afficherait un bien sans code_insee
+  # valable pour la carte. Bloquer à la publication (pas à
+  # l'analyse) : l'utilisateur peut se balader dans son rapport tant
+  # qu'il n'a pas confirmé.
+  validate :address_confirmed_when_published
 
   # Surface : optionnelle tant que le bien n'est pas publié — le parcours
   # "adresse seule" la remplit via l'analyse Claude après la création.
@@ -229,5 +255,29 @@ class Property < ApplicationRecord
     return if user_id.present? || user.present? || claim_token.present?
 
     errors.add(:base, "Un bien doit être rattaché à un utilisateur ou porter un jeton de revendication")
+  end
+
+  # Passe si :
+  #   - les trois champs adresse sont saisis (chemin classique), OU
+  #   - le controller a signalé un upload en cours (documents_pending), OU
+  #   - le bien existe déjà avec au moins un document rattaché (update).
+  def address_or_documents_provided
+    return if address.present? && city.present? && zipcode.present?
+    return if documents_pending
+    return if persisted? && documents.exists?
+
+    errors.add(:base,
+      "Indiquez l'adresse du bien (avec code postal et ville) ou fournissez au moins un document (DPE, titre de propriété, facture).")
+  end
+
+  # Publication conditionnée à une adresse CONFIRMÉE. Une saisie manuelle
+  # au create pose address_confirmed_at automatiquement (cf.
+  # PropertiesController#create — C4). Une détection LLM ne suffit pas :
+  # il faut le clic explicite du user sur le bandeau de confirmation.
+  def address_confirmed_when_published
+    return unless published?
+    return if address_confirmed_at.present?
+
+    errors.add(:base, "Confirmez l'adresse détectée avant de publier votre bien.")
   end
 end

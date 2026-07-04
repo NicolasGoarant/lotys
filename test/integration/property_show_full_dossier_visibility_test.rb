@@ -217,10 +217,14 @@ class PropertyShowFullDossierVisibilityTest < ActionDispatch::IntegrationTest
 
   def create_published_property!(owner:)
     p = owner.properties.build(
-      address: "1 rue Publiée",
-      city:    "Nancy",
-      zipcode: "54000",
-      status:  :published,
+      address:              "1 rue Publiée",
+      city:                 "Nancy",
+      zipcode:              "54000",
+      status:               :published,
+      # C2 : la publication exige une adresse confirmée. Ce bien étant
+      # fixture "déjà publiée", on considère la confirmation faite.
+      address_source:       "manuel",
+      address_confirmed_at: Time.current,
       **common_rich_attrs
     )
     p.save!

@@ -117,6 +117,7 @@ class PropertiesController < ApplicationController
       end
       @property = current_user.properties.build(property_params)
       @property.status = :analyzing
+      prepare_address_flow(@property)
       if @property.save
         attach_uploaded_documents
         PropertyAnalysisJob.perform_later(@property.id)
@@ -134,6 +135,7 @@ class PropertiesController < ApplicationController
       @property = Property.new(property_params)
       @property.claim_token = token
       @property.status      = :analyzing
+      prepare_address_flow(@property)
       if @property.save
         write_claim_cookie!(token)
         attach_uploaded_documents
@@ -320,6 +322,31 @@ class PropertiesController < ApplicationController
       )
       doc.file.attach(file)
       doc.save
+    end
+  end
+
+  # C2 : deux rôles autour du flux "adresse facultative".
+  #
+  # 1. documents_pending — signale à Property#address_or_documents_provided
+  #    qu'un ou plusieurs uploads accompagnent la soumission. La validation
+  #    tourne AVANT save, donc AVANT attach_uploaded_documents : sans ce
+  #    flag, elle ne verrait aucun document rattaché et rejetterait la
+  #    création. attr_accessor purement mémoire, non persisté.
+  #
+  # 2. Saisie manuelle = confirmation implicite. Si l'utilisateur a écrit
+  #    lui-même les 3 champs adresse (nominal), on pose address_source
+  #    = "manuel" et address_confirmed_at = maintenant. Le principe
+  #    "ne jamais analyser sur hypothèse non validée" concerne la
+  #    détection LLM ; ce que le user écrit lui-même est confirmé
+  #    d'office. Sans ça, la publication resterait bloquée dans le
+  #    chemin nominal (cf. Property#address_confirmed_when_published).
+  def prepare_address_flow(property)
+    uploaded = params.dig(:property, :uploaded_files)
+    property.documents_pending = uploaded.present?
+
+    if property.address.present? && property.city.present? && property.zipcode.present?
+      property.address_source       ||= "manuel"
+      property.address_confirmed_at ||= Time.current
     end
   end
 

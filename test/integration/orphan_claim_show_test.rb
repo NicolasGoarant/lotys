@@ -63,14 +63,17 @@ class OrphanClaimShowTest < ActionDispatch::IntegrationTest
   test "régression : un bien published reste lisible par un visiteur anonyme (sans cookie)" do
     owner = create_confirmed_user!
     published = owner.properties.create!(
-      address:           "1 rue Publiée",
-      city:              "Nancy",
-      zipcode:           "54000",
-      surface:           80,
-      dpe_class:         "D",
-      property_type:     "maison",
-      construction_year: 1970,
-      status:            :published
+      address:              "1 rue Publiée",
+      city:                 "Nancy",
+      zipcode:              "54000",
+      surface:              80,
+      dpe_class:            "D",
+      property_type:        "maison",
+      construction_year:    1970,
+      status:               :published,
+      # C2 : publication conditionnée à la confirmation d'adresse.
+      address_source:       "manuel",
+      address_confirmed_at: Time.current
     )
 
     # Pas de sign_in, pas de cookie : visiteur strictement anonyme.

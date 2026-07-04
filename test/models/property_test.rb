@@ -158,4 +158,107 @@ class PropertyTest < ActiveSupport::TestCase
     p.reload
     assert_equal "inconnue", p.energie_chauffage
   end
+
+  # ──────────────────────────────────────────────────────────────────────
+  # C2 — Validation substitution : adresse OU documents à la création
+  # ──────────────────────────────────────────────────────────────────────
+  # Le formulaire public peut être soumis sans adresse si l'utilisateur
+  # fournit au moins un document (DPE, titre, facture). Quatre cas :
+  #   (address+city+zipcode)   sans docs         → VALIDE
+  #   sans adresse              avec upload      → VALIDE (documents_pending)
+  #   sans adresse              docs persistés   → VALIDE (bien existant)
+  #   sans adresse              sans upload      → INVALIDE (message clair)
+
+  test "adresse complète, aucun document → valide" do
+    property = Property.new(base_attrs.merge(claim_token: SecureRandom.uuid))
+    assert property.valid?,
+      "Adresse complète devrait suffire, reçu : #{property.errors.full_messages.inspect}"
+  end
+
+  test "adresse vide, documents_pending signalé par le controller → valide" do
+    property = Property.new(claim_token: SecureRandom.uuid)
+    property.documents_pending = true
+    assert property.valid?,
+      "Documents joints devraient suffire, reçu : #{property.errors.full_messages.inspect}"
+  end
+
+  test "adresse vide, bien persisté avec un document rattaché → valide" do
+    # Cas update : le bien a été créé avec docs (path substitution), la
+    # revalidation ultérieure ne doit pas rejeter faute d'adresse.
+    property = Property.create!(base_attrs.merge(claim_token: SecureRandom.uuid))
+    property.documents.create!(document_type: :dpe, name: "dpe.pdf")
+    property.update_columns(address: nil, city: nil, zipcode: nil)
+    property.reload
+
+    assert property.valid?,
+      "Bien persisté avec un doc devrait rester valide, reçu : #{property.errors.full_messages.inspect}"
+  end
+
+  test "adresse vide, aucun document → INVALIDE avec message parlant" do
+    property = Property.new(claim_token: SecureRandom.uuid)
+    assert_not property.valid?
+    assert property.errors[:base].any? { |m| m.include?("Indiquez l'adresse") && m.include?("document") },
+      "L'erreur doit expliquer les deux voies (adresse OU document), reçu : #{property.errors[:base].inspect}"
+  end
+
+  test "adresse partielle (ville manquante) sans document → INVALIDE" do
+    # Pas de moitié d'adresse admise : soit tout, soit rien avec docs.
+    property = Property.new(
+      address: "12 rue du Test",
+      zipcode: "54000",
+      claim_token: SecureRandom.uuid
+    )
+    assert_not property.valid?
+  end
+
+  test "zipcode invalide reste refusé même en présence de documents_pending" do
+    # Le allow_blank sur le format n'autorise QUE l'absence — un zipcode
+    # malformé reste une erreur (protège contre "monville" ou "5400" saisis
+    # accidentellement).
+    property = Property.new(
+      address:  "12 rue du Test",
+      city:     "Nancy",
+      zipcode:  "5400",
+      claim_token: SecureRandom.uuid
+    )
+    property.documents_pending = true
+    assert_not property.valid?
+    assert property.errors[:zipcode].any? { |m| m.include?("5 chiffres") },
+      "Format zipcode doit rester validé, reçu : #{property.errors[:zipcode].inspect}"
+  end
+
+  # ── Publication conditionnée à la confirmation d'adresse ──────────────
+  test "publication BLOQUÉE tant qu'address_confirmed_at est NULL" do
+    p = build_persisted_property
+    # Publication exige aussi surface + dpe_class (validations existantes) :
+    # on les remplit pour que seule la confirmation d'adresse fasse échec.
+    p.update!(surface: 95, dpe_class: "D")
+    p.status = :published
+
+    assert_not p.valid?
+    assert p.errors[:base].any? { |m| m.include?("Confirmez l'adresse") },
+      "Message publication attendu, reçu : #{p.errors[:base].inspect}"
+  end
+
+  test "publication AUTORISÉE quand address_confirmed_at est posé" do
+    p = build_persisted_property
+    p.update!(surface: 95, dpe_class: "D", address_confirmed_at: Time.current)
+    p.status = :published
+    assert p.valid?,
+      "Confirmation posée doit débloquer la publication, reçu : #{p.errors.full_messages.inspect}"
+  end
+
+  # ── address_source contraint aux valeurs canoniques ───────────────────
+  test "address_source accepte les 4 valeurs canoniques" do
+    %w[dpe titre_propriete facture manuel].each do |src|
+      p = Property.new(base_attrs.merge(claim_token: SecureRandom.uuid, address_source: src))
+      assert p.valid?, "address_source=#{src} devrait passer, reçu : #{p.errors.full_messages.inspect}"
+    end
+  end
+
+  test "address_source rejette une valeur hors liste" do
+    p = Property.new(base_attrs.merge(claim_token: SecureRandom.uuid, address_source: "extranet_epci"))
+    assert_not p.valid?
+    assert p.errors[:address_source].present?
+  end
 end
