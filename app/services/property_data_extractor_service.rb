@@ -16,11 +16,13 @@ class PropertyDataExtractorService
     extracted = extract_structured_data(bundle[:llm])
     update_property(extracted)
 
-    # Filet déterministe : si l'extraction LLM n'a pas posé la surface,
-    # on tente une récupération par regex sur le texte brut des documents.
-    # Cet appel doit avoir lieu ICI, dans la même passe d'analyse, AVANT
-    # toute purge du fichier (cf. PropertyAnalysisJob#purge_documents).
-    apply_surface_regex_fallback(bundle) if @property.reload.surface.blank?
+    # Filets déterministes : si l'extraction LLM n'a pas posé la surface
+    # ou l'année de construction, on tente une récupération par regex sur
+    # le texte brut des documents. Ces appels doivent avoir lieu ICI, dans
+    # la même passe d'analyse, AVANT toute purge du fichier
+    # (cf. PropertyAnalysisJob#purge_documents).
+    apply_surface_regex_fallback(bundle)           if @property.reload.surface.blank?
+    apply_construction_year_regex_fallback(bundle) if @property.reload.construction_year.blank?
 
     true
   end
@@ -63,6 +65,15 @@ class PropertyDataExtractorService
     Rails.logger.info("PropertyDataExtractor: filet regex a comblé surface=#{surface} m²")
   end
 
+  def apply_construction_year_regex_fallback(bundle)
+    source = [bundle[:raw], bundle[:llm]].reject(&:blank?).join("\n\n")
+    year   = ConstructionYearRegexFallback.call(source)
+    return unless year
+
+    @property.update(construction_year: year)
+    Rails.logger.info("PropertyDataExtractor: filet regex a comblé construction_year=#{year}")
+  end
+
   def extract_pdf_text(document)
     Tempfile.create(["doc", ".pdf"]) do |tmp|
       tmp.binmode
@@ -89,6 +100,20 @@ class PropertyDataExtractorService
            (pas aux travaux, pas à un comparable, pas à un kWh/m²).
       Renvoie un entier en m². Si plusieurs valeurs cohérentes (±2 m²), prends
       celle du DPE. Si rien d'écrit explicitement → null. NE DEVINE JAMAIS.
+
+      PRIORITÉ 2 — ANNÉE DE CONSTRUCTION (champ critique pour la matrice
+      de projection DPE et pour les aides conditionnées à l'ancienneté).
+      Cherche dans cet ordre :
+        a) "Année de construction" dans le DPE ;
+        b) "Date de construction" ou "Année de construction" dans le titre
+           de propriété ;
+        c) mention "construit(e) en <année>" dans un document officiel.
+      Renvoie un entier à 4 chiffres. NE CONFONDS JAMAIS avec :
+        - une date de facture, d'acte notarié, de bail, d'AG copro ;
+        - une année de réhabilitation ou de travaux ("réhabilité en 1985") ;
+        - un millésime de loi ("Loi Carrez 1996").
+      Si plusieurs valeurs cohérentes (±2 ans), prends celle du DPE. Si
+      rien d'écrit explicitement → null. NE DEVINE JAMAIS.
 
       Documents :
       ---
