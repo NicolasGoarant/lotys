@@ -21,7 +21,15 @@ class PropertyAnalysisJob < ApplicationJob
     property = Property.find(property_id)
 
     property.update(status: :analyzing)
-    GeocodingService.new(property).call
+
+    # Géocodage BAN (C4). Skip si adresse vide : parcours "documents
+    # sans adresse" (C2) — l'adresse sera détectée par extraction LLM
+    # (C3), présentée à l'utilisateur en bandeau de confirmation (C5)
+    # puis géocodée à la confirmation. Sans ce guard on ferait un appel
+    # BAN qui retournerait "aucun match" (ce que GeocodingService gère
+    # déjà silencieusement, mais mieux vaut éviter l'appel).
+    GeocodingService.new(property).call if property.address.present?
+
     PhotoAnalysisService.new(property).call if property.photos.attached?
 
     property.documents.each do |doc|
