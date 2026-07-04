@@ -40,7 +40,17 @@ class PropertyAnalysisJob < ApplicationJob
     DvfEstimationService.new(property).call
     DeviceSimulationService.new(property).call
     PropertyAnalysisService.new(property).call
-    LocalAidCalculator.new(property).call
+
+    # Aides locales (C6) : skip si adresse pas encore posée. Parcours
+    # "documents sans adresse" (C2) — le calculator lit zipcode et
+    # code_insee ; sans eux, il créerait 0 LocalAidResult utiles et
+    # polluerait la table. C'est le clic de confirmation utilisateur
+    # (PropertiesController#confirm_address, C5) qui relance ce calcul.
+    # Une adresse saisie manuellement au create est confirmée d'office
+    # (prepare_address_flow, C2) donc address.present? est ici le bon
+    # gate — pareil que celui de GeocodingService (C4).
+    LocalAidCalculator.new(property).call if property.address.present?
+
     sync_analysis_fields(property)
 
     # ── Proxy fioul ────────────────────────────────────────────────────

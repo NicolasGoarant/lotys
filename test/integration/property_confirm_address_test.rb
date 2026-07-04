@@ -181,6 +181,55 @@ class PropertyConfirmAddressTest < ActionDispatch::IntegrationTest
     assert_equal "dpe", p.address_source, "address_source d'extraction préservé (pas d'écriture)"
   end
 
+  # ── C6 : la confirmation déclenche bien LocalAidCalculator ──────────
+  # Verrou complémentaire de la garde côté job (skip LocalAidCalculator
+  # tant qu'address vide). Stub sur LocalAidCalculator.new pour compter
+  # les invocations — indépendant du contenu de LocalAidScheme (la base
+  # de test n'en seede aucun, mais l'intention testée est bien "l'action
+  # confirm_address a re-appelé le calculator").
+  test "POST confirm_address → LocalAidCalculator invoqué (recalcul C6)" do
+    p = property_avec_detection
+
+    calls = 0
+    fake_calculator = Object.new
+    fake_calculator.define_singleton_method(:call) { calls += 1; [] }
+
+    LocalAidCalculator.stub :new, ->(*_args) { fake_calculator } do
+      HTTParty.stub :get, ->(*_args) { ban_response_ok } do
+        post confirm_address_property_path(p), params: {
+          property: { address: "12 rue du Haut-Rivage", city: "Malzéville", zipcode: "54220" }
+        }
+      end
+    end
+
+    assert_equal 1, calls,
+      "LocalAidCalculator.new(...).call doit avoir été invoqué exactement une fois par la confirmation"
+  end
+
+  # ── C6 : vue résultats — cadenas "aides locales à venir" visible ──
+  test "show — address vide : bloc 'aides locales à venir' visible" do
+    p = property_avec_detection
+    get property_path(p)
+    assert_response :success
+    assert_select "#local-aids-locked", { count: 1 },
+      "Le rappel 'aides locales après confirmation' doit être visible"
+    assert_match(/aides locales/i, response.body)
+  end
+
+  test "show — address confirmée : bloc 'aides locales à venir' ABSENT" do
+    p = property_avec_detection
+    HTTParty.stub :get, ->(*_args) { ban_response_ok } do
+      post confirm_address_property_path(p), params: {
+        property: { address: "12 rue du Haut-Rivage", city: "Malzéville", zipcode: "54220" }
+      }
+    end
+
+    get property_path(p)
+    assert_response :success
+    assert_select "#local-aids-locked", { count: 0 },
+      "Une fois l'adresse confirmée, plus de rappel"
+  end
+
   # ── 6. Étanchéité : un visiteur random ne peut PAS confirmer ────────
   test "visiteur SANS cookie claim_token ne peut PAS confirmer l'adresse d'un bien" do
     p = property_avec_detection

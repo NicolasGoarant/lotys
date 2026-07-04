@@ -518,6 +518,26 @@
 </div>
 <% end %>
 
+<%# ── Aides locales conditionnées à la confirmation d'adresse (C6) ────
+     AidCalculatorService gate Grand Nancy sur code_insee — donc sans
+     confirmation, aucune aide locale ne remonte dans le résultat. Ce
+     rappel est rendu DEHORS du bloc `if e` : dans le parcours
+     "documents sans adresse" (C2), l'utilisateur peut atterrir sur la
+     vue résultats avant la fin de l'analyse (pas encore de `e`), et
+     doit voir dès ce moment le lien vers le bandeau de confirmation.
+     Restreint à can_see_full_dossier pour ne pas révéler ce message à
+     un visiteur random d'un bien published — de toute façon exclu par
+     la validation address_confirmed_when_published (C2). -%>
+<% if can_see_full_dossier && @property.address.blank? %>
+  <div class="cd" id="local-aids-locked" style="background:#faf5ff;border:2px dashed #c4b5fd;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+    <p class="bod" style="margin:0;font-size:.85rem;color:#5b21b6;line-height:1.5;">
+      🏛️ <strong>Vos aides locales</strong> (Grand Nancy, EPCI…)
+      s'afficheront après confirmation de l'adresse — voir le
+      <%= link_to "bandeau en haut de la page", "#confirm-address", style: "color:#5b21b6;text-decoration:underline;font-weight:700;" %>.
+    </p>
+  </div>
+<% end %>
+
 <%# ── AIDES + FINANCEMENT (dossier complet : propriétaire ou claimant) ── %>
 <% if can_see_full_dossier && e %>
 
