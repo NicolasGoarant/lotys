@@ -127,6 +127,25 @@ class PropertyDataExtractorService
       Si plusieurs valeurs cohérentes (±2 ans), prends celle du DPE. Si
       rien d'écrit explicitement → null. NE DEVINE JAMAIS.
 
+      PRIORITÉ 3 — ADRESSE DU BIEN (extraction pour le parcours "adresse
+      facultative" : l'utilisateur peut avoir soumis le formulaire sans
+      saisir l'adresse s'il fournit un document — on la déduit ici, puis
+      il la CONFIRMERA dans l'interface).
+      Hiérarchie STRICTE (source la plus fiable en premier) :
+        a) DPE — "Adresse du bien diagnostiqué" ou en-tête d'identification
+           du logement. C'est l'adresse DU BIEN, jamais celle du diagnostiqueur.
+        b) Titre de propriété — bloc "désignation du bien" ou "situation
+           du bien". Jamais l'adresse du propriétaire vendeur/acquéreur.
+        c) Facture énergie — UNIQUEMENT le champ "lieu de consommation"
+           ou "adresse du point de livraison". JAMAIS l'adresse de
+           facturation / du titulaire, qui peut être différente.
+      Renseigne "address_source" avec la source retenue ("dpe",
+      "titre_propriete" ou "facture"). Si plusieurs documents donnent des
+      adresses DIFFÉRENTES pour le bien (autre rue, autre commune) → null
+      partout. En cas de doute, null — l'utilisateur pourra saisir
+      manuellement. NE DEVINE JAMAIS depuis le nom d'une copropriété
+      ou une mention de quartier.
+
       Documents :
       ---
       #{content.truncate(10000)}
@@ -145,7 +164,11 @@ class PropertyDataExtractorService
         "purchase_price": <prix d'achat en euros entier, null si inconnu>,
         "heating_system": <description courte du système de chauffage, null si inconnu>,
         "wall_insulation": <description de l'isolation des murs, null si inconnue>,
-        "roof_insulation": <description de l'isolation de la toiture, null si inconnue>
+        "roof_insulation": <description de l'isolation de la toiture, null si inconnue>,
+        "address": <ligne 1 de l'adresse du bien, null si inconnue — voir PRIORITÉ 3>,
+        "city": <ville du bien, null si inconnue — voir PRIORITÉ 3>,
+        "zipcode": <code postal 5 chiffres du bien, null si inconnu — voir PRIORITÉ 3>,
+        "address_source": <"dpe", "titre_propriete", "facture" ou null si aucune source fiable>
       }
 
       Priorité aux données officielles (DPE, acte notarié, certificat Carrez).
@@ -179,6 +202,31 @@ class PropertyDataExtractorService
     end
 
     updates[:is_copropriete] = true if data["is_copropriete"] == true
+
+    # ── Adresse détectée (C3) ─────────────────────────────────────────
+    # Ne s'exécute QUE si Property#address est vide (parcours "documents
+    # sans adresse" — C2). Dépose exclusivement dans les colonnes
+    # _detected, JAMAIS dans address/city/zipcode : le principe "pas
+    # d'analyse sur hypothèse non validée" impose une confirmation
+    # utilisateur (bandeau à la vue résultats, C5). address_confirmed_at
+    # reste NULL — seul un clic explicite le pose.
+    #
+    # Exigences :
+    #   - les trois champs (address+city+zipcode) présents,
+    #   - zipcode 5 chiffres (protège des "12345 " ou "NC" que le LLM
+    #     pourrait renvoyer si le doc est confus),
+    #   - address_source dans la liste blanche des sources d'extraction
+    #     ("manuel" est réservé au controller — jamais issu du LLM).
+    if @property.address.blank? &&
+       data["address"].present? && data["city"].present? && data["zipcode"].present? &&
+       data["zipcode"].to_s =~ /\A\d{5}\z/ &&
+       %w[dpe titre_propriete facture].include?(data["address_source"])
+
+      updates[:address_detected]  = data["address"].to_s.strip
+      updates[:city_detected]     = data["city"].to_s.strip
+      updates[:zipcode_detected]  = data["zipcode"].to_s.strip
+      updates[:address_source]    = data["address_source"]
+    end
 
     # ── Capture structurée de l'énergie de chauffage ──────────────────
     # heating_system est déjà parsé en JSON par extract_structured_data.

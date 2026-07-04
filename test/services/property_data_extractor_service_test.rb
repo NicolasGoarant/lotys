@@ -91,4 +91,141 @@ class PropertyDataExtractorServiceTest < ActiveSupport::TestCase
       "Une extraction réelle doit pouvoir corriger un proxy déduit"
     assert_equal "extrait_description", p.energie_chauffage_source
   end
+
+  # ────────────────────────────────────────────────────────────────────
+  # C3 — Adresse détectée : dépose dans les colonnes _detected uniquement
+  # ────────────────────────────────────────────────────────────────────
+
+  # Property sans adresse (parcours "documents seuls" — C2).
+  # save(validate: false) crée la ligne, puis on rattache un Document :
+  # fidèle au parcours réel où PropertyAnalysisJob tourne APRÈS que le
+  # controller ait attaché un doc. Sans ce doc, l'update en fin de
+  # update_property échouerait à la validation address_or_documents_provided.
+  def property_sans_adresse
+    p = Property.new(claim_token: SecureRandom.hex(16))
+    p.save(validate: false)
+    p.documents.create!(document_type: :dpe, name: "fixture-dpe.pdf")
+    p
+  end
+
+  test "adresse DPE + tous champs valides → posée dans _detected (source dpe)" do
+    p = property_sans_adresse
+    apply(p, {
+      "address"        => "12 rue du Haut-Rivage",
+      "city"           => "Malzéville",
+      "zipcode"        => "54220",
+      "address_source" => "dpe"
+    })
+    p.reload
+
+    assert_equal "12 rue du Haut-Rivage", p.address_detected
+    assert_equal "Malzéville",             p.city_detected
+    assert_equal "54220",                  p.zipcode_detected
+    assert_equal "dpe",                    p.address_source
+
+    # Verrou critique : les colonnes de vérité ne bougent PAS.
+    assert_nil p.address, "address (colonne de vérité) doit rester NULL avant confirmation"
+    assert_nil p.city
+    assert_nil p.zipcode
+    assert_nil p.address_confirmed_at, "confirmation reste NULL — c'est le clic user qui la pose (C5)"
+  end
+
+  test "hiérarchie : source titre_propriete acceptée" do
+    p = property_sans_adresse
+    apply(p, {
+      "address"        => "17 rue du Général Leclerc",
+      "city"           => "Nancy",
+      "zipcode"        => "54000",
+      "address_source" => "titre_propriete"
+    })
+    p.reload
+    assert_equal "titre_propriete", p.address_source
+    assert_equal "17 rue du Général Leclerc", p.address_detected
+  end
+
+  test "hiérarchie : source facture acceptée (lieu de consommation)" do
+    p = property_sans_adresse
+    apply(p, {
+      "address"        => "5 impasse des Vignes",
+      "city"           => "Vandœuvre-lès-Nancy",
+      "zipcode"        => "54500",
+      "address_source" => "facture"
+    })
+    p.reload
+    assert_equal "facture", p.address_source
+  end
+
+  test "adresse déjà saisie par l'utilisateur → LLM n'écrase PAS" do
+    p = Property.create!(
+      address:  "1 rue Existante",
+      city:     "Nancy",
+      zipcode:  "54000",
+      claim_token: SecureRandom.hex(16)
+    )
+    apply(p, {
+      "address"        => "999 rue Détectée",
+      "city"           => "Autre Ville",
+      "zipcode"        => "75001",
+      "address_source" => "dpe"
+    })
+    p.reload
+
+    # address de vérité intacte
+    assert_equal "1 rue Existante", p.address
+    # Colonnes _detected NON remplies non plus — pas besoin de bandeau
+    # de confirmation si l'utilisateur a saisi lui-même.
+    assert_nil p.address_detected, "Pas de détection déposée si address déjà saisie"
+    assert_nil p.address_source
+  end
+
+  test "address_source inventé par le LLM (hors liste) → rejeté" do
+    p = property_sans_adresse
+    apply(p, {
+      "address"        => "12 rue X",
+      "city"           => "Nancy",
+      "zipcode"        => "54000",
+      "address_source" => "cadastre"       # hors liste blanche
+    })
+    p.reload
+    assert_nil p.address_detected, "Source inconnue → aucune détection déposée"
+    assert_nil p.address_source
+  end
+
+  test "address_source = null explicite (LLM ne sait pas trancher) → rien déposé" do
+    p = property_sans_adresse
+    apply(p, {
+      "address"        => "12 rue X",
+      "city"           => "Nancy",
+      "zipcode"        => "54000",
+      "address_source" => nil
+    })
+    p.reload
+    assert_nil p.address_detected
+  end
+
+  test "zipcode malformé → rejet complet du bloc adresse" do
+    p = property_sans_adresse
+    apply(p, {
+      "address"        => "12 rue X",
+      "city"           => "Nancy",
+      "zipcode"        => "5400",  # 4 chiffres — invalide
+      "address_source" => "dpe"
+    })
+    p.reload
+    assert_nil p.address_detected, "Zipcode malformé → rien n'est déposé"
+    assert_nil p.zipcode_detected
+    assert_nil p.address_source
+  end
+
+  test "champ manquant (city null) → rejet complet du bloc adresse" do
+    p = property_sans_adresse
+    apply(p, {
+      "address"        => "12 rue X",
+      "city"           => nil,
+      "zipcode"        => "54000",
+      "address_source" => "dpe"
+    })
+    p.reload
+    assert_nil p.address_detected, "Trio incomplet → rien n'est déposé (atomique)"
+  end
 end
