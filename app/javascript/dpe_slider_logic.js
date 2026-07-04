@@ -62,7 +62,54 @@ function deriveSelectionForTarget({
   return { checked: prioriteGestes.slice() };
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// Fonction PURE — sens INVERSE : sélection de travaux → classe atteignable.
+//
+// Motivation : jusqu'ici, la vue avait ce lookup INLINE dans show.html.erb
+// (lookupTgtIdxFromMatrix), et retournait null quand la combinaison n'avait
+// pas d'entrée valide dans la matrice. En cas de null, recalcTravaux
+// n'appelait pas updateJaugeDPE — label + pin + hidden field restaient
+// à leur ANCIENNE valeur (issue du drag précédent ou de SERVER_TGT_IDX).
+// Résultat en prod : la MÊME liste de cases cochées affichait « OBJECTIF : A »
+// ou « OBJECTIF : B » selon l'historique des manipulations.
+//
+// Contrat de cette fonction :
+//   - source de vérité unique = codesActifs (ensemble des cases cochées),
+//   - retourne l'idx (0..6 pour A..G) de la classe atteignable par cet
+//     ensemble, tel que pré-calculé par PropertyDpeMatrixService,
+//   - FALLBACK PESSIMISTE : si la matrice est absente, l'entrée manquante
+//     ou classe non-string, retourne currentDpeIdx (aucune amélioration
+//     affichée — jamais d'objectif optimiste sans donnée qui le justifie).
+//
+// Garanties :
+//   * Chemin-indépendance : la sortie ne dépend QUE de codesActifs et de la
+//     matrice figée. Deux ensembles identiques → même objectif, quel que
+//     soit l'historique (verrou du bug prod).
+//   * Purity : entrées non mutées (slice défensif sur codesActifs).
+//
+function deriveTargetFromSelection({
+  codesActifs,
+  combinaisons,
+  currentDpeIdx
+}) {
+  // Fallback pessimiste : pas de matrice → afficher classe actuelle.
+  if (!combinaisons) return currentDpeIdx;
+
+  const ORDRE = "ABCDEFG";
+  const cle = codesActifs.slice().sort().join(',');
+  const entry = combinaisons[cle];
+
+  if (!entry || typeof entry.classe !== 'string') {
+    // Entrée manquante ou incomplète : on ne devine pas — pessimiste.
+    return currentDpeIdx;
+  }
+
+  const idx = ORDRE.indexOf(entry.classe);
+  // classe hors A-G (donnée corrompue) → pessimiste.
+  return idx >= 0 ? idx : currentDpeIdx;
+}
+
 // ─── Double export : Node CommonJS pour les tests, global pour le browser ──
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { deriveSelectionForTarget };
+  module.exports = { deriveSelectionForTarget, deriveTargetFromSelection };
 }

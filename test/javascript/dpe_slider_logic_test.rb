@@ -227,4 +227,127 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
     end
   end
 
+  # ═════════════════════════════════════════════════════════════════════════
+  # deriveTargetFromSelection — sens INVERSE (cases → classe atteignable)
+  #
+  # Ajouté après le bug prod « MÊME set de cases affiche tantôt A tantôt B
+  # selon l'historique des manipulations ». Cette fonction est la source
+  # de vérité UNIQUE de l'objectif : label + pin + hidden field passent
+  # tous par elle après chaque changement de case.
+  # ═════════════════════════════════════════════════════════════════════════
+
+  # Helper : exécute deriveTargetFromSelection(input) via node.
+  def run_target(codes_actifs, combinaisons: COMBI_SYNTH, current_dpe_idx: 5)
+    payload = {
+      codesActifs:   codes_actifs,
+      combinaisons:  combinaisons,
+      currentDpeIdx: current_dpe_idx
+    }.to_json
+    script = <<~JS
+      const { deriveTargetFromSelection } = require(#{LOGIC_FILE.inspect});
+      const input = JSON.parse(process.argv[1]);
+      console.log(JSON.stringify(deriveTargetFromSelection(input)));
+    JS
+    out, err, st = Open3.capture3(NODE_BIN, "-e", script, payload)
+    raise "node failed (#{st.exitstatus}): #{err}" unless st.success?
+    JSON.parse(out)
+  end
+
+  # ─── Cas nominal ──────────────────────────────────────────────────────
+  test "T-nominal : combinaison connue → renvoie l'idx de la classe atteignable" do
+    # F (5) initial. Préfixe [isolation_murs, chauffage] atteint D (COMBI_SYNTH ligne « 2 »).
+    assert_equal 3, run_target(%w[isolation_murs chauffage]),
+      "isolation_murs+chauffage → D=3 selon COMBI_SYNTH"
+
+    # Préfixe [isolation_murs, chauffage, isolation_toiture] atteint C=2.
+    assert_equal 2, run_target(%w[isolation_murs chauffage isolation_toiture]),
+      "trio → C=2"
+
+    # Sélection vide → F (5, classe initiale).
+    assert_equal 5, run_target([]), "vide → F=5"
+  end
+
+  # ─── Fallback pessimiste (cœur du fix bug prod) ───────────────────────
+  test "T-fallback : combinaison manquante dans la matrice → currentDpeIdx (pessimiste)" do
+    # Cette combinaison n'existe pas dans COMBI_SYNTH (menuiseries seule
+    # ni « chauffage,menuiseries » ne sont listées) → retour = currentDpeIdx.
+    r = run_target(%w[menuiseries], current_dpe_idx: 5)
+    assert_equal 5, r,
+      "Entrée manquante → CUR (pas d'objectif inventé). Le bug prod venait de retourner null " \
+      "et de laisser le label stale à sa valeur précédente."
+  end
+
+  test "T-fallback : matrice absente (combinaisons=null) → currentDpeIdx" do
+    r = run_target(%w[isolation_murs], combinaisons: nil, current_dpe_idx: 4)
+    assert_equal 4, r, "Matrice absente → CUR (fallback pessimiste)"
+  end
+
+  test "T-fallback : entrée avec classe non-string (donnée corrompue) → currentDpeIdx" do
+    combi_corrompue = { "isolation_murs" => { "classe" => nil } }
+    r = run_target(%w[isolation_murs], combinaisons: combi_corrompue, current_dpe_idx: 5)
+    assert_equal 5, r
+  end
+
+  test "T-fallback : classe hors A-G (donnée corrompue) → currentDpeIdx" do
+    combi_corrompue = { "isolation_murs" => { "classe" => "Z" } }
+    r = run_target(%w[isolation_murs], combinaisons: combi_corrompue, current_dpe_idx: 5)
+    assert_equal 5, r
+  end
+
+  # ─── Déterminisme — verrou du bug prod ────────────────────────────────
+  test "T-déterminisme : le même codesActifs donne toujours le même objectif" do
+    codes = %w[isolation_murs chauffage isolation_toiture]
+    resultats = 5.times.map { run_target(codes) }
+    assert_equal [resultats.first] * 5, resultats,
+      "Le même set doit produire le même objectif à chaque appel — c'est LA garantie du fix. " \
+      "Résultats obtenus : #{resultats.inspect}"
+  end
+
+  test "T-ordre-invariant : réordonner codesActifs ne change pas l'objectif (tri interne)" do
+    a = run_target(%w[isolation_murs chauffage isolation_toiture])
+    b = run_target(%w[isolation_toiture chauffage isolation_murs])
+    c = run_target(%w[chauffage isolation_toiture isolation_murs])
+    assert_equal a, b
+    assert_equal b, c
+  end
+
+  # ─── Décocher fait remonter l'objectif, recocher le fait redescendre ──
+  test "T-check-uncheck : décocher un geste fait REMONTER l'objectif (moins bonne classe)" do
+    # Sélection F→C (préfixe 3) : chauffage + murs + toiture → C=2.
+    c_target = run_target(%w[chauffage isolation_murs isolation_toiture])
+    assert_equal 2, c_target
+
+    # Décocher isolation_toiture → chauffage + murs → D=3. Remonte (pire).
+    d_target = run_target(%w[chauffage isolation_murs])
+    assert_equal 3, d_target
+    assert_operator d_target, :>, c_target,
+      "Décocher un geste doit ramener vers une classe moins bonne (idx plus grand)"
+
+    # Recocher → retour à C=2.
+    c_again = run_target(%w[chauffage isolation_murs isolation_toiture])
+    assert_equal c_target, c_again,
+      "Recocher doit ramener EXACTEMENT au même objectif — pas d'état interne parasite"
+  end
+
+  # ─── Purity : entrées non mutées ──────────────────────────────────────
+  test "T-purity : deriveTargetFromSelection ne mute pas codesActifs ni combinaisons" do
+    script = <<~JS
+      const { deriveTargetFromSelection } = require(#{LOGIC_FILE.inspect});
+      const codes = #{%w[isolation_murs chauffage].to_json};
+      const combi = #{COMBI_SYNTH.to_json};
+      const snapshotBefore = JSON.stringify({ codes, combi });
+      deriveTargetFromSelection({
+        codesActifs: codes, combinaisons: combi, currentDpeIdx: 5
+      });
+      deriveTargetFromSelection({
+        codesActifs: codes, combinaisons: combi, currentDpeIdx: 5
+      });
+      const snapshotAfter = JSON.stringify({ codes, combi });
+      console.log(JSON.stringify({ intact: snapshotBefore === snapshotAfter }));
+    JS
+    out, err, st = Open3.capture3(NODE_BIN, "-e", script)
+    assert st.success?, "node script a échoué : #{err}"
+    assert JSON.parse(out)["intact"],
+      "codesActifs et combinaisons ne doivent JAMAIS être mutés"
+  end
 end

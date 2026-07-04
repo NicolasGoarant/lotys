@@ -732,19 +732,7 @@ var TRAVAUX_DIRTY = false;
 // le hidden field form-dpe-target persiste cette cible non choisie au
 // premier submit). On positionne donc la jauge sur SERVER_TGT_IDX et on
 // ne marque rien comme "à recalculer".
-// Lookup direct dans la matrice : pour un ensemble de gestes cochés,
-// retourne l'idx DPE (0..6 = A..G) de la classe atteignable.
-// Retourne null si la matrice est absente OU si la combinaison n'a pas
-// d'entrée — cas dégradé, on s'abstient plutôt que d'inventer.
-function lookupTgtIdxFromMatrix(codesActifs){
-  if(!DPE_MATRIX) return null;
-  var cle = codesActifs.slice().sort().join(',');
-  var entry = DPE_MATRIX.combinaisons[cle];
-  if(!entry || typeof entry.classe !== 'string') return null;
-  return 'ABCDEFG'.indexOf(entry.classe);
-}
-
-function recalcTravaux(skipJaugeUpdate, initialLoad){
+function recalcTravaux(initialLoad){
   var total=0;
   var codesActifs=[];
   document.querySelectorAll('.travail-check').forEach(function(row){
@@ -764,22 +752,29 @@ function recalcTravaux(skipJaugeUpdate, initialLoad){
   }
 
   // Mise à jour de la jauge :
-  //  - à l'init : on cale sur la cible serveur (pas de dérivation depuis les cases)
-  //  - au drag slider : la cible est déjà positionnée par onSliderChange
-  //  - sinon (case cochée/décochée) : on LOOKUP la classe atteignable dans
-  //    la matrice DPE serveur — plus aucune somme de scalaires forfaitaires.
-  //  - cas dégradé (matrice absente) : on ne touche pas à la jauge.
+  //  - à l'init : on cale sur la cible serveur, source de vérité au load,
+  //    pas sur les cases cochées (éviter le snap silencieux vers A si des
+  //    cases sont pré-cochées par PropertyAnalysisJob).
+  //  - toute autre interaction (case cochée/décochée, drag du slider qui
+  //    aura pré-coché les cases via la cascade) : SOURCE DE VÉRITÉ UNIQUE
+  //    = les cases cochées. On appelle deriveTargetFromSelection sur
+  //    (codesActifs, matrice, CUR) et on updateJaugeDPE avec le résultat.
+  //    Si la matrice n'a pas d'entrée pour la combinaison, fallback
+  //    pessimiste à CUR (pas d'objectif inventé). Fix du bug prod
+  //    « MÊME set de cases affiche tantôt A tantôt B selon l'historique ».
   if(initialLoad){
     updateJaugeDPE(SERVER_TGT_IDX);
     var sliderInit=document.getElementById('dpe-slider');
     if(sliderInit && sliderInit.value != SERVER_TGT_IDX){ sliderInit.value = SERVER_TGT_IDX; }
-  } else if(!skipJaugeUpdate){
-    var tgtIdx = lookupTgtIdxFromMatrix(codesActifs);
-    if(tgtIdx !== null){
-      updateJaugeDPE(tgtIdx);
-      var slider=document.getElementById('dpe-slider');
-      if(slider && slider.value != tgtIdx){ slider.value = tgtIdx; }
-    }
+  } else {
+    var tgtIdx = deriveTargetFromSelection({
+      codesActifs:   codesActifs,
+      combinaisons:  DPE_MATRIX ? DPE_MATRIX.combinaisons : null,
+      currentDpeIdx: CUR
+    });
+    updateJaugeDPE(tgtIdx);
+    var slider=document.getElementById('dpe-slider');
+    if(slider && slider.value != tgtIdx){ slider.value = tgtIdx; }
   }
 
   // Feedback proportionnel sur les aides et le reste à financer.
@@ -859,27 +854,25 @@ function marquerAidesPerimees(){
   if(el2){ el2.style.display = 'inline-block'; }
 }
 
-// Sens 2 : jauge (slider) → checkboxes (utilisé par l'oninput du slider).
-// Wrapper mince autour de deriveSelectionForTarget (cascade déterministe,
-// cf. app/javascript/dpe_slider_logic.js + tests P/Q/I/N).
+// Sens jauge → travaux : le slider est un RACCOURCI pour préparer une
+// sélection. La fonction pure deriveSelectionForTarget (cf.
+// app/javascript/dpe_slider_logic.js + tests P/Q/I/N) coche les travaux
+// nécessaires pour atteindre la cible demandée, puis recalcTravaux
+// re-dérive l'objectif RÉELLEMENT atteint depuis ces cases.
 //
-// MODÈLE : une cible (lettre DPE) = une sélection FIXE. La fonction ne lit
-// PAS l'état coché du DOM en entrée — elle dérive la sélection canonique
-// pour la cible demandée. Conséquences :
-//   - Chemin-indépendance : passer par C puis B donne la même sélection
-//     finale que passer directement à B. Plus jamais "B donne 3 sélections
-//     différentes selon le chemin" (bug observé en prod sur d1ac5b5/v101).
-//   - Cascade monotone : sélection(B) ⊇ sélection(C) ⊇ … par construction
-//     (préfixes emboîtés de la file canonique). Monter n'enlève jamais rien.
-//   - SACRIFICE ASSUMÉ : si l'utilisateur a coché des cases à la main entre
-//     deux drags, ces cochages sont écrasés par la cascade au drag suivant.
-//     C'est le prix de la cohérence "une lettre = une sélection". Le
-//     wording sous la jauge le dit honnêtement (cf. ligne d'objectif).
+// SOURCE DE VÉRITÉ UNIQUE = l'ensemble des cases cochées, TOUJOURS. Le
+// slider ne pilote plus directement le label/pin : il coche, puis
+// recalcTravaux() met à jour le label depuis la matrice. Si la cascade
+// tombe sur un préfixe qui atteint une classe MOINS BONNE que le slider
+// demandait (cible A demandée mais matrice n'atteint que B avec tous
+// les gestes), on affiche B — honnête, pas d'objectif optimiste.
+//
+// SACRIFICE ASSUMÉ : les cochages manuels antérieurs sont écrasés par
+// la cascade. C'est le prix de la cohérence "une lettre = une sélection".
 //
 // Pas de boucle : `cb.checked = X` (assignation propriété par script) ne
 // dispatch PAS l'event 'change', donc le listener change qui appelle
-// recalcTravaux n'est pas re-déclenché. Idem `slider.value = X` dans
-// recalcTravaux ne re-déclenche pas 'input'. Propriété structurelle.
+// recalcTravaux n'est pas re-déclenché. Propriété structurelle.
 function onSliderChange(newTgtVal){
   var tgtIdx = parseInt(newTgtVal);
 
@@ -890,20 +883,15 @@ function onSliderChange(newTgtVal){
     if(slider){ slider.value = tgtIdx; }
   }
 
-  // Positionner la jauge sur la cible exacte voulue par l'utilisateur.
-  // recalcTravaux sera appelé avec skipJaugeUpdate=true pour ne pas la
-  // reprendre depuis la matrice (évite le rebond cosmétique).
-  updateJaugeDPE(tgtIdx);
-
   // Cas dégradé : pas de matrice → pas de cascade possible. Le slider n'est
   // de toute façon pas rendu (cf. condition côté ERB), mais on garde la
   // garde-fou JS au cas où.
-  if(!DPE_MATRIX) return;
+  if(!DPE_MATRIX){
+    updateJaugeDPE(tgtIdx);
+    return;
+  }
 
-  // Délégation à la fonction pure. AUCUNE lecture DOM en entrée — la
-  // sortie ne dépend que de (CUR, tgtIdx, prioriteGestes, combinaisons),
-  // garantissant la chemin-indépendance. priorite_gestes est l'ordre RÉEL
-  // spécifique au bien (gain EP décroissant, calculé serveur sur le moteur 3CL).
+  // Délégation à la fonction pure. AUCUNE lecture DOM en entrée.
   var res = deriveSelectionForTarget({
     currentDpeIdx:   CUR,
     targetIdx:       tgtIdx,
@@ -912,8 +900,8 @@ function onSliderChange(newTgtVal){
   });
 
   // Écriture DOM : on coche exactement ce que res.checked contient,
-  // on décoche le reste. C'est ici qu'on assume le sacrifice "cochage
-  // manuel ne survit pas à un drag de jauge".
+  // on décoche le reste. Sacrifice assumé "cochage manuel ne survit
+  // pas à un drag de jauge".
   var checkedSet = new Set(res.checked);
   document.querySelectorAll('.travail-check').forEach(function(row){
     var cb = row.querySelector('input[type=checkbox].travail-cb');
@@ -921,8 +909,10 @@ function onSliderChange(newTgtVal){
     cb.checked = checkedSet.has(row.dataset.code);
   });
 
-  // Recalcul budget/aides mais on NE TOUCHE PAS la jauge (skipJaugeUpdate=true).
-  recalcTravaux(true);
+  // Recalcul complet : le label/pin est dérivé des cases APRÈS cascade,
+  // pas de la valeur brute du slider. Ainsi cible A demandée mais matrice
+  // limitée à B → label = B (honnête). Fix bug "objectif optimiste".
+  recalcTravaux();
 }
 
 // Met à jour uniquement l'affichage de la jauge (sans toucher les checkboxes).
@@ -978,22 +968,22 @@ function calcPret(){
 // ═══ Init ═══════════════════════════════════════════════════════════════
 function initShow(){
   // Écoute sur chaque checkbox travaux pour feedback temps réel (sens
-  // CASES → JAUGE : recalcTravaux recale la jauge sur la classe atteignable
-  // selon le gain DPE cumulé des cases cochées). cb.checked = X par script
-  // ne dispatch pas 'change', donc onSliderChange ne déclenche pas ce
-  // listener — pas de boucle.
-  // IMPORTANT : on enveloppe l'appel pour NE PAS propager l'Event en premier
-  // argument de recalcTravaux — sans ça, skipJaugeUpdate=Event=truthy et la
-  // branche matrice de mise à jour du pin est court-circuitée.
+  // CASES → JAUGE : recalcTravaux recale la jauge sur la classe
+  // atteignable via deriveTargetFromSelection). cb.checked = X par
+  // script ne dispatch pas 'change', donc onSliderChange ne déclenche
+  // pas ce listener — pas de boucle.
+  // NB : on enveloppe l'appel pour NE PAS propager l'Event du listener
+  // en premier argument de recalcTravaux, sinon initialLoad = Event =
+  // truthy et on calerait le label sur SERVER_TGT_IDX à chaque clic.
   document.querySelectorAll('.travail-cb').forEach(function(cb){
     cb.addEventListener('change', function(){ recalcTravaux(); });
   });
-  // Appel d'init : skipJaugeUpdate=true (on ne touche pas à la jauge calculée
-  // depuis les cases) ET initialLoad=true (on cale la jauge sur la cible
-  // serveur et on ne marque rien comme "à recalculer"). Empêche le snap
-  // silencieux vers une cible ambitieuse (ex. A) au load + sa persistance
-  // au premier clic "Mettre à jour les aides" sans interaction réelle.
-  recalcTravaux(true, true);
+  // Appel d'init : initialLoad=true (on cale la jauge sur SERVER_TGT_IDX,
+  // pas dérivée des cases). Empêche le snap silencieux vers une cible
+  // ambitieuse (ex. A) au load si des cases ont été pré-cochées par
+  // PropertyAnalysisJob, et sa persistance au premier submit sans
+  // interaction réelle.
+  recalcTravaux(true);
   calcPret();
 
   // Fallback scroll vers l'ancre (#aides, #financement, #travaux).
