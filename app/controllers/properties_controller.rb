@@ -1,8 +1,14 @@
 class PropertiesController < ApplicationController
-  before_action :authenticate_user!, except: [:index, :new, :create, :show]
+  before_action :authenticate_user!, except: [:index, :new, :create, :show, :confirm_address]
 
   # Lecture : propriétaire toujours, prestataire uniquement si le bien est publié.
   before_action :set_property_for_read, only: [:show, :preview]
+
+  # Confirmation d'adresse (C5) : le propriétaire connecté OU le
+  # détenteur du claim_token dans son cookie signé. Pas le fallback
+  # "published" — un visiteur random n'a pas à toucher à l'adresse
+  # d'un bien qui n'est pas le sien.
+  before_action :set_property_for_confirm, only: [:confirm_address]
 
   # Écriture : uniquement le propriétaire. Toute tentative par un autre user
   # (même connecté) renvoie vers /properties avec alerte. Protège contre la
@@ -187,6 +193,48 @@ class PropertiesController < ApplicationController
   def unpublish
     @property.update(status: :analyzed)
     redirect_to @property, notice: "Votre bien a été dépublié."
+  end
+
+  # Confirmation d'adresse (C5). L'utilisateur voit soit l'adresse
+  # détectée par le LLM (address_detected, C3), soit un formulaire vide
+  # s'il n'y a rien eu de détecté — dans les deux cas il valide (ou
+  # corrige) puis on la fige dans address/city/zipcode.
+  #
+  # address_source : conservé si les 3 champs collent aux valeurs
+  # _detected (l'utilisateur a validé la détection telle quelle),
+  # bascule en "manuel" s'il a édité au moins un champ (la donnée
+  # confirmée ne vient plus tout à fait du DPE/titre/facture).
+  #
+  # GeocodingService + LocalAidCalculator : appelés maintenant que la
+  # commune est fiable. Ces deux services étaient retenus tant que
+  # l'adresse n'était pas confirmée (cf. C4 job guard et C6 vue).
+  def confirm_address
+    attrs = params.require(:property).permit(:address, :city, :zipcode)
+    if attrs[:address].blank? || attrs[:city].blank? || attrs[:zipcode].blank?
+      redirect_to @property,
+        alert: "Merci de renseigner l'adresse complète (numéro + rue, code postal, ville)."
+      return
+    end
+
+    matches_detected = attrs[:address].strip == @property.address_detected.to_s.strip &&
+                       attrs[:city].strip    == @property.city_detected.to_s.strip &&
+                       attrs[:zipcode].strip == @property.zipcode_detected.to_s.strip
+    new_source = matches_detected ? @property.address_source.presence || "manuel" : "manuel"
+
+    @property.update!(
+      address:              attrs[:address].strip,
+      city:                 attrs[:city].strip,
+      zipcode:              attrs[:zipcode].strip,
+      address_source:       new_source,
+      address_confirmed_at: Time.current
+    )
+
+    GeocodingService.new(@property).call
+    LocalAidCalculator.new(@property).call
+
+    redirect_to @property, notice: "Adresse confirmée — vos aides locales sont recalculées."
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to @property, alert: e.record.errors.full_messages.to_sentence
   end
 
   def preview
@@ -385,6 +433,23 @@ class PropertiesController < ApplicationController
     @property = current_user.properties.find(params[:id])
   rescue ActiveRecord::RecordNotFound
     redirect_to properties_path, alert: "Vous n'avez pas accès à ce bien."
+  end
+
+  # Confirmation d'adresse (C5) — propriétaire connecté OU claimant
+  # anonyme via cookie signé. Le parcours "documents sans adresse"
+  # (C2) crée volontairement une Property orpheline : sans cette
+  # branche claim_token, l'orphelin ne pourrait jamais confirmer.
+  def set_property_for_confirm
+    if user_signed_in? && current_user.properties.exists?(id: params[:id])
+      @property = current_user.properties.find(params[:id])
+      return
+    end
+    candidate = Property.find_by(id: params[:id])
+    if candidate && claimable_by_browser?(candidate)
+      @property = candidate
+      return
+    end
+    redirect_to root_path, alert: "Vous n'avez pas accès à ce bien."
   end
 
   def property_params

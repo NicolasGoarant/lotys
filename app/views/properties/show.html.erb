@@ -158,6 +158,69 @@
 </style>
 
 <div class="sh">
+
+<%# ── Bandeau confirmation d'adresse (C5) ────────────────────────────────
+     Affiché tant que Property#address est vide (parcours "documents sans
+     adresse", C2). Deux cas :
+       - address_detected présent → pré-remplir le formulaire avec ce que
+         le LLM a lu et proposer la validation.
+       - address_detected vide → nous n'avons rien pu déduire, saisie
+         manuelle 100 %.
+     Dans les DEUX cas, poste vers PropertiesController#confirm_address :
+     un seul endroit qui pose address_confirmed_at + relance geocoding
+     + LocalAidCalculator (C6). Rien de calculé tant que ce clic n'a pas
+     eu lieu.
+     Ne s'affiche que pour le propriétaire ou le claimant du navigateur —
+     un visiteur random d'un bien published ne verrait rien de toute
+     façon (le bien ne peut PAS être published sans address confirmée,
+     cf. C2 validation address_confirmed_when_published). %>
+<% if can_see_full_dossier && @property.address.blank? %>
+  <% detected = @property.address_detected.present? %>
+  <div class="cd" id="confirm-address" style="background:#fef3c7;border:1px solid #fbbf24;border-radius:12px;padding:20px 24px;margin-bottom:16px;">
+    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;">
+      <span style="font-size:1.8rem;line-height:1;">📍</span>
+      <div>
+        <% if detected %>
+          <h2 style="font-size:1.05rem;font-weight:800;color:#92400e;margin:0 0 4px;">
+            Nous avons détecté cette adresse dans vos documents
+          </h2>
+          <p style="font-size:.88rem;color:#78350f;margin:0;line-height:1.4;">
+            Source : <strong><%= t_address_source(@property.address_source) %></strong>.
+            Vérifiez et corrigez si besoin — vos aides locales seront recalculées après confirmation.
+          </p>
+        <% else %>
+          <h2 style="font-size:1.05rem;font-weight:800;color:#92400e;margin:0 0 4px;">
+            Renseignez l'adresse du bien
+          </h2>
+          <p style="font-size:.88rem;color:#78350f;margin:0;line-height:1.4;">
+            Nous n'avons pas pu déduire l'adresse de vos documents. Merci de la saisir manuellement — sans elle nous ne pouvons pas calculer vos aides locales.
+          </p>
+        <% end %>
+      </div>
+    </div>
+
+    <%= form_with url: confirm_address_property_path(@property), method: :post, data: { turbo: false } do |f| %>
+      <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:12px;">
+        <input type="text" name="property[address]" placeholder="Numéro et rue"
+               value="<%= @property.address_detected %>"
+               style="width:100%;padding:11px 14px;border:1px solid #d97706;border-radius:8px;font-size:.95rem;background:white;" required>
+        <div style="display:grid;grid-template-columns:120px 1fr;gap:10px;">
+          <input type="text" name="property[zipcode]" placeholder="54000" maxlength="5" pattern="\d{5}"
+                 value="<%= @property.zipcode_detected %>"
+                 style="width:100%;padding:11px 14px;border:1px solid #d97706;border-radius:8px;font-size:.95rem;background:white;" required>
+          <input type="text" name="property[city]" placeholder="Ville"
+                 value="<%= @property.city_detected %>"
+                 style="width:100%;padding:11px 14px;border:1px solid #d97706;border-radius:8px;font-size:.95rem;background:white;" required>
+        </div>
+      </div>
+      <button type="submit"
+              style="background:#d97706;color:white;font-weight:700;padding:11px 22px;border-radius:8px;border:none;cursor:pointer;font-size:.95rem;">
+        <%= detected ? "Confirmer cette adresse" : "Enregistrer l'adresse" %>
+      </button>
+    <% end %>
+  </div>
+<% end %>
+
 <%= render "analysis_status", property: @property %>
 
 <%# ── HEADER avec photo ────────────────────────────────────── %>

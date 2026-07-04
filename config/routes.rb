@@ -25,6 +25,7 @@ Rails.application.routes.draw do
       post :analyze
       post :publish
       post :unpublish
+      post :confirm_address
       get  :preview
       patch :update_dpe_target
       patch :update_income_bracket
