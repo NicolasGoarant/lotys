@@ -4,8 +4,12 @@ require "rails/test_help"
 
 module ActiveSupport
   class TestCase
-    # Parallélise avec le nombre de CPU du poste.
-    parallelize(workers: :number_of_processors)
+    # Parallélise avec le nombre de CPU du poste par défaut.
+    # Permet de forcer un nombre précis (ou de désactiver via
+    # PARALLEL_WORKERS=1) pour contourner les teardown DRb flaky
+    # observés sur les runs full-suite.
+    env_workers = ENV["PARALLEL_WORKERS"].to_i
+    parallelize(workers: env_workers.positive? ? env_workers : :number_of_processors)
 
     # Fixtures non utilisées pour le moment — les tests de services
     # construisent des objets en mémoire via Model.new pour rester
