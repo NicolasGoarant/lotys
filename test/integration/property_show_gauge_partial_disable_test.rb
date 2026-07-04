@@ -84,25 +84,28 @@ class PropertyShowGaugePartialDisableTest < ActionDispatch::IntegrationTest
     assert_match(/année de construction/, response.body)
   end
 
-  # ── 3a. Griser uniquement la projection — pin "actuel" rendu en couleur ─
-  # Même quand la matrice est absente, la classe DPE actuelle (extraite du
-  # DPE uploadé) est un fait fiable qui doit rester visible. Un pin dédié
-  # (id=pin-cur) est rendu à la position de cur_idx, indépendamment de
-  # dpe_matrix. Test : quand année nil, pin-cur existe et sa lettre = dpe_cur.
-  test "année manquante → pin actuel (id=pin-cur) rendu sur cur_idx en couleur" do
+  # ── 3a. La classe actuelle reste visible sans pin rond dédié ─────────
+  # Depuis le fix "pin redondant" : plus de #pin-cur. La classe DPE
+  # actuelle s'affiche via DEUX signaux complémentaires :
+  #   1. marqueur textuel « ▼ actuel » au-dessus du bon segment,
+  #   2. segment coloré à opacité pleine (les autres à 0.4).
+  # Ces deux signaux sont inconditionnels (rendus même quand la matrice
+  # est absente). Le pin rond est réservé à l'objectif.
+  test "année manquante → marqueur ▼ actuel + segment F opaque restent visibles" do
     p = creer_bien(surface: 118, construction_year: nil, dpe_class: "F")
 
     get property_path(p)
     assert_response :success
 
-    pin_cur = css_select("#pin-cur").first
-    assert pin_cur,
-      "Le pin 'actuel' doit être rendu même quand la matrice est absente " \
-      "(la classe DPE actuelle est un fait extrait du document)"
-    dot = pin_cur.css(".pin-dot").first
-    assert dot, "Le pin doit contenir un pin-dot"
-    assert_equal "F", dot.text.strip,
-      "Le pin actuel doit afficher la lettre de la classe DPE actuelle"
+    assert_match(/▼ actuel/, response.body,
+      "Le marqueur textuel « ▼ actuel » doit être présent même sans matrice")
+    # Le segment "F" reste rendu et à opacité pleine (opacity:1 dans style
+    # inline) — les autres segments sont à opacity:0.4.
+    assert_match(/opacity:1;.>F</, response.body,
+      "Le segment DPE actuel (F) doit rester à opacité pleine")
+    # Verrou anti-régression du bug rendu : plus de pin rond doublon.
+    assert_nil css_select("#pin-cur").first,
+      "Plus de #pin-cur rond — remplacé par le marqueur textuel (fix doublon)"
   end
 
   # ── 3b. Griser uniquement la projection — pin cible ABSENT quand matrice nil ─
@@ -121,19 +124,23 @@ class PropertyShowGaugePartialDisableTest < ActionDispatch::IntegrationTest
       "Le slider ne doit PAS être rendu quand la matrice est absente"
   end
 
-  # ── 3c. Matrice présente — pin cible ET pin actuel coexistent ─────────
-  # Quand tout est extrait, les deux pins sont visibles : cur en orange,
-  # tgt en vert. Verrou : le pin actuel n'est pas masqué par l'ajout du
-  # rendu conditionnel — il reste inconditionnel.
-  test "matrice présente → pin actuel ET pin cible coexistent" do
+  # ── 3c. Matrice présente — seul pin-tgt existe, pas de doublon ────────
+  # Le pin rond est RÉSERVÉ à l'objectif. La classe actuelle reste
+  # matérialisée par le marqueur textuel « ▼ actuel » + segment opaque.
+  # Anti-régression : rétablir #pin-cur créerait à nouveau le doublon
+  # visuel signalé en prod.
+  test "matrice présente → uniquement pin-tgt (pas de #pin-cur, marqueur textuel suffit)" do
     p = creer_bien(surface: 118, construction_year: 1928, dpe_class: "F")
 
     get property_path(p)
     assert_response :success
 
-    assert css_select("#pin-cur").first,       "Pin actuel présent"
     assert css_select("#pin-tgt").first,       "Pin cible présent"
     assert css_select("input#dpe-slider").first, "Slider présent"
+    assert_nil css_select("#pin-cur").first,
+      "Aucun pin rond doublon pour la classe actuelle — marqueur textuel suffit"
+    assert_match(/▼ actuel/, response.body,
+      "Le marqueur textuel « ▼ actuel » reste présent aussi avec matrice")
   end
 
   private

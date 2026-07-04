@@ -373,12 +373,14 @@
           </p>
         </div>
       <% end %>
-      <%# La classe DPE actuelle (dpe_cur) vient du DPE uploadé : c'est un
-           fait, pas une projection. On garde donc la track colorée et un
-           pin dédié #pin-cur en couleur orange (associé à la sémantique
-           « actuel ») MÊME quand la matrice est absente. Seule la partie
-           projection (pin cible, label objectif, slider) est conditionnée
-           à la disponibilité de dpe_matrix.
+      <%# La classe DPE actuelle (dpe_cur) est communiquée par DEUX signaux
+           complémentaires, sans pin rond dédié :
+             1. le marqueur textuel « ▼ actuel » au-dessus du segment,
+             2. le segment coloré à opacité pleine (0.4 pour les autres).
+           Le pin rond reste RÉSERVÉ à l'objectif (pin-tgt) — ça évite le
+           doublon visuel entre marqueur + pin qui pointaient le même
+           segment. La partie projection (pin cible, label objectif,
+           slider) reste conditionnée à la disponibilité de dpe_matrix.
            Centrage robuste : `.pin` utilise transform:translate(-50%,-50%),
            donc `left` = centre du segment sans avoir à connaître la
            largeur du pin (indépendant de box-sizing). %>
@@ -394,9 +396,6 @@
           <% dpe_all.each do |l| %>
             <div class="dpe-seg" style="background:<%= dpe_colors[l] %>;opacity:<%= l == dpe_cur ? '1' : '0.4' %>;"><%= l %></div>
           <% end %>
-        </div>
-        <div class="pin" id="pin-cur" style="left:calc(<%= cur_idx %>/7*100% + 1/14*100%);">
-          <div class="pin-dot" style="background:<%= dpe_colors[dpe_cur] %>;border-color:#ea580c;box-shadow:0 0 0 3px rgba(234,88,12,.25);"><%= dpe_cur %></div>
         </div>
         <% if dpe_matrix %>
           <div class="pin" id="pin-tgt" style="left:calc(<%= tgt_idx %>/7*100% + 1/14*100%);">
