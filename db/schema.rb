@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_26_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_04_143530) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -305,6 +305,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_26_120000) do
     t.string "claim_token"
     t.string "energie_chauffage", default: "inconnue", null: false
     t.string "energie_chauffage_source", default: "inconnue", null: false
+    t.string "address_detected"
+    t.string "city_detected"
+    t.string "zipcode_detected"
+    t.string "address_source"
+    t.datetime "address_confirmed_at"
     t.index ["claim_token"], name: "index_properties_on_claim_token", unique: true
     t.index ["user_id"], name: "index_properties_on_user_id"
   end
