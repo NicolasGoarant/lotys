@@ -39,7 +39,13 @@ class CriticalPathTest < ActionDispatch::IntegrationTest
     get root_path
     assert_response :success
 
-    assert_match "Trois publics, un même outil", response.body
+    # Le titre h2 contient un `<br class="sm:hidden">` intercalé pour
+    # forcer le saut de ligne mobile après la virgule. On cible donc le
+    # h2 et on tolère un espace variable (le `<br>` disparaît dans le
+    # `.text` Nokogiri mais laisse le whitespace d'indentation autour) —
+    # évite qu'un ajustement de balisage casse à nouveau l'assertion.
+    assert_select "h2", { text: /Trois publics,\s*un même outil/ },
+      "Titre h2 « Trois publics, un même outil » attendu sur la home"
     assert_match "Je suis propriétaire", response.body
     assert_match "Je suis artisan RGE",   response.body
     assert_match "Je suis une collectivité", response.body
