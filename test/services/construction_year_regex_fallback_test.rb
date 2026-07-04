@@ -48,6 +48,35 @@ class ConstructionYearRegexFallbackTest < ActiveSupport::TestCase
     assert_equal 1928, ConstructionYearRegexFallback.call(text)
   end
 
+  # ── Cas prod (bug Malzéville) : pdf-reader restitue la valeur DPE
+  # tabulaire sur une ligne séparée, parfois avec une ligne vide entre
+  # le libellé et la valeur. La regex doit rester tolérante à ce split
+  # (fenêtre bornée pour éviter de capturer une année trois § plus loin).
+  test "spécimen DPE tabulaire : libellé, ligne vide, valeur → renvoie 1928" do
+    text = <<~TXT
+      Adresse : 12 rue du Haut-Rivage
+      Type : Maison individuelle
+      Année de construction :
+
+      1928
+      Consommation énergie primaire : 410 kWh/m².an
+    TXT
+    assert_equal 1928, ConstructionYearRegexFallback.call(text)
+  end
+
+  test "spécimen DPE tabulaire : libellé et valeur sur lignes adjacentes → renvoie 1928" do
+    text = <<~TXT
+      Année de construction :
+      1928
+    TXT
+    assert_equal 1928, ConstructionYearRegexFallback.call(text)
+  end
+
+  test "spécimen DPE colonnes : libellé + espaces d'alignement + valeur → renvoie 1928" do
+    text = "Année de construction                    1928\nZone géographique : H1"
+    assert_equal 1928, ConstructionYearRegexFallback.call(text)
+  end
+
   test "matches multiples sur les 3 docs concaténés convergent vers 1928" do
     text = <<~TXT
       === Titre de propriété ===

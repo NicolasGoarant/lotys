@@ -66,6 +66,30 @@ class SurfaceRegexFallbackTest < ActiveSupport::TestCase
     assert_equal 95, SurfaceRegexFallback.call(text)
   end
 
+  # ── Multi-lignes : mise en page tabulaire des DPE ────────────────────
+  # pdf-reader restitue souvent le libellé et la valeur sur des lignes
+  # différentes quand le DPE d'origine utilise une mise en page en
+  # colonnes. Même famille de bug que ConstructionYearRegexFallback.
+
+  test "spécimen DPE tabulaire : libellé, ligne vide, valeur → renvoie 95" do
+    text = <<~TXT
+      Adresse : 14 rue des Tilleuls, 54500 Vandœuvre
+      Surface habitable :
+
+      95 m²
+      Année de construction : 1962
+    TXT
+    assert_equal 95, SurfaceRegexFallback.call(text)
+  end
+
+  test "spécimen DPE tabulaire : libellé et valeur sur lignes adjacentes → renvoie 95" do
+    text = <<~TXT
+      Surface habitable :
+      95 m²
+    TXT
+    assert_equal 95, SurfaceRegexFallback.call(text)
+  end
+
   # ─── 2. NÉGATIFS — la garantie de sûreté ─────────────────────────────
 
   test "ne capture PAS 410 dans 410 kWh/m².an" do

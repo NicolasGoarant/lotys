@@ -13,12 +13,18 @@ class ConstructionYearRegexFallback
   # "construit(e) en") pour éviter de capturer un millésime de facture,
   # une date d'acte notarié, une année de loi ("Loi Carrez 1996").
   #
-  # NB : [^0-9\n]{0,20} borne le trou entre le contexte et le nombre à
-  # 20 caractères non-digit ET non-saut-de-ligne — évite qu'un "année
-  # de construction : NC" suivi d'un "Facture 2026" en fin de section
-  # ne matche à tort.
-  ANNEE_CONSTRUCTION_RE = /ann[eé]e\s+de\s+construction[^0-9\n]{0,20}(\d{4})\b/i
-  DATE_CONSTRUCTION_RE  = /date\s+de\s+construction[^0-9\n]{0,20}(\d{4})\b/i
+  # NB fenêtre : [^0-9]{0,40} borne le trou entre le contexte et le
+  # nombre à 40 caractères non-digit. On AUTORISE les sauts de ligne
+  # dans cette fenêtre : pdf-reader restitue souvent les DPE tabulaires
+  # avec le libellé et la valeur sur des lignes différentes (parfois
+  # une ligne vide entre les deux). Une fenêtre de 40 couvre ce cas
+  # sans laisser passer une année située un paragraphe plus loin — cf.
+  # test "NC + Facture 2026" qui reste à ~42 chars du libellé (nil).
+  ANNEE_CONSTRUCTION_RE = /ann[eé]e\s+de\s+construction[^0-9]{0,40}(\d{4})\b/i
+  DATE_CONSTRUCTION_RE  = /date\s+de\s+construction[^0-9]{0,40}(\d{4})\b/i
+  # Pour "construit(e) en <année>", pas de fenêtre : \s+ après "en"
+  # accepte espace ou saut de ligne, mais on veut la juxtaposition
+  # immédiate — sinon on capturerait "construit en dur, rénové en 2010".
   CONSTRUIT_EN_RE       = /construit(?:e)?\s+en\s+(\d{4})\b/i
 
   PATTERNS = {
