@@ -135,8 +135,9 @@
   .dpe-track { position:relative; height:48px; display:flex; border-radius:24px; overflow:hidden; }
   .dpe-seg   { flex:1; display:flex; align-items:center; justify-content:center;
                font-size:.85rem; font-weight:900; color:rgba(255,255,255,.75); }
-  .pin       { position:absolute; top:50%; transform:translateY(-50%);
+  .pin       { position:absolute; top:50%; transform:translate(-50%,-50%);
                pointer-events:none; transition:left .3s cubic-bezier(.4,0,.2,1); z-index:5; }
+  #pin-tgt   { z-index:6; }
   .pin-dot   { width:32px; height:32px; border-radius:50%; display:flex; align-items:center;
                justify-content:center; font-size:.85rem; font-weight:900; color:#fff;
                border:3px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.25); }
@@ -293,14 +294,32 @@
            désactivée et un message d'invite est affiché. Aucun calcul
            forfaitaire de repli — la jauge ne calcule pas plutôt que de
            calculer faux. %>
+      <%# Message d'invite dynamique : ne cite QUE les champs réellement
+           manquants. Source de vérité unique = @property.surface /
+           @property.construction_year — les mêmes colonnes que celles lues
+           par l'en-tête (cf. haut de la vue) et par le controller pour
+           décider d'instancier @dpe_matrix. Aucun autre attribut n'entre
+           en compte : pas de « champ dérivé » qui divergerait. %>
       <% unless dpe_matrix %>
+        <% champs_manquants = [] %>
+        <% champs_manquants << "la surface habitable"    if @property.surface.blank? %>
+        <% champs_manquants << "l'année de construction" if @property.construction_year.blank? %>
         <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:10px 14px;margin-bottom:12px;">
           <p class="bod" style="color:#92400e;font-weight:600;font-size:.78rem;line-height:1.4;">
-            ⚠️ Complétez votre dossier (surface et année de construction) pour estimer les classes atteignables.
+            ⚠️ Complétez votre dossier (<%= champs_manquants.to_sentence(two_words_connector: " et ", last_word_connector: " et ") %>) pour estimer les classes atteignables.
           </p>
         </div>
       <% end %>
-      <div style="position:relative;margin-bottom:6px;<%= 'opacity:0.55;' unless dpe_matrix %>">
+      <%# La classe DPE actuelle (dpe_cur) vient du DPE uploadé : c'est un
+           fait, pas une projection. On garde donc la track colorée et un
+           pin dédié #pin-cur en couleur orange (associé à la sémantique
+           « actuel ») MÊME quand la matrice est absente. Seule la partie
+           projection (pin cible, label objectif, slider) est conditionnée
+           à la disponibilité de dpe_matrix.
+           Centrage robuste : `.pin` utilise transform:translate(-50%,-50%),
+           donc `left` = centre du segment sans avoir à connaître la
+           largeur du pin (indépendant de box-sizing). %>
+      <div style="position:relative;margin-bottom:6px;">
         <div style="display:flex;margin-bottom:4px;">
           <% dpe_all.each do |l| %>
             <div style="flex:1;text-align:center;">
@@ -313,16 +332,19 @@
             <div class="dpe-seg" style="background:<%= dpe_colors[l] %>;opacity:<%= l == dpe_cur ? '1' : '0.4' %>;"><%= l %></div>
           <% end %>
         </div>
-        <div class="pin" id="pin-tgt" style="left:calc(<%= tgt_idx %>/7*100% + 1/14*100% - 16px);">
-          <div class="pin-dot" style="background:<%= dpe_colors[dpe_all[tgt_idx]] || '#059669' %>;border-color:#059669;box-shadow:0 0 0 3px rgba(5,150,105,.3);" id="pin-tgt-dot"><%= dpe_all[tgt_idx] %></div>
+        <div class="pin" id="pin-cur" style="left:calc(<%= cur_idx %>/7*100% + 1/14*100%);">
+          <div class="pin-dot" style="background:<%= dpe_colors[dpe_cur] %>;border-color:#ea580c;box-shadow:0 0 0 3px rgba(234,88,12,.25);"><%= dpe_cur %></div>
         </div>
-        <%# Slider HTML posé par-dessus la track A→G (7 segments).
-             max=6 pour que chaque segment visuel corresponde à une position
-             atteignable. Le clamp à cur_idx-1 (on ne peut pas cibler un DPE
-             pire ou égal au DPE actuel) est fait en JS dans onSliderChange.
-             Le slider n'est PAS rendu si la matrice est absente (cas dégradé)
-             — la track reste visible mais statique, drag impossible. %>
         <% if dpe_matrix %>
+          <div class="pin" id="pin-tgt" style="left:calc(<%= tgt_idx %>/7*100% + 1/14*100%);">
+            <div class="pin-dot" style="background:<%= dpe_colors[dpe_all[tgt_idx]] || '#059669' %>;border-color:#059669;box-shadow:0 0 0 3px rgba(5,150,105,.3);" id="pin-tgt-dot"><%= dpe_all[tgt_idx] %></div>
+          </div>
+          <%# Slider HTML posé par-dessus la track A→G (7 segments).
+               max=6 pour que chaque segment visuel corresponde à une position
+               atteignable. Le clamp à cur_idx-1 (on ne peut pas cibler un DPE
+               pire ou égal au DPE actuel) est fait en JS dans onSliderChange.
+               Non rendu quand la matrice est absente : rien à projeter,
+               donc pas de contrôle interactif. %>
           <input type="range" id="dpe-slider"
                  min="0" max="6" step="1"
                  value="<%= tgt_idx %>"
@@ -829,7 +851,7 @@ function updateJaugeDPE(tgtIdx){
   var dot=document.getElementById('pin-tgt-dot');
   var lbl=document.getElementById('dpe-estim-val');
   var hiddenTgt=document.getElementById('form-dpe-target');
-  if(pin){ pin.style.left='calc('+tgtIdx+'/7*100% + 1/14*100% - 16px)'; }
+  if(pin){ pin.style.left='calc('+tgtIdx+'/7*100% + 1/14*100%)'; }
   if(dot){ dot.textContent=dpe_all[tgtIdx]; dot.style.background=C_DPE[dpe_all[tgtIdx]]; }
   if(lbl){ lbl.textContent=dpe_all[tgtIdx]; }
   if(hiddenTgt){ hiddenTgt.value=dpe_all[tgtIdx]; }
