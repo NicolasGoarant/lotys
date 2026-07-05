@@ -5,6 +5,15 @@ class Property < ApplicationRecord
   # garantit qu'une Property sans user porte forcément un claim_token —
   # pas de bien « ni possédé ni revendicable » silencieux en DB.
   belongs_to :user, optional: true
+
+  # Feature portail collectivité (niveau 1 B2G) : un bien créé depuis un
+  # portail EPCI (GET /collectivites/:slug) est rattaché à la collectivité
+  # correspondante. Optional car les biens créés depuis la voie publique
+  # standard (/properties/new sans slug) n'en ont pas. Le rattachement
+  # est reseté à NULL si l'adresse confirmée sort du ressort (garde-fou
+  # C6, principe projet "pas de caution hors territoire").
+  belongs_to :collectivite, optional: true
+
   has_many :documents, dependent: :destroy
   has_one :analysis, dependent: :destroy
   has_one :valuation, dependent: :destroy
