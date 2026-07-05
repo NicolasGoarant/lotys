@@ -1,5 +1,6 @@
 class PropertiesController < ApplicationController
-  before_action :authenticate_user!, except: [:index, :new, :create, :show, :confirm_address]
+  before_action :authenticate_user!, except: [:index, :new, :create, :show,
+                                              :confirm_address, :update_income_bracket]
 
   # Lecture : propriétaire toujours, prestataire uniquement si le bien est publié.
   before_action :set_property_for_read, only: [:show, :preview]
@@ -10,13 +11,21 @@ class PropertiesController < ApplicationController
   # d'un bien qui n'est pas le sien.
   before_action :set_property_for_confirm, only: [:confirm_address]
 
+  # Édition du foyer fiscal : même règle que confirm_address —
+  # propriétaire connecté OU claimant du navigateur, PAS le fallback
+  # published. Le calcul des aides est le cœur de la valeur produit,
+  # il DOIT être accessible à l'anonyme qui a créé le bien depuis le
+  # parcours public. Un visiteur random d'un bien publié est refusé
+  # (données fiscales = donnée sensible, cf. principe projet).
+  before_action :set_property_for_edit_aids, only: [:update_income_bracket]
+
   # Écriture : uniquement le propriétaire. Toute tentative par un autre user
   # (même connecté) renvoie vers /properties avec alerte. Protège contre la
   # suppression, modification, publication, dépublication d'un bien
   # qui n'appartient pas à l'utilisateur courant.
   before_action :set_property_for_write, only: [
     :edit, :update, :destroy, :analyze, :publish, :unpublish,
-    :update_income_bracket, :update_dpe_target,
+    :update_dpe_target,
     :update_travaux, :update_travaux_selection
   ]
 
@@ -257,14 +266,17 @@ class PropertiesController < ApplicationController
     redirect_to @property, notice: "Objectif DPE mis à jour."
   end
 
-  # Met à jour le foyer fiscal (nb personnes + RFR). La tranche
-  # income_bracket est dérivée au before_save du modèle via
-  # IncomeBracketCalculator (plafonds RFR 2026, ALEC Nancy).
-  # Revient à la fiche avec une ancre #aides pour que l'utilisateur
-  # reste scrollé sur la card Aides.
+  # Met à jour le foyer fiscal (nb personnes + RFR). Accessible au
+  # propriétaire connecté ET au claimant du navigateur (feature
+  # "aides sans compte"). income_bracket est dérivé au before_save
+  # via IncomeBracketCalculator (plafonds ALEC Nancy 2026). Le
+  # recalcul des aides (MPR/CEE via AidCalculatorService) se fait
+  # naturellement au prochain rendu de show — pas de service
+  # spécifique à appeler.
   def update_income_bracket
     @property.update(params.require(:property).permit(:household_size, :rfr))
-    redirect_to property_path(@property, anchor: "aides")
+    redirect_to property_path(@property, anchor: "aides"),
+                notice: "Foyer fiscal mis à jour — aides recalculées."
   end
 
   # Met à jour les quantités précises (formulaire expert MPR Par geste — non rendu
@@ -452,6 +464,26 @@ class PropertiesController < ApplicationController
   # (C2) crée volontairement une Property orpheline : sans cette
   # branche claim_token, l'orphelin ne pourrait jamais confirmer.
   def set_property_for_confirm
+    if user_signed_in? && current_user.properties.exists?(id: params[:id])
+      @property = current_user.properties.find(params[:id])
+      return
+    end
+    candidate = Property.find_by(id: params[:id])
+    if candidate && claimable_by_browser?(candidate)
+      @property = candidate
+      return
+    end
+    redirect_to root_path, alert: "Vous n'avez pas accès à ce bien."
+  end
+
+  # Édition du foyer fiscal (household_size + rfr) — même règle
+  # d'autorisation que set_property_for_confirm : propriétaire OU
+  # claimant du navigateur. Le calcul des aides doit rester
+  # accessible à l'anonyme qui a créé le bien depuis le parcours
+  # public (principe "sans capture de coordonnées"). Un visiteur
+  # random d'un bien published est refusé — les données fiscales
+  # sont sensibles.
+  def set_property_for_edit_aids
     if user_signed_in? && current_user.properties.exists?(id: params[:id])
       @property = current_user.properties.find(params[:id])
       return

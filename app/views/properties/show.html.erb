@@ -600,12 +600,18 @@
 <% if can_see_full_dossier && e %>
 
 <div id="aides">
+  <%# can_edit_aids : le foyer fiscal est éditable pour l'owner ET le
+       claimant du navigateur (feature "aides sans compte"). Aligné
+       sur can_see_full_dossier — même règle d'autorisation. Un
+       visiteur tiers d'un bien publié tombera dans la 3e branche du
+       partial (pas de saisie, pas d'affichage RFR — donnée sensible). %>
   <%= render "simple_aids",
              property: @property,
              aid_result: @aid_result,
              aid_projection: @aid_projection,
              dpe_target_effectif: @dpe_target_effectif,
-             is_owner_connecte: is_owner_connecte %>
+             is_owner_connecte: is_owner_connecte,
+             can_edit_aids: can_see_full_dossier %>
 </div>
 
 <div id="financement">
