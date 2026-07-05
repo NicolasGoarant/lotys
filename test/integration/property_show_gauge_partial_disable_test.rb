@@ -100,8 +100,10 @@ class PropertyShowGaugePartialDisableTest < ActionDispatch::IntegrationTest
     assert_match(/▼ actuel/, response.body,
       "Le marqueur textuel « ▼ actuel » doit être présent même sans matrice")
     # Le segment "F" reste rendu et à opacité pleine (opacity:1 dans style
-    # inline) — les autres segments sont à opacity:0.4.
-    assert_match(/opacity:1;.>F</, response.body,
+    # inline) — les autres segments sont à opacity:0.4. On accepte des
+    # propriétés inline supplémentaires (cursor:pointer, etc.) entre
+    # opacity:1 et le contenu du div.
+    assert_match(/opacity:1;[^>]*>F</, response.body,
       "Le segment DPE actuel (F) doit rester à opacité pleine")
     # Verrou anti-régression du bug rendu : plus de pin rond doublon.
     assert_nil css_select("#pin-cur").first,
@@ -179,6 +181,41 @@ class PropertyShowGaugePartialDisableTest < ActionDispatch::IntegrationTest
       "Style : #{style.inspect}")
     refute_match(/top\s*:\s*0[^%]/i, style,
       "Ne PAS revenir à top:0 (bug prod hit-area)")
+  end
+
+  # ── 4c. Clic direct par segment : data-idx + pointer-events:none ────
+  # Anti-régression du bug prod bien 214 : clic sur B ou E n'atteignait
+  # pas la classe cliquée à cause de la mapping thumb→value du range
+  # input (les segments B/E ne s'alignaient pas avec les positions
+  # discrètes du thumb, elles-mêmes fonction de sa largeur).
+  # Fix : chaque segment porte data-idx="0..6" et un click listener JS
+  # DIRECT (initShow). Le range input est neutralisé côté souris via
+  # pointer-events:none (garde focus + arrow keys pour l'accessibilité).
+  test "matrice présente → chaque segment porte data-idx=0..6 (clic direct)" do
+    p = creer_bien(surface: 118, construction_year: 1928, dpe_class: "F")
+    get property_path(p)
+
+    segments = css_select(".dpe-seg")
+    assert_equal 7, segments.size, "Sept segments A→G attendus"
+    idxs = segments.map { |s| s["data-idx"] }
+    assert_equal %w[0 1 2 3 4 5 6], idxs,
+      "Chaque segment doit porter data-idx=0..6 dans l'ordre A→G " \
+      "pour que le click listener JS le lise et invoque onSliderChange(idx). " \
+      "Obtenu : #{idxs.inspect}"
+  end
+
+  test "matrice présente → slider neutralisé côté souris (pointer-events:none)" do
+    p = creer_bien(surface: 118, construction_year: 1928, dpe_class: "F")
+    get property_path(p)
+
+    slider = css_select("input#dpe-slider").first
+    style = slider["style"].to_s
+    assert_match(/pointer-events\s*:\s*none/i, style,
+      "Le range input doit être neutralisé côté souris — sans quoi il capture " \
+      "les clics et les mappe géométriquement (bug prod). Style : #{style.inspect}")
+    # Focus keyboard préservé via aria-label (bonne pratique quand le
+    # visuel est masqué à l'utilisateur voyant).
+    assert slider["aria-label"], "aria-label présent pour l'accessibilité clavier"
   end
 
   private

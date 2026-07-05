@@ -407,33 +407,34 @@
             </div>
           <% end %>
         </div>
+        <%# Chaque segment porte data-idx="<idx>" pour un click listener
+             DIRECT (initShow) — plus de dépendance à la mapping géométrique
+             du range input, qui donnait des positions cliquables incorrectes
+             pour B et E (bug prod bien 214). Cursor:pointer explicite. -%>
         <div class="dpe-track" id="dpe-track">
-          <% dpe_all.each do |l| %>
-            <div class="dpe-seg" style="background:<%= dpe_colors[l] %>;opacity:<%= l == dpe_cur ? '1' : '0.4' %>;"><%= l %></div>
+          <% dpe_all.each_with_index do |l, idx| %>
+            <div class="dpe-seg" data-idx="<%= idx %>"
+                 style="background:<%= dpe_colors[l] %>;opacity:<%= l == dpe_cur ? '1' : '0.4' %>;cursor:pointer;"><%= l %></div>
           <% end %>
         </div>
         <% if dpe_matrix %>
           <div class="pin" id="pin-tgt" style="left:calc(<%= tgt_idx %>/7*100% + 1/14*100%);">
             <div class="pin-dot" style="background:<%= dpe_colors[dpe_all[tgt_idx]] || '#059669' %>;border-color:#059669;box-shadow:0 0 0 3px rgba(5,150,105,.3);" id="pin-tgt-dot"><%= dpe_all[tgt_idx] %></div>
           </div>
-          <%# Slider HTML posé par-dessus la track A→G (7 segments).
-               max=6 pour que chaque segment visuel corresponde à une position
-               atteignable. Le clamp à cur_idx-1 (on ne peut pas cibler un DPE
-               pire ou égal au DPE actuel) est fait en JS dans onSliderChange.
-               Non rendu quand la matrice est absente : rien à projeter,
-               donc pas de contrôle interactif.
-
-               `bottom:0` (et non `top:0`) : le parent contient AUSSI la
-               rangée "▼ actuel" (~16px) AU-DESSUS de la track. Avec
-               top:0, le slider chevauchait la rangée et laissait le bas
-               des lettres A→G (les ~16 derniers pixels de la track) hors
-               hit-area — les clics sur le bas de "E" tombaient à côté et
-               semblaient "ignorés". Anchoré en bas, le range couvre
-               exactement la track. %>
+          <%# Range input conservé pour la seule accessibilité CLAVIER
+               (Tab pour focus, flèches pour incrémenter). Le CLIC SOURIS
+               passe désormais par les listeners data-idx sur .dpe-seg
+               (cf. initShow) — la mapping géométrique du range était
+               fragile (thumb-width dependent), un clic sur "B" ou "E"
+               pouvait tomber à côté selon la largeur exacte de la track
+               et du thumb. `pointer-events:none` neutralise le clic mais
+               laisse focus + keyboard fonctionner (pas affectés par
+               pointer-events). %>
           <input type="range" id="dpe-slider"
                  min="0" max="6" step="1"
                  value="<%= tgt_idx %>"
-                 style="position:absolute;bottom:0;left:0;width:100%;height:48px;opacity:0;cursor:grab;margin:0;z-index:10;"
+                 aria-label="Objectif DPE"
+                 style="position:absolute;bottom:0;left:0;width:100%;height:48px;opacity:0;pointer-events:none;margin:0;z-index:10;"
                  oninput="onSliderChange(this.value)">
         <% end %>
       </div>
@@ -1082,6 +1083,19 @@ function initShow(){
     cb.addEventListener('change', function(){
       recalcTravaux();
       clearRecaleNote();
+    });
+  });
+
+  // Click DIRECT sur chaque segment de la jauge — remplace la mapping
+  // géométrique du range input (fragile aux thumbWidth). Chaque .dpe-seg
+  // porte data-idx="0..6" ; on le lit et on invoque onSliderChange avec
+  // l'index EXACT. Plus jamais de clic « perdu » sur B ou E parce que le
+  // mapping thumb→value du range tombait entre deux entiers.
+  document.querySelectorAll('.dpe-seg').forEach(function(seg){
+    if(seg.dataset.idx === undefined) return;
+    seg.addEventListener('click', function(){
+      var idx = parseInt(seg.dataset.idx, 10);
+      if(!isNaN(idx)) onSliderChange(idx);
     });
   });
   // Appel d'init : initialLoad=true (on cale la jauge sur SERVER_TGT_IDX,
