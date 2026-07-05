@@ -430,8 +430,15 @@
         <% end %>
       </div>
       <% if dpe_matrix %>
-        <p class="lbl" id="dpe-estim-lbl" style="text-align:center;margin-bottom:20px;color:#059669;font-size:.66rem;">
+        <p class="lbl" id="dpe-estim-lbl" style="text-align:center;margin-bottom:6px;color:#059669;font-size:.66rem;">
           Objectif : <span id="dpe-estim-val"><%= dpe_all[tgt_idx] %></span> · estimation indicative · glissez la jauge : les travaux s'ajustent à la cible
+        </p>
+        <%# Microtexte de recalage — masqué par défaut, révélé par
+             onSliderChange quand la sémantique "au moins X" a recalé
+             vers une classe MEILLEURE (et moins chère) que celle cliquée.
+             Principe projet : jamais de recalage silencieux. -%>
+        <p id="dpe-recale-note"
+           style="display:none;text-align:center;margin:0 0 14px;color:#065f46;font-size:.72rem;font-weight:600;background:#d1fae5;border-radius:8px;padding:6px 12px;">
         </p>
       <% end %>
     <% end %>
@@ -891,6 +898,38 @@ function marquerAidesPerimees(){
 // Pas de boucle : `cb.checked = X` (assignation propriété par script) ne
 // dispatch PAS l'event 'change', donc le listener change qui appelle
 // recalcTravaux n'est pas re-déclenché. Propriété structurelle.
+// Helper : extraction des coûts médians depuis les data-mediane du DOM.
+// Utilisé par onSliderChange (pour la sélection) et par initShow (pour
+// calculer les classes dominées à l'affordance).
+function extractTravauxCosts(){
+  var costs = {};
+  document.querySelectorAll('.travail-check').forEach(function(row){
+    if(row.dataset.code){
+      costs[row.dataset.code] = parseInt(row.dataset.mediane || '0', 10) || 0;
+    }
+  });
+  return costs;
+}
+
+// Affiche le microtexte de recalage : "Bonne nouvelle : atteindre D coûte
+// moins cher que E — objectif recalé sur D". Le message disparaît à la
+// manipulation suivante (checkbox click → clearRecaleNote).
+function showRecaleNote(clickedIdx, derivedIdx){
+  var el = document.getElementById('dpe-recale-note');
+  if(!el) return;
+  var clicked = dpe_all[clickedIdx];
+  var derived = dpe_all[derivedIdx];
+  el.textContent = 'Bonne nouvelle : pour ce bien, atteindre ' + derived +
+                   ' coûte moins cher que ' + clicked +
+                   ' — objectif recalé sur ' + derived + '.';
+  el.style.display = 'block';
+}
+
+function clearRecaleNote(){
+  var el = document.getElementById('dpe-recale-note');
+  if(el) el.style.display = 'none';
+}
+
 function onSliderChange(newTgtVal){
   var tgtIdx = parseInt(newTgtVal);
 
@@ -906,27 +945,19 @@ function onSliderChange(newTgtVal){
   // garde-fou JS au cas où.
   if(!DPE_MATRIX){
     updateJaugeDPE(tgtIdx);
+    clearRecaleNote();
     return;
   }
 
-  // Coûts médians extraits du DOM (data-mediane sur chaque .travail-check).
-  // deriveSelectionForTarget les utilise pour choisir "l'ensemble le moins
-  // cher" quand plusieurs combinaisons atteignent la classe visée (fix
-  // anomalie 2 — plus de rebond du pin sur E parce que la cascade
-  // court-circuitait vers D via un préfixe non-optimal).
-  var travauxCosts = {};
-  document.querySelectorAll('.travail-check').forEach(function(row){
-    if(row.dataset.code){
-      travauxCosts[row.dataset.code] = parseInt(row.dataset.mediane || '0', 10) || 0;
-    }
-  });
-
-  // Délégation à la fonction pure. AUCUNE lecture DOM en entrée.
+  // Sémantique "au moins X" : deriveSelectionForTarget retourne l'ensemble
+  // LE MOINS CHER dont la classe dérivée est <= tgtIdx. Peut donc être
+  // MEILLEURE que ce qui a été cliqué — flag `recale` posé pour qu'on
+  // affiche honnêtement le décalage à l'utilisateur.
   var res = deriveSelectionForTarget({
     currentDpeIdx:  CUR,
     targetIdx:      tgtIdx,
     combinaisons:   DPE_MATRIX.combinaisons,
-    travauxCosts:   travauxCosts
+    travauxCosts:   extractTravauxCosts()
   });
 
   // Écriture DOM : on coche exactement ce que res.checked contient,
@@ -939,15 +970,33 @@ function onSliderChange(newTgtVal){
     cb.checked = checkedSet.has(row.dataset.code);
   });
 
-  // Recalcul complet : le label/pin est dérivé des cases APRÈS cascade,
-  // pas de la valeur brute du slider. Ainsi cible A demandée mais matrice
-  // limitée à B → label = B (honnête). Fix bug "objectif optimiste".
+  // Recalcul complet : le label/pin est dérivé des cases APRÈS cascade.
+  // recalcTravaux positionne le pin sur res.derivedClasseIdx (via
+  // deriveTargetFromSelection qui relit les cases).
   recalcTravaux();
+
+  // Microtexte "recalé" : révélé si la classe dérivée est STRICTEMENT
+  // MEILLEURE que celle cliquée (le user visait E, on lui donne D moins
+  // cher). Le cas pessimist (classe dérivée > cliquée) est un vrai échec
+  // "on n'a pas atteint la cible" — même flag mais message différent
+  // serait faisable ; pour l'instant on garde le format positif car en
+  // pratique le pessimist est très rare (matrice tronquée).
+  if(res.recale && res.derivedClasseIdx < tgtIdx){
+    showRecaleNote(tgtIdx, res.derivedClasseIdx);
+  } else {
+    clearRecaleNote();
+  }
 }
 
 // Met à jour uniquement l'affichage de la jauge (sans toucher les checkboxes).
 // Met aussi à jour le hidden field form-dpe-target pour que le submit
 // persiste la cible DPE courante en DB.
+//
+// AFFORDANCE segments dominés : les segments marqués data-dominated=1 par
+// initShow (classes qui ne seront jamais un point d'arrivée du slider —
+// cliquer dessus recale toujours vers une classe meilleure) restent à
+// opacité réduite MÊME quand ils sont dans la zone highlighted [tgtIdx,CUR].
+// L'utilisateur voit dès le repos que ces classes sont "dominées".
 function updateJaugeDPE(tgtIdx){
   var pin=document.getElementById('pin-tgt');
   var dot=document.getElementById('pin-tgt-dot');
@@ -958,7 +1007,11 @@ function updateJaugeDPE(tgtIdx){
   if(lbl){ lbl.textContent=dpe_all[tgtIdx]; }
   if(hiddenTgt){ hiddenTgt.value=dpe_all[tgtIdx]; }
   document.querySelectorAll('.dpe-seg').forEach(function(seg,i){
-    seg.style.opacity = (i>=tgtIdx && i<=CUR) ? '1' : '0.4';
+    if(seg.dataset.dominated === '1'){
+      seg.style.opacity = '0.2';
+    } else {
+      seg.style.opacity = (i>=tgtIdx && i<=CUR) ? '1' : '0.4';
+    }
   });
 }
 
@@ -1005,8 +1058,14 @@ function initShow(){
   // NB : on enveloppe l'appel pour NE PAS propager l'Event du listener
   // en premier argument de recalcTravaux, sinon initialLoad = Event =
   // truthy et on calerait le label sur SERVER_TGT_IDX à chaque clic.
+  // Toute manipulation manuelle des cases fait disparaître le microtexte
+  // de recalage (principe projet : le message ne persiste pas au-delà de
+  // l'action qui l'a déclenchée).
   document.querySelectorAll('.travail-cb').forEach(function(cb){
-    cb.addEventListener('change', function(){ recalcTravaux(); });
+    cb.addEventListener('change', function(){
+      recalcTravaux();
+      clearRecaleNote();
+    });
   });
   // Appel d'init : initialLoad=true (on cale la jauge sur SERVER_TGT_IDX,
   // pas dérivée des cases). Empêche le snap silencieux vers une cible
@@ -1015,6 +1074,43 @@ function initShow(){
   // interaction réelle.
   recalcTravaux(true);
   calcPret();
+
+  // ── Affordance : classes dominées ──────────────────────────────────
+  // Une classe est DOMINÉE quand cliquer dessus recale toujours vers une
+  // classe meilleure (cas E→D observé en prod). On marque les segments
+  // correspondants au chargement (opacité réduite + title explicatif)
+  // pour que l'utilisateur voie AVANT de cliquer que ces classes ne sont
+  // pas des points d'arrivée utiles.
+  if(DPE_MATRIX){
+    var costsInit = extractTravauxCosts();
+    var dominated = computeDominatedClasses({
+      currentDpeIdx: CUR,
+      combinaisons:  DPE_MATRIX.combinaisons,
+      travauxCosts:  costsInit
+    });
+    var segs = document.querySelectorAll('.dpe-seg');
+    dominated.forEach(function(i){
+      var seg = segs[i];
+      if(!seg) return;
+      seg.dataset.dominated = '1';
+      seg.style.cursor = 'help';
+      // Reformuler proprement quelle classe le drag choisirait à la place.
+      var alt = deriveSelectionForTarget({
+        currentDpeIdx: CUR, targetIdx: i,
+        combinaisons: DPE_MATRIX.combinaisons, travauxCosts: costsInit
+      });
+      seg.title = dpe_all[i] + ' n\'est pas un objectif utile pour ce bien : ' +
+                  'atteindre ' + dpe_all[alt.derivedClasseIdx] +
+                  ' coûte moins cher. La jauge recalera automatiquement.';
+    });
+    // Applique tout de suite l'opacité 0.2 sur les segments dominés (avant
+    // le prochain updateJaugeDPE, qui les respectera).
+    if(dominated.length){
+      var tgtNow = document.getElementById('form-dpe-target');
+      var curTgtIdx = tgtNow ? dpe_all.indexOf(tgtNow.value) : SERVER_TGT_IDX;
+      if(curTgtIdx >= 0) updateJaugeDPE(curTgtIdx);
+    }
+  }
 
   // Fallback scroll vers l'ancre (#aides, #financement, #travaux).
   // Nécessaire avec Turbo Drive qui peut parfois ne pas respecter le hash natif.
