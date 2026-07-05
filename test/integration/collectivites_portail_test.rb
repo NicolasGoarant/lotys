@@ -100,4 +100,40 @@ class CollectivitesPortailTest < ActionDispatch::IntegrationTest
     get "/collectivites/grand-nancy"
     assert_equal "0", css_select("#count-biens").first["data-count"]
   end
+
+  # ── C5 : branding visuel + CTA vers formulaire ────────────────────────
+
+  test "bandeau utilise primary_color de la collectivité" do
+    setup_grand_nancy
+    get "/collectivites/grand-nancy"
+    # La primary_color apparaît dans le style inline du bandeau et du CTA.
+    assert_match(/#0066a1/, response.body,
+      "primary_color (#0066a1) doit apparaître dans le rendu — branding EPCI")
+  end
+
+  test "welcome_text rendu quand présent" do
+    setup_grand_nancy
+    get "/collectivites/grand-nancy"
+    assert_select "#welcome-text"
+    assert_match "Bienvenue", response.body
+  end
+
+  test "logo pas attaché → initiales rendues sur fond blanc en fallback" do
+    setup_grand_nancy
+    get "/collectivites/grand-nancy"
+    assert_select "#collectivite-initiales", { count: 1 },
+      "Fallback initiales quand aucun logo attaché (permet la démo sans logo officiel)"
+    assert_select "#collectivite-logo", { count: 0 }
+    # Initiales : "Métropole du Grand Nancy" → "MDGN"
+    assert_match "MDGN", response.body
+  end
+
+  test "CTA link pointe vers /properties/new?collectivite=grand-nancy" do
+    setup_grand_nancy
+    get "/collectivites/grand-nancy"
+    cta = css_select("a#cta-new-property").first
+    assert cta, "CTA 'Commencer' doit exister"
+    assert_equal new_property_path(collectivite: "grand-nancy"), cta["href"],
+      "Le CTA doit pré-paramétrer le formulaire avec le slug (rattachement C6)"
+  end
 end

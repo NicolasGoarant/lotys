@@ -1,9 +1,130 @@
-<%# Placeholder minimal pour C4 — la vue complète (branding + form) arrive en C5.
-     Rend juste les données de base pour valider le controller et
-     la route côté tests d'intégration. %>
-<div id="collectivite-portail" data-slug="<%= @collectivite.slug %>">
-  <h1><%= @collectivite.name %></h1>
-  <p id="count-biens" data-count="<%= @count_biens %>">
-    <%= @count_biens %> biens analysés sur votre territoire
+<%# ═══════════════════════════════════════════════════════════════════════
+     Portail collectivité (feature B2G niveau 1) — /collectivites/:slug.
+
+     La page utilise le layout global (navbar Lauze + footer inchangés).
+     Le branding EPCI se limite à un BANDEAU en tête + la couleur primaire
+     de la collectivité utilisée en accent. Zéro refonte visuelle globale
+     (principe projet : c'est une page Lauze aux couleurs d'un EPCI,
+     pas une marque blanche).
+     ═══════════════════════════════════════════════════════════════════ %>
+
+<% content_for :meta do %>
+  <%# SEO/partage — un vrai title et og:image par collectivité arriveront
+       en C7 (avec fallback si pas de logo attaché). Pour l'instant, la
+       structure est en place mais le fallback vit dans les balises head
+       du layout global. -%>
+<% end %>
+
+<%# ── Bandeau branding — logo (ou initiales) + nom + welcome_text ── %>
+<section id="collectivite-portail"
+         data-slug="<%= @collectivite.slug %>"
+         style="background: linear-gradient(135deg, <%= @collectivite.primary_color %> 0%, <%= @collectivite.primary_color %>dd 100%); padding: 48px 24px 40px; color: white;">
+  <div style="max-width: 960px; margin: 0 auto;">
+    <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
+      <%# Logo si attaché, sinon fallback initiales sur cercle blanc %>
+      <% if @collectivite.logo.attached? %>
+        <%= image_tag @collectivite.logo,
+              id: "collectivite-logo",
+              alt: @collectivite.name,
+              style: "height: 80px; width: auto; background: white; padding: 10px 14px; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" %>
+      <% else %>
+        <div id="collectivite-initiales"
+             style="height: 80px; min-width: 80px; padding: 0 18px;
+                    background: white; color: <%= @collectivite.primary_color %>;
+                    border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    display: flex; align-items: center; justify-content: center;
+                    font-weight: 900; font-size: 1.6rem; letter-spacing: 0.05em;">
+          <%= @collectivite.initiales %>
+        </div>
+      <% end %>
+
+      <div style="flex: 1; min-width: 240px;">
+        <p style="margin: 0 0 4px; font-size: 0.75rem; font-weight: 800;
+                  letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.85;">
+          Portail rénovation énergétique
+        </p>
+        <h1 style="margin: 0; font-size: clamp(1.8rem, 3vw, 2.4rem);
+                   font-weight: 900; letter-spacing: -0.02em; line-height: 1.15;">
+          <%= @collectivite.name %>
+        </h1>
+      </div>
+    </div>
+
+    <% if @collectivite.welcome_text.present? %>
+      <p id="welcome-text"
+         style="margin: 20px 0 0; font-size: 1.05rem; line-height: 1.6;
+                max-width: 62ch; opacity: 0.95;">
+        <%= simple_format(@collectivite.welcome_text, {}, wrapper_tag: "span") %>
+      </p>
+    <% end %>
+  </div>
+</section>
+
+<%# ── Compteur biens analysés + CTA principal ─────────────────────── %>
+<section style="max-width: 960px; margin: 0 auto; padding: 40px 24px;">
+  <div style="display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: stretch;">
+
+    <%# Bloc compteur (donnée réelle, jamais inventée) %>
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 16px;
+                padding: 24px; text-align: center;">
+      <p style="margin: 0 0 6px; font-size: 0.72rem; font-weight: 800;
+                letter-spacing: 0.14em; text-transform: uppercase; color: #6b7280;">
+        Usage sur votre territoire
+      </p>
+      <p id="count-biens"
+         data-count="<%= @count_biens %>"
+         style="margin: 0; font-size: 2.5rem; font-weight: 900; line-height: 1;
+                color: <%= @collectivite.primary_color %>;">
+        <%= @count_biens %>
+      </p>
+      <p style="margin: 8px 0 0; font-size: 0.9rem; color: #6b7280;">
+        <%= @count_biens == 1 ? "bien analysé" : "biens analysés" %>
+        depuis Lauze
+      </p>
+    </div>
+
+    <%# Bloc CTA : link vers /properties/new pré-paramétré (rattachement C6) %>
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 16px;
+                padding: 24px; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <p style="margin: 0 0 8px; font-size: 1.05rem; font-weight: 800; color: #111827;">
+          Analysez votre bien
+        </p>
+        <p style="margin: 0 0 16px; font-size: 0.9rem; color: #4b5563; line-height: 1.5;">
+          Estimation des travaux, aides nationales et locales, reste à charge.
+          Le résultat prend 1 à 3 minutes.
+        </p>
+      </div>
+      <%= link_to "Commencer →",
+            new_property_path(collectivite: @collectivite.slug),
+            id: "cta-new-property",
+            style: "display: inline-block; background: #{@collectivite.primary_color};
+                    color: white; padding: 12px 24px; border-radius: 10px;
+                    font-weight: 700; text-decoration: none; text-align: center;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.1);" %>
+    </div>
+  </div>
+</section>
+
+<%# ── Réutilisation du bloc "proposition de valeur" existant ─────────
+     Le partial shared/feature_columns est déjà utilisé sur la page
+     marketing /collectivites — on le remonte tel quel pour rester
+     cohérent visuellement sans dupliquer les contenus. %>
+<section style="max-width: 960px; margin: 0 auto; padding: 20px 24px 60px;">
+  <p style="margin: 0 0 12px; font-size: 0.72rem; font-weight: 800;
+            letter-spacing: 0.14em; text-transform: uppercase; color: #059669;">
+    Ce que Lauze fait pour votre territoire
   </p>
-</div>
+  <%= render "shared/feature_columns",
+        items: [
+          { numero: "01",
+            titre:  "Vos aides, intégrées",
+            corps:  "Vos dispositifs locaux apparaissent en cohérence avec MaPrimeRénov', CEE et éco-PTZ. L'habitant voit le total à l'euro près, sans démarches multiples." },
+          { numero: "02",
+            titre:  "Un parcours clair",
+            corps:  "Le propriétaire dépose son DPE, voit ses travaux prioritaires, ses aides calculées et son reste à charge. Sans appel à votre service, sans formulaire complexe." },
+          { numero: "03",
+            titre:  "Vos statistiques",
+            corps:  "Un tableau de bord territorial (à venir) : biens analysés, gestes envisagés, budgets. Pour piloter votre programme rénovation avec des chiffres." }
+        ] %>
+</section>
