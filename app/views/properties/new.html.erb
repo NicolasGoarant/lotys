@@ -59,6 +59,13 @@
 
   <%= form_with model: @property, multipart: true, data: { turbo: false }, class: "space-y-5" do |f| %>
     <%= f.hidden_field :source, value: source %>
+    <%# Feature portail EPCI : si @collectivite est chargée (arrivée
+         via /properties/new?collectivite=<slug>), on transmet son id.
+         Le rattachement peut être reseté au serveur si l'adresse
+         confirmée sort du ressort (garde-fou Property#reset_collectivite_if_off_territory!). -%>
+    <% if @collectivite %>
+      <%= f.hidden_field :collectivite_id, value: @collectivite.id %>
+    <% end %>
 
     <% if @property.errors.any? %>
       <div class="bg-red-50 border border-red-200 rounded-2xl p-5 text-base text-red-700">

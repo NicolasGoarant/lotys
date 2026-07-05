@@ -62,6 +62,44 @@ class Property < ApplicationRecord
     "confirme_utilisateur" => 4
   }.freeze
 
+  # ─── Garde-fou "bien hors ressort de sa collectivité" (feature C6) ─
+  # Un bien créé depuis un portail EPCI (/collectivites/:slug) porte
+  # collectivite_id. Si l'adresse CONFIRMÉE tombe finalement hors du
+  # territoire de la collectivité (code_insee ∉ collectivite.insee_codes),
+  # on retire le rattachement — principe projet "jamais de caution
+  # d'une collectivité sur un bien hors de son ressort".
+  #
+  # Appelé depuis :
+  #   - PropertiesController#confirm_address (juste après le geocoding
+  #     BAN qui pose code_insee),
+  #   - PropertyAnalysisJob (idempotent, robuste à un re-run).
+  #
+  # No-op quand :
+  #   - le bien n'a pas de collectivite_id (parcours public standard),
+  #   - le code_insee n'est pas encore posé (analyse pas encore
+  #     géocodée — on RE-vérifiera plus tard).
+  #
+  # Retourne true si un reset a eu lieu (utile pour logger côté
+  # controller/job), false sinon.
+  def reset_collectivite_if_off_territory!
+    return false if collectivite_id.blank?
+    return false if code_insee.blank?
+    return false if collectivite&.covers_insee?(code_insee)
+
+    Rails.logger.info(
+      "[Property##{id}] hors ressort collectivité##{collectivite_id} " \
+      "(code_insee=#{code_insee.inspect}) → reset collectivite_id"
+    )
+    # update_columns : contourne les validations. Le bien peut être en
+    # cours d'analyse (address encore vide → validation
+    # address_or_documents_provided échouerait avec update). Le reset
+    # est un ajustement système (déconnexion d'un rattachement devenu
+    # illégitime), pas une mise à jour métier — pas de callback à
+    # déclencher, pas de re-validation nécessaire.
+    update_columns(collectivite_id: nil)
+    true
+  end
+
   # Vrai si source_nouvelle est plus fiable que source_actuelle.
   # Garantit qu'un proxy déduit n'écrase jamais une extraction réelle,
   # et qu'une extraction ne contredit jamais une confirmation utilisateur.

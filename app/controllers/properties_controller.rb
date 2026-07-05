@@ -113,6 +113,13 @@ class PropertiesController < ApplicationController
 
   def new
     @property = Property.new
+    # Feature portail EPCI : quand l'utilisateur arrive depuis un
+    # portail (/collectivites/:slug), le CTA passe collectivite=<slug>
+    # en param. On charge la Collectivite pour pré-remplir le hidden
+    # field et adapter la page (bandeau contextuel). find_by nil-safe :
+    # si le slug est bidon ou la collectivité désactivée, on reste sur
+    # le parcours public standard (zéro régression).
+    @collectivite = Collectivite.active.find_by(slug: params[:collectivite]) if params[:collectivite].present?
   end
 
   def create
@@ -230,6 +237,11 @@ class PropertiesController < ApplicationController
     )
 
     GeocodingService.new(@property).call
+    # Garde-fou "hors ressort" (feature portail C6) : après le geocoding
+    # BAN qui vient de poser code_insee, on vérifie que l'adresse
+    # confirmée tombe bien dans le territoire de la collectivité de
+    # rattachement. Sinon, on retire le rattachement (Property#reset_...).
+    @property.reset_collectivite_if_off_territory!
     LocalAidCalculator.new(@property).call
 
     redirect_to @property, notice: "Adresse confirmée — vos aides locales sont recalculées."
@@ -459,6 +471,9 @@ class PropertiesController < ApplicationController
       :is_copropriete, :vacant, :source,
       :vacancy_duration, :vacancy_reason, :dpe_target, :income_bracket,
       :household_size, :rfr,
+      :collectivite_id,  # feature portail EPCI — nullable, garde-fou C6
+                         # reset à NULL si code_insee hors ressort
+                         # (cf. Property#reset_collectivite_if_off_territory!)
       photos: []
     )
   end

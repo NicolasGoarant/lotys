@@ -30,6 +30,12 @@ class PropertyAnalysisJob < ApplicationJob
     # déjà silencieusement, mais mieux vaut éviter l'appel).
     GeocodingService.new(property).call if property.address.present?
 
+    # Garde-fou hors ressort (feature portail C6) : après le geocoding
+    # BAN qui a posé code_insee, on retire le rattachement si l'adresse
+    # tombe hors du territoire de la collectivité (parcours "je suis
+    # venu depuis grand-nancy.lauze.eu mais mon bien est à Épinal").
+    property.reset_collectivite_if_off_territory!
+
     PhotoAnalysisService.new(property).call if property.photos.attached?
 
     property.documents.each do |doc|
