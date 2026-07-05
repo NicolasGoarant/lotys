@@ -1,0 +1,9 @@
+<%# Placeholder minimal pour C4 — la vue complète (branding + form) arrive en C5.
+     Rend juste les données de base pour valider le controller et
+     la route côté tests d'intégration. %>
+<div id="collectivite-portail" data-slug="<%= @collectivite.slug %>">
+  <h1><%= @collectivite.name %></h1>
+  <p id="count-biens" data-count="<%= @count_biens %>">
+    <%= @count_biens %> biens analysés sur votre territoire
+  </p>
+</div>

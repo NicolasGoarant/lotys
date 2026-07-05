@@ -15,6 +15,13 @@ Rails.application.routes.draw do
   get "/proprietaires",       to: "pages#proprietaires",       as: :proprietaires
   get "/artisans",            to: "pages#artisans",            as: :artisans
   get "/collectivites",       to: "pages#collectivites",       as: :collectivites
+  # Portail par collectivité (feature B2G niveau 1). :slug est validé
+  # côté modèle (kebab-case) ; find_by(slug:) côté controller. Cette
+  # route est POSTÉRIEURE à /collectivites pour que Rails matche
+  # d'abord la page marketing générique (routing par ordre déclaratif).
+  get "/collectivites/:slug", to: "collectivites_portail#show",
+                              as: :collectivite_portail,
+                              constraints: { slug: /[a-z0-9-]+/ }
 
   get "/mentions-legales",    to: "pages#mentions_legales",   as: :mentions_legales
   get "/confidentialite",     to: "pages#confidentialite",    as: :confidentialite
