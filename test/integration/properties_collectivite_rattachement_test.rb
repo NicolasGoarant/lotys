@@ -214,10 +214,23 @@ class PropertiesCollectiviteRattachementTest < ActionDispatch::IntegrationTest
     get property_path(p)
     assert_response :success
     assert_select "#collectivite-badge", { count: 1 }
-    assert_match "Métropole du Grand Nancy", response.body
-    # Le badge est un lien vers le portail (traçabilité provenance).
+
     badge = css_select("#collectivite-badge").first
+    # Libellé neutre : "Portail <nom>" — évite le doublon d'article
+    # ("Analyse au titre du Métropole du Grand Nancy" en ancien libellé).
+    assert_match "Portail Métropole du Grand Nancy", badge.text
+    refute_match(/au titre du/, badge.text,
+      "Anti-régression du libellé 'Analyse au titre du <nom>' qui doublait 'du'")
+    # Lien vers le portail (traçabilité provenance).
     assert_equal collectivite_portail_path("grand-nancy"), badge["href"]
+    # Primary_color EFFECTIVEMENT interpolée dans le style (anti-régression
+    # du bug ERB #{…} rendu littéralement dans le HTML brut).
+    style = badge["style"].to_s
+    assert_match(/#0066a1/i, style,
+      "primary_color doit apparaître dans le style rendu — sinon le badge s'affiche sans couleurs. " \
+      "Style : #{style.inspect}")
+    refute_match(/#\{/, style,
+      'Aucune interpolation ERB "#{…}" littérale ne doit rester dans le style rendu')
   end
 
   test "show : bien NON rattaché → aucun badge (parcours nominal)" do

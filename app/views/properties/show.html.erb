@@ -166,17 +166,21 @@
      Rendu discret — c'est un signal de provenance, pas une accroche
      visuelle. Le lien renvoie au portail pour la traçabilité. %>
 <% if @property.collectivite&.active %>
+  <%# Extraire la couleur dans une variable Ruby : #{…} n'est PAS
+       interpolé dans du HTML brut (ERB n'évalue que dans <%= %> ou
+       <% %>), donc rendre la couleur directement dans le style="…"
+       laissait la chaîne littérale « #{@property.collectivite.primary_color}12 »
+       — CSS invalide, badge sans couleurs en prod. -%>
+  <% color = @property.collectivite.primary_color %>
   <a id="collectivite-badge"
      href="<%= collectivite_portail_path(@property.collectivite.slug) %>"
-     style="display:inline-flex;align-items:center;gap:8px;
-            background:#{@property.collectivite.primary_color}12;
-            color:#{@property.collectivite.primary_color};
-            border:1px solid #{@property.collectivite.primary_color}40;
-            border-radius:999px;padding:6px 14px;
-            font-size:.78rem;font-weight:700;
-            text-decoration:none;margin-bottom:12px;">
+     style="display:inline-flex;align-items:center;gap:8px;background:<%= color %>12;color:<%= color %>;border:1px solid <%= color %>40;border-radius:999px;padding:6px 14px;font-size:.78rem;font-weight:700;text-decoration:none;margin-bottom:12px;">
     <span style="opacity:.85;">🏛️</span>
-    <span>Analyse au titre du <%= @property.collectivite.name %></span>
+    <%# Formulation neutre : "Analyse au titre du <nom>" produit
+         "Analyse au titre du Métropole du Grand Nancy" (article
+         doublonné). "Portail <nom>" marche pour tous les noms
+         d'EPCI, avec ou sans article dans la dénomination officielle. -%>
+    <span>Portail <%= @property.collectivite.name %></span>
   </a>
 <% end %>
 
