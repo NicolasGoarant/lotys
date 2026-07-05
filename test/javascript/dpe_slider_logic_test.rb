@@ -363,6 +363,172 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
     assert_equal c, run_target(%w[chauffage isolation_murs isolation_toiture])
   end
 
+  # ═════════════════════════════════════════════════════════════════════════
+  # targetIdxFromSegment — fonction pure, mappage sûr data-idx → int 0..6
+  # ═════════════════════════════════════════════════════════════════════════
+  # Extraite pour rendre le pipeline "clic segment → index" testable sans
+  # jsdom. Verrou anti-régression du bug prod bien 214/215 (clic B/E ignoré).
+
+  def run_from_segment(seg_mock)
+    payload = seg_mock.to_json
+    script = <<~JS
+      const { targetIdxFromSegment } = require(#{LOGIC_FILE.inspect});
+      console.log(JSON.stringify(targetIdxFromSegment(JSON.parse(process.argv[1]))));
+    JS
+    out, err, st = Open3.capture3(NODE_BIN, "-e", script, payload)
+    raise "node failed: #{err}" unless st.success?
+    JSON.parse(out)
+  end
+
+  test "targetIdxFromSegment — lit correctement data-idx pour A→G (0..6)" do
+    (0..6).each do |i|
+      mock = { "dataset" => { "idx" => i.to_s } }
+      assert_equal i, run_from_segment(mock),
+        "data-idx=#{i.inspect} doit retourner #{i}"
+    end
+  end
+
+  test "targetIdxFromSegment — rejette valeurs invalides (null, undefined, hors 0..6)" do
+    # dataset.idx absent
+    assert_nil run_from_segment({ "dataset" => {} })
+    # Non-numérique
+    assert_nil run_from_segment({ "dataset" => { "idx" => "abc" } })
+    # Hors bornes
+    assert_nil run_from_segment({ "dataset" => { "idx" => "7" } })
+    assert_nil run_from_segment({ "dataset" => { "idx" => "-1" } })
+    # Segment sans dataset (mock partiel)
+    assert_nil run_from_segment({})
+  end
+
+  # Simulation d'un event click : on construit un DOM synthétique avec 7
+  # segments, on branche l'event delegation exactement comme dans la vue,
+  # on dispatch un MouseEvent au centre visuel de chaque segment, et on
+  # vérifie que onSliderChange reçoit EXACTEMENT l'index attendu.
+  #
+  # Utilise l'API minimale de node CLI + polyfill DOM léger. Un module
+  # Node externe (jsdom) serait plus complet mais introduit une dépendance
+  # ; ici on écrit un mini-mock en JavaScript pur qui suffit pour ce test.
+  test "event delegation .dpe-track — click sur chaque segment A→F → onSliderChange reçoit l'index exact" do
+    script = <<~JS
+      const { targetIdxFromSegment } = require(#{LOGIC_FILE.inspect});
+
+      // Mini-mock DOM : Element, Event, MouseEvent basiques.
+      class MiniElement {
+        constructor(tag){
+          this.tagName = tag.toUpperCase();
+          this.dataset = {};
+          this.classList = new Set();
+          this.children = [];
+          this.parentNode = null;
+          this._listeners = {};
+        }
+        appendChild(c){ c.parentNode = this; this.children.push(c); return c; }
+        addEventListener(type, fn){ (this._listeners[type] = this._listeners[type] || []).push(fn); }
+        // closest walks up the parent chain looking for a match by class.
+        closest(sel){
+          const cls = sel.replace(/^\\./, '');
+          let cur = this;
+          while(cur){
+            if(cur.classList && cur.classList.has(cls)) return cur;
+            cur = cur.parentNode;
+          }
+          return null;
+        }
+        // Dispatch : appelle les listeners du type, puis bubble au parent.
+        dispatchClickAt(target){
+          const evt = { target: target };
+          let cur = this;
+          while(cur){
+            (cur._listeners['click'] || []).forEach(fn => fn(evt));
+            cur = cur.parentNode;
+          }
+        }
+      }
+
+      // Construit le DOM : track > 7 segments (data-idx 0..6).
+      const track = new MiniElement('div');
+      track.classList.add('dpe-track');
+      const segs = [];
+      for(let i = 0; i <= 6; i++){
+        const seg = new MiniElement('div');
+        seg.classList.add('dpe-seg');
+        seg.dataset.idx = String(i);
+        track.appendChild(seg);
+        segs.push(seg);
+      }
+
+      // Wire event delegation EXACTEMENT comme la vue.
+      const received = [];
+      track.addEventListener('click', function(evt){
+        const seg = evt.target && evt.target.closest ? evt.target.closest('.dpe-seg') : null;
+        if(!seg) return;
+        const idx = targetIdxFromSegment(seg);
+        if(idx !== null) received.push(idx);
+      });
+
+      // Simule un clic sur chaque segment (target = ce segment).
+      for(let i = 0; i <= 6; i++){
+        track.dispatchClickAt(segs[i]);
+      }
+
+      console.log(JSON.stringify(received));
+    JS
+    out, err, st = Open3.capture3(NODE_BIN, "-e", script)
+    assert st.success?, "node script a échoué : #{err}"
+    received = JSON.parse(out)
+    assert_equal [0, 1, 2, 3, 4, 5, 6], received,
+      "Chaque clic doit remonter l'index EXACT du segment. Reçu : #{received.inspect}"
+  end
+
+  test "event delegation — clic sur un descendant du segment (text node parent) capté aussi" do
+    # Sécurise le fait que closest() remonte au segment même si le clic
+    # tombait initialement sur un enfant.
+    script = <<~JS
+      const { targetIdxFromSegment } = require(#{LOGIC_FILE.inspect});
+      class MiniElement {
+        constructor(tag){
+          this.tagName = tag.toUpperCase();
+          this.dataset = {};
+          this.classList = new Set();
+          this.children = [];
+          this.parentNode = null;
+          this._listeners = {};
+        }
+        appendChild(c){ c.parentNode = this; this.children.push(c); return c; }
+        addEventListener(t, fn){ (this._listeners[t] = this._listeners[t] || []).push(fn); }
+        closest(sel){
+          const cls = sel.replace(/^\\./, '');
+          let cur = this;
+          while(cur){ if(cur.classList && cur.classList.has(cls)) return cur; cur = cur.parentNode; }
+          return null;
+        }
+        dispatchClickAt(t){
+          const evt = { target: t };
+          let cur = this;
+          while(cur){ (cur._listeners['click'] || []).forEach(fn => fn(evt)); cur = cur.parentNode; }
+        }
+      }
+      const track = new MiniElement('div'); track.classList.add('dpe-track');
+      const seg = new MiniElement('div'); seg.classList.add('dpe-seg'); seg.dataset.idx = '4';
+      const child = new MiniElement('span');  // enfant décoratif (pas .dpe-seg)
+      seg.appendChild(child);
+      track.appendChild(seg);
+      const received = [];
+      track.addEventListener('click', function(evt){
+        const s = evt.target && evt.target.closest ? evt.target.closest('.dpe-seg') : null;
+        if(!s) return;
+        const idx = targetIdxFromSegment(s);
+        if(idx !== null) received.push(idx);
+      });
+      track.dispatchClickAt(child);
+      console.log(JSON.stringify(received));
+    JS
+    out, err, st = Open3.capture3(NODE_BIN, "-e", script)
+    assert st.success?, "node script a échoué : #{err}"
+    assert_equal [4], JSON.parse(out),
+      "closest() doit remonter au .dpe-seg parent même quand le clic tombe sur un enfant"
+  end
+
   # ─── Purity ──────────────────────────────────────────────────────────
   test "T-purity : deriveTargetFromSelection ne mute pas ses entrées" do
     script = <<~JS

@@ -1086,18 +1086,30 @@ function initShow(){
     });
   });
 
-  // Click DIRECT sur chaque segment de la jauge — remplace la mapping
-  // géométrique du range input (fragile aux thumbWidth). Chaque .dpe-seg
-  // porte data-idx="0..6" ; on le lit et on invoque onSliderChange avec
-  // l'index EXACT. Plus jamais de clic « perdu » sur B ou E parce que le
-  // mapping thumb→value du range tombait entre deux entiers.
-  document.querySelectorAll('.dpe-seg').forEach(function(seg){
-    if(seg.dataset.idx === undefined) return;
-    seg.addEventListener('click', function(){
-      var idx = parseInt(seg.dataset.idx, 10);
-      if(!isNaN(idx)) onSliderChange(idx);
+  // Click via EVENT DELEGATION sur .dpe-track (un seul handler à la racine).
+  // Chaque .dpe-seg porte data-idx="0..6" ; targetIdxFromSegment (fonction
+  // pure de dpe_slider_logic.js) le lit sans géométrie ni arrondi.
+  //
+  // Delegation vs per-segment : bien 215 en prod montre que 7 listeners
+  // individuels laissaient certains clics (B, E) sans effet — cause
+  // exacte non tracée mais delegation évite le problème par construction :
+  //   * un seul point d'écoute → pas de risque d'attachement partiel,
+  //   * event.target.closest('.dpe-seg') capte tous les descendants
+  //     (couvre le cas où le clic tombe sur un text-node ou un enfant),
+  //   * survit à un re-rendu partiel de la track (les segments peuvent
+  //     être remplacés, le listener sur la track reste).
+  //
+  // .closest() est supporté partout (IE11 via polyfill, tous les navigateurs
+  // modernes). On garde un guard defensif au cas où.
+  var track = document.getElementById('dpe-track');
+  if(track){
+    track.addEventListener('click', function(evt){
+      var seg = evt.target && evt.target.closest ? evt.target.closest('.dpe-seg') : null;
+      if(!seg) return;
+      var idx = targetIdxFromSegment(seg);
+      if(idx !== null) onSliderChange(idx);
     });
-  });
+  }
   // Appel d'init : initialLoad=true (on cale la jauge sur SERVER_TGT_IDX,
   // pas dérivée des cases). Empêche le snap silencieux vers une cible
   // ambitieuse (ex. A) au load si des cases ont été pré-cochées par

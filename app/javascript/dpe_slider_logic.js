@@ -203,11 +203,35 @@ function computeDominatedClasses({
   return dominated;
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// Fonction PURE — lit l'index du segment cliqué depuis son data-idx.
+//
+// Utilisée par le event delegation sur .dpe-track côté vue. Extraite ici
+// pour être testable en Node avec un mock (pas de dépendance DOM native).
+//
+// Contrat :
+//   - Entrée : élément (ou mock) avec .dataset.idx string "0".."6".
+//   - Sortie : entier 0..6 si valide, sinon null.
+//   - Aucune valeur > 6 ou < 0 acceptée (protège d'un data-idx malformé).
+//
+// Motivation : le bug prod bien 214/215 « clic sur B ou E ignoré » venait
+// de la mapping GÉOMÉTRIQUE thumbWidth→value du range input. En passant
+// par un handler qui lit data-idx explicite, on court-circuite toute
+// géométrie. La fonction pure garantit que la lecture est déterministe.
+//
+function targetIdxFromSegment(seg) {
+  if (!seg || !seg.dataset || seg.dataset.idx === undefined) return null;
+  var idx = parseInt(seg.dataset.idx, 10);
+  if (isNaN(idx) || idx < 0 || idx > 6) return null;
+  return idx;
+}
+
 // ─── Double export : Node CommonJS pour les tests, global pour le browser ──
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     deriveSelectionForTarget,
     deriveTargetFromSelection,
-    computeDominatedClasses
+    computeDominatedClasses,
+    targetIdxFromSegment
   };
 }
