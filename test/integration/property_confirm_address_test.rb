@@ -71,6 +71,73 @@ class PropertyConfirmAddressTest < ActionDispatch::IntegrationTest
     p
   end
 
+  # ═══════════════════════════════════════════════════════════════════
+  # Tri-état du bandeau adresse : la vue ne doit PAS afficher un message
+  # d'échec de détection tant que le job d'extraction tourne.
+  #   ÉTAT 1 : status=analyzing (extraction en cours) → note douce, PAS
+  #            de bandeau de confirmation, PAS de formulaire.
+  #   ÉTAT 2 : analyse finie + address_detected présent → bandeau
+  #            confirmation (test "détection DPE" ci-dessous).
+  #   ÉTAT 3 : analyse finie + address_detected vide → bandeau saisie
+  #            manuelle avec formulaire (test "sans détection" ci-dessous).
+  # ═══════════════════════════════════════════════════════════════════
+
+  test "ÉTAT 1 — status=analyzing + detection vide : note douce, PAS de bandeau d'échec" do
+    p = property_sans_detection
+    p.update_columns(status: Property.statuses[:analyzing])
+
+    get property_path(p)
+    assert_response :success
+
+    # Note douce présente
+    assert_select "#address-analyzing-note", { count: 1 },
+      "Pendant l'analyse, la note douce 'recherche adresse' doit être visible"
+    assert_match(/recherchons l'adresse/i, response.body)
+
+    # Bandeau de confirmation ABSENT (pas de faux échec pendant l'extraction)
+    assert_nil css_select("#confirm-address").first,
+      "Le bandeau de confirmation ne doit PAS être rendu pendant l'analyse — " \
+      "c'est le bug prod où le libellé 'nous n'avons pas pu déduire' apparaissait alors que le job tournait"
+    refute_match(/n'avons pas pu déduire/i, response.body,
+      "Le libellé d'échec ne doit PAS coexister avec le panneau 'Analyse en cours'")
+
+    # Local-aids-locked aussi verrouillé pendant analyzing (pointe #confirm-address qui n'existe pas)
+    assert_nil css_select("#local-aids-locked").first,
+      "Le rappel 'aides locales à confirmer' ne doit pas pointer vers un bandeau absent"
+  end
+
+  test "ÉTAT 1 — status=analyzing + detection déjà remplie (course improbable) : analyzing prime encore" do
+    # Cas limite : le job a déjà posé address_detected mais status n'est
+    # pas encore basculé à :analyzed (transaction en cours). On préfère
+    # laisser le polling reload plutôt que d'afficher un bandeau avant
+    # que le status ne le confirme.
+    p = property_avec_detection
+    p.update_columns(status: Property.statuses[:analyzing])
+
+    get property_path(p)
+    assert_response :success
+
+    assert_select "#address-analyzing-note", { count: 1 }
+    assert_nil css_select("#confirm-address").first,
+      "Tant qu'analyzing, la note prime — le polling rafraîchira dès le passage à :analyzed"
+  end
+
+  test "ÉTAT 3 — status=analyzed + detection vide : bandeau saisie manuelle" do
+    p = property_sans_detection
+    # Property.new + save(validate:false) laisse status=draft (0). Draft
+    # = analyse terminée (avec ou sans succès) donc on montre le bandeau.
+    # Ici on est explicite : draft ≠ analyzing.
+    refute p.analyzing?, "Fixture doit être hors :analyzing"
+
+    get property_path(p)
+    assert_response :success
+
+    assert_select "#confirm-address", { count: 1 }
+    assert_match(/n'avons pas pu déduire/i, response.body)
+    # Note douce absente une fois hors analyzing
+    assert_nil css_select("#address-analyzing-note").first
+  end
+
   # ── 1. Bandeau visible quand address est vide, texte source explicite ──
   test "bandeau visible avec détection DPE — texte source, valeurs pré-remplies" do
     p = property_avec_detection(source: "dpe")

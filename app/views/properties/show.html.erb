@@ -159,22 +159,39 @@
 
 <div class="sh">
 
-<%# ── Bandeau confirmation d'adresse (C5) ────────────────────────────────
-     Affiché tant que Property#address est vide (parcours "documents sans
-     adresse", C2). Deux cas :
-       - address_detected présent → pré-remplir le formulaire avec ce que
-         le LLM a lu et proposer la validation.
-       - address_detected vide → nous n'avons rien pu déduire, saisie
-         manuelle 100 %.
-     Dans les DEUX cas, poste vers PropertiesController#confirm_address :
-     un seul endroit qui pose address_confirmed_at + relance geocoding
-     + LocalAidCalculator (C6). Rien de calculé tant que ce clic n'a pas
-     eu lieu.
-     Ne s'affiche que pour le propriétaire ou le claimant du navigateur —
-     un visiteur random d'un bien published ne verrait rien de toute
-     façon (le bien ne peut PAS être published sans address confirmée,
-     cf. C2 validation address_confirmed_when_published). %>
-<% if can_see_full_dossier && @property.address.blank? %>
+<%= render "analysis_status", property: @property %>
+
+<%# ── Adresse : tri-état exclusif quand @property.address est vide ─────
+     ÉTAT 1 : analyzing → note douce "Nous recherchons l'adresse…". Pas
+              de bandeau d'échec ni de formulaire (l'extraction tourne).
+     ÉTAT 2 : analyse finie + address_detected présent → bandeau
+              confirmation (source affichée, valeurs pré-remplies).
+     ÉTAT 3 : analyse finie + address_detected vide → bandeau saisie
+              manuelle avec formulaire.
+     Dans les états 2 et 3, un seul endpoint : confirm_address_property_path
+     (pose address_confirmed_at, relance geocoding + LocalAidCalculator).
+     Réservé au propriétaire / claimant — un visiteur random est déjà
+     exclu par la validation address_confirmed_when_published (C2). %>
+
+<%# État 1 — En cours d'analyse : note neutre, pas de formulaire.
+     Le polling controller (cf. _analysis_status) reload la page dès
+     que le status quitte "analyzing", et cette note est remplacée par
+     le bon bandeau (état 2 ou 3) au reload. -%>
+<% if can_see_full_dossier && @property.address.blank? && @property.analyzing? %>
+  <div id="address-analyzing-note"
+       style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+    <span style="font-size:1.1rem;line-height:1;">🔍</span>
+    <p style="font-size:.85rem;color:#1e40af;margin:0;line-height:1.4;">
+      Nous recherchons l'adresse dans vos documents… vous pourrez la confirmer dès la fin de l'analyse.
+    </p>
+  </div>
+<% end %>
+
+<%# États 2 et 3 — Analyse terminée, address toujours vide → confirmation.
+     `unless analyzing?` verrouille : pendant l'extraction, address_detected
+     est nil par nature (le job n'a pas tourné) et cette branche
+     déclencherait à tort le libellé "Nous n'avons pas pu déduire". -%>
+<% if can_see_full_dossier && @property.address.blank? && !@property.analyzing? %>
   <% detected = @property.address_detected.present? %>
   <div class="cd" id="confirm-address" style="background:#fef3c7;border:1px solid #fbbf24;border-radius:12px;padding:20px 24px;margin-bottom:16px;">
     <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;">
@@ -220,8 +237,6 @@
     <% end %>
   </div>
 <% end %>
-
-<%= render "analysis_status", property: @property %>
 
 <%# ── HEADER avec photo ────────────────────────────────────── %>
 <div class="cd">
@@ -526,8 +541,11 @@
      doit voir dès ce moment le lien vers le bandeau de confirmation.
      Restreint à can_see_full_dossier pour ne pas révéler ce message à
      un visiteur random d'un bien published — de toute façon exclu par
-     la validation address_confirmed_when_published (C2). -%>
-<% if can_see_full_dossier && @property.address.blank? %>
+     la validation address_confirmed_when_published (C2).
+     Aussi gardé par !analyzing? : pendant l'extraction, l'ancre
+     #confirm-address n'existe pas encore (état 1 du tri-état adresse),
+     et pointer vers un bandeau absent serait trompeur. -%>
+<% if can_see_full_dossier && @property.address.blank? && !@property.analyzing? %>
   <div class="cd" id="local-aids-locked" style="background:#faf5ff;border:2px dashed #c4b5fd;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
     <p class="bod" style="margin:0;font-size:.85rem;color:#5b21b6;line-height:1.5;">
       🏛️ <strong>Vos aides locales</strong> (Grand Nancy, EPCI…)
