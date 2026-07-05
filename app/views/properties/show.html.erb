@@ -421,11 +421,19 @@
                atteignable. Le clamp à cur_idx-1 (on ne peut pas cibler un DPE
                pire ou égal au DPE actuel) est fait en JS dans onSliderChange.
                Non rendu quand la matrice est absente : rien à projeter,
-               donc pas de contrôle interactif. %>
+               donc pas de contrôle interactif.
+
+               `bottom:0` (et non `top:0`) : le parent contient AUSSI la
+               rangée "▼ actuel" (~16px) AU-DESSUS de la track. Avec
+               top:0, le slider chevauchait la rangée et laissait le bas
+               des lettres A→G (les ~16 derniers pixels de la track) hors
+               hit-area — les clics sur le bas de "E" tombaient à côté et
+               semblaient "ignorés". Anchoré en bas, le range couvre
+               exactement la track. %>
           <input type="range" id="dpe-slider"
                  min="0" max="6" step="1"
                  value="<%= tgt_idx %>"
-                 style="position:absolute;top:0;left:0;width:100%;height:48px;opacity:0;cursor:grab;margin:0;z-index:10;"
+                 style="position:absolute;bottom:0;left:0;width:100%;height:48px;opacity:0;cursor:grab;margin:0;z-index:10;"
                  oninput="onSliderChange(this.value)">
         <% end %>
       </div>
@@ -912,8 +920,13 @@ function extractTravauxCosts(){
 }
 
 // Affiche le microtexte de recalage : "Bonne nouvelle : atteindre D coûte
-// moins cher que E — objectif recalé sur D". Le message disparaît à la
-// manipulation suivante (checkbox click → clearRecaleNote).
+// moins cher que E — objectif recalé sur D". Persistance minimum 6s pour
+// laisser à l'utilisateur le temps de le lire ; effacé plus tôt UNIQUEMENT
+// par une action utilisateur (nouveau drag, coche/décoche) — pas par des
+// cascades internes (recalcTravaux appelé par onSliderChange n'efface pas).
+var RECALE_NOTE_TIMER = null;
+var RECALE_NOTE_MS    = 6000;
+
 function showRecaleNote(clickedIdx, derivedIdx){
   var el = document.getElementById('dpe-recale-note');
   if(!el) return;
@@ -923,11 +936,17 @@ function showRecaleNote(clickedIdx, derivedIdx){
                    ' coûte moins cher que ' + clicked +
                    ' — objectif recalé sur ' + derived + '.';
   el.style.display = 'block';
+  if(RECALE_NOTE_TIMER) clearTimeout(RECALE_NOTE_TIMER);
+  RECALE_NOTE_TIMER = setTimeout(function(){
+    if(el) el.style.display = 'none';
+    RECALE_NOTE_TIMER = null;
+  }, RECALE_NOTE_MS);
 }
 
 function clearRecaleNote(){
   var el = document.getElementById('dpe-recale-note');
   if(el) el.style.display = 'none';
+  if(RECALE_NOTE_TIMER){ clearTimeout(RECALE_NOTE_TIMER); RECALE_NOTE_TIMER = null; }
 }
 
 function onSliderChange(newTgtVal){
@@ -970,20 +989,22 @@ function onSliderChange(newTgtVal){
     cb.checked = checkedSet.has(row.dataset.code);
   });
 
-  // Recalcul complet : le label/pin est dérivé des cases APRÈS cascade.
-  // recalcTravaux positionne le pin sur res.derivedClasseIdx (via
-  // deriveTargetFromSelection qui relit les cases).
-  recalcTravaux();
-
-  // Microtexte "recalé" : révélé si la classe dérivée est STRICTEMENT
-  // MEILLEURE que celle cliquée (le user visait E, on lui donne D moins
-  // cher). Le cas pessimist (classe dérivée > cliquée) est un vrai échec
-  // "on n'a pas atteint la cible" — même flag mais message différent
-  // serait faisable ; pour l'instant on garde le format positif car en
-  // pratique le pessimist est très rare (matrice tronquée).
+  // Deux chemins visuels distincts selon qu'il y a recalage ou non.
   if(res.recale && res.derivedClasseIdx < tgtIdx){
+    // ── Recalage : animation "j'ai cliqué E, on m'emmène à D" ──
+    // 1. Pin visible sur la classe cliquée (CSS transition .3s cubic-bezier
+    //    sur `.pin.left` fait le mouvement depuis la position précédente).
+    // 2. Microtexte affiché immédiatement (persistant 6s minimum).
+    // 3. À +200ms, recalcTravaux() met le pin sur la classe dérivée +
+    //    met à jour le budget/aides. La CSS transition ré-interrompue
+    //    fait "s'infléchir" le pin de E vers D — l'œil suit le recalage
+    //    au lieu de conclure "mon clic n'a pas marché".
+    updateJaugeDPE(tgtIdx);
     showRecaleNote(tgtIdx, res.derivedClasseIdx);
+    setTimeout(function(){ recalcTravaux(); }, 200);
   } else {
+    // ── Nominal : pas de recalage, tout à jour immédiatement.
+    recalcTravaux();
     clearRecaleNote();
   }
 }
@@ -992,11 +1013,11 @@ function onSliderChange(newTgtVal){
 // Met aussi à jour le hidden field form-dpe-target pour que le submit
 // persiste la cible DPE courante en DB.
 //
-// AFFORDANCE segments dominés : les segments marqués data-dominated=1 par
-// initShow (classes qui ne seront jamais un point d'arrivée du slider —
-// cliquer dessus recale toujours vers une classe meilleure) restent à
-// opacité réduite MÊME quand ils sont dans la zone highlighted [tgtIdx,CUR].
-// L'utilisateur voit dès le repos que ces classes sont "dominées".
+// Met à jour uniquement l'affichage de la jauge (sans toucher les cases).
+// L'affordance "dominée" (barré + hachures) est appliquée au chargement
+// dans initShow et RESTE PERSISTANTE — pas de logique conditionnelle ici
+// (le user disait « étape sautée, pas cassée » : la couleur reste normale
+// pour ne pas donner l'impression que le segment est désactivé).
 function updateJaugeDPE(tgtIdx){
   var pin=document.getElementById('pin-tgt');
   var dot=document.getElementById('pin-tgt-dot');
@@ -1007,11 +1028,7 @@ function updateJaugeDPE(tgtIdx){
   if(lbl){ lbl.textContent=dpe_all[tgtIdx]; }
   if(hiddenTgt){ hiddenTgt.value=dpe_all[tgtIdx]; }
   document.querySelectorAll('.dpe-seg').forEach(function(seg,i){
-    if(seg.dataset.dominated === '1'){
-      seg.style.opacity = '0.2';
-    } else {
-      seg.style.opacity = (i>=tgtIdx && i<=CUR) ? '1' : '0.4';
-    }
+    seg.style.opacity = (i>=tgtIdx && i<=CUR) ? '1' : '0.4';
   });
 }
 
@@ -1078,9 +1095,18 @@ function initShow(){
   // ── Affordance : classes dominées ──────────────────────────────────
   // Une classe est DOMINÉE quand cliquer dessus recale toujours vers une
   // classe meilleure (cas E→D observé en prod). On marque les segments
-  // correspondants au chargement (opacité réduite + title explicatif)
-  // pour que l'utilisateur voie AVANT de cliquer que ces classes ne sont
-  // pas des points d'arrivée utiles.
+  // correspondants au chargement pour que l'utilisateur voie AVANT de
+  // cliquer que ces classes ne sont pas des points d'arrivée utiles.
+  //
+  // Message visuel : « étape sautée, pas cassée ». On garde la couleur
+  // du segment à opacité normale (ne pas donner l'impression que le
+  // segment est désactivé) et on superpose :
+  //   - text-decoration: line-through  → la lettre est barrée,
+  //   - background-image hachures diag → motif "traversé" par-dessus la couleur,
+  //   - title (tooltip)                → explication au survol,
+  //   - dataset.dominated              → hook pour tests / débogage.
+  // Au clic (via la hit-area du slider), showRecaleNote s'affiche déjà —
+  // le user voit à la fois la modification visuelle du pin ET le microtexte.
   if(DPE_MATRIX){
     var costsInit = extractTravauxCosts();
     var dominated = computeDominatedClasses({
@@ -1093,8 +1119,16 @@ function initShow(){
       var seg = segs[i];
       if(!seg) return;
       seg.dataset.dominated = '1';
+      seg.style.textDecoration = 'line-through';
+      seg.style.textDecorationThickness = '2px';
+      // Hachures diagonales : préserve la couleur de fond (non écrasée
+      // car backgroundColor et backgroundImage sont deux propriétés
+      // distinctes en CSS ; l'image se pose PAR-DESSUS la couleur).
+      seg.style.backgroundImage =
+        'repeating-linear-gradient(45deg,' +
+        ' transparent 0 4px,' +
+        ' rgba(255,255,255,0.35) 4px 6px)';
       seg.style.cursor = 'help';
-      // Reformuler proprement quelle classe le drag choisirait à la place.
       var alt = deriveSelectionForTarget({
         currentDpeIdx: CUR, targetIdx: i,
         combinaisons: DPE_MATRIX.combinaisons, travauxCosts: costsInit
@@ -1103,13 +1137,6 @@ function initShow(){
                   'atteindre ' + dpe_all[alt.derivedClasseIdx] +
                   ' coûte moins cher. La jauge recalera automatiquement.';
     });
-    // Applique tout de suite l'opacité 0.2 sur les segments dominés (avant
-    // le prochain updateJaugeDPE, qui les respectera).
-    if(dominated.length){
-      var tgtNow = document.getElementById('form-dpe-target');
-      var curTgtIdx = tgtNow ? dpe_all.indexOf(tgtNow.value) : SERVER_TGT_IDX;
-      if(curTgtIdx >= 0) updateJaugeDPE(curTgtIdx);
-    }
   }
 
   // Fallback scroll vers l'ancre (#aides, #financement, #travaux).

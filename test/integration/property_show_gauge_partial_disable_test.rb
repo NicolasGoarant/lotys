@@ -143,6 +143,44 @@ class PropertyShowGaugePartialDisableTest < ActionDispatch::IntegrationTest
       "Le marqueur textuel « ▼ actuel » reste présent aussi avec matrice")
   end
 
+  # ── 4a. Microtext de recalage en DOM (masqué, révélé par JS) ─────────
+  # Anti-régression du bug prod où le microtexte manquait — le user disait
+  # « la jauge ne répond pas ». Il doit exister au premier rendu HTML pour
+  # être révélable par onSliderChange côté client. Test de PRÉSENCE et
+  # d'état initial masqué (display:none).
+  test "matrice présente → #dpe-recale-note en DOM, masqué initialement" do
+    p = creer_bien(surface: 118, construction_year: 1928, dpe_class: "F")
+    get property_path(p)
+    assert_response :success
+
+    assert_select "#dpe-recale-note", { count: 1 },
+      "Le microtexte de recalage doit être présent dans le DOM au premier rendu"
+    note_html = css_select("#dpe-recale-note").first.to_s
+    assert_match(/display\s*:\s*none/i, note_html,
+      "Le microtexte doit démarrer masqué (affiché par JS au recalage). HTML: #{note_html}")
+  end
+
+  # ── 4b. Hit-area slider : bottom:0 (pas top:0) ──────────────────────
+  # Le parent contient AUSSI la rangée "▼ actuel" (~16px) au-dessus de la
+  # track (48px). Avec top:0, le range input laissait ~16 derniers pixels
+  # de la track HORS hit-area — clics sur le bas des lettres ignorés en
+  # prod. Fix : bottom:0 ancre le slider en bas du parent, couvre la
+  # track exactement.
+  test "matrice présente → slider ancré bottom:0 pour couvrir toute la track" do
+    p = creer_bien(surface: 118, construction_year: 1928, dpe_class: "F")
+    get property_path(p)
+
+    slider = css_select("input#dpe-slider").first
+    assert slider, "Slider présent"
+    style = slider["style"].to_s
+    assert_match(/bottom\s*:\s*0/i, style,
+      "Le slider doit être ancré en bas (bottom:0) — sans quoi une partie de la track " \
+      "reste hors hit-area et les clics sur le bas des segments sont perdus. " \
+      "Style : #{style.inspect}")
+    refute_match(/top\s*:\s*0[^%]/i, style,
+      "Ne PAS revenir à top:0 (bug prod hit-area)")
+  end
+
   private
 
   def set_signed_cookie(name, value)
