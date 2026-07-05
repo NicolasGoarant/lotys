@@ -59,7 +59,8 @@ function deriveSelectionForTarget({
   currentDpeIdx,
   targetIdx,
   combinaisons,
-  travauxCosts
+  travauxCosts,
+  availableCodes
 }) {
   const noop = { checked: [], derivedClasseIdx: currentDpeIdx, recale: false };
 
@@ -69,6 +70,18 @@ function deriveSelectionForTarget({
 
   const ORDRE = "ABCDEFG";
   const costs = travauxCosts || {};
+  // FILTRE PÉRIMÈTRE ACTIONNABLE (bug bien 215) : PropertyDpeMatrixService
+  // calcule TOUJOURS 2^7 combinaisons, mais la vue ne rend une checkbox
+  // que pour les gestes proposés par Claude (travaux_groupes). Si l'algo
+  // renvoyait `menuiseries` alors qu'aucune case ne l'incarne, le set
+  // final coché est amputé silencieusement et la classe re-dérivée
+  // s'écarte de la classe annoncée. On écarte donc ici toute combinaison
+  // qui requiert un code hors availableCodes.
+  //   - availableCodes = Array de codes présents dans le DOM (data-code
+  //     sur .travail-check),
+  //   - null/undefined = pas de filtre (rétro-compat pour tests unitaires
+  //     et cas où l'appelant ne connaît pas le périmètre).
+  const available = availableCodes ? new Set(availableCodes) : null;
 
   // Énumération : chaque entrée valide → {codes, classeIdx, cost}.
   const options = [];
@@ -79,6 +92,10 @@ function deriveSelectionForTarget({
     const classeIdx = ORDRE.indexOf(entry.classe);
     if (classeIdx < 0) continue;
     const codes = key === "" ? [] : key.split(",");
+    // Filtre périmètre : combinaison écartée dès qu'un code n'est pas
+    // dans le DOM. Une sélection partielle donnerait une classe finale
+    // différente à la re-dérivation → mensonge.
+    if (available && codes.some(function(c){ return !available.has(c); })) continue;
     let cost = 0;
     for (let i = 0; i < codes.length; i++) {
       cost += costs[codes[i]] || 0;
@@ -188,15 +205,20 @@ function deriveTargetFromSelection({
 function computeDominatedClasses({
   currentDpeIdx,
   combinaisons,
-  travauxCosts
+  travauxCosts,
+  availableCodes
 }) {
   const dominated = [];
   for (let i = 0; i < currentDpeIdx; i++) {
+    // MÊME périmètre availableCodes que deriveSelectionForTarget — sinon
+    // l'affordance mentirait (« E dominé par D » alors que la sélection
+    // D pour ce bien exigerait un geste sans checkbox).
     const res = deriveSelectionForTarget({
       currentDpeIdx,
       targetIdx: i,
       combinaisons,
-      travauxCosts
+      travauxCosts,
+      availableCodes
     });
     if (res.derivedClasseIdx < i) dominated.push(i);
   }

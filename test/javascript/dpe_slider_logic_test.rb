@@ -82,12 +82,14 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
   end
 
   def derive(current_dpe_idx:, target_idx:,
-             combinaisons: COMBI_SYNTH, costs: COSTS_SYNTH)
+             combinaisons: COMBI_SYNTH, costs: COSTS_SYNTH,
+             available_codes: nil)
     run_derive(
-      currentDpeIdx: current_dpe_idx,
-      targetIdx:     target_idx,
-      combinaisons:  combinaisons,
-      travauxCosts:  costs
+      currentDpeIdx:  current_dpe_idx,
+      targetIdx:      target_idx,
+      combinaisons:   combinaisons,
+      travauxCosts:   costs,
+      availableCodes: available_codes
     )
   end
 
@@ -224,6 +226,122 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
     assert_equal [],  r["checked"]
     assert_equal 5,   r["derivedClasseIdx"]
     assert_equal false, r["recale"]
+  end
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # availableCodes — filtre "périmètre actionnable" (bug bien 215)
+  # ═════════════════════════════════════════════════════════════════════════
+  # La matrice serveur (PropertyDpeMatrixService) porte 7 gestes fixes, la
+  # vue rend une checkbox pour chaque code Claude a proposé. Le filtre
+  # empêche l'algorithme de renvoyer une sélection contenant un code sans
+  # checkbox correspondante (sinon amputation silencieuse → classe finale
+  # ≠ classe annoncée).
+
+  test "availableCodes — aucune sélection ne contient un code hors périmètre" do
+    # Périmètre restreint : pas de menuiseries ni de vmc.
+    available = %w[isolation_murs chauffage isolation_toiture]
+
+    # On balaye toutes les cibles A→F.
+    (0..5).each do |tgt|
+      r = derive(current_dpe_idx: 5, target_idx: tgt,
+                 available_codes: available)
+      r["checked"].each do |c|
+        assert_includes available, c,
+          "tgt=#{tgt} : sélection contient '#{c}' hors availableCodes. " \
+          "checked=#{r["checked"].inspect}"
+      end
+    end
+  end
+
+  test "REPRO bug bien 215 — B exige menuiseries mais availableCodes ne l'a pas → recale, pas de sélection amputée" do
+    # Matrice construite pour reproduire le mécanisme : la seule combinaison
+    # qui atteint B (ou mieux) exige menuiseries. availableCodes exclut
+    # menuiseries. Résultat attendu : la sélection recale sur la meilleure
+    # classe atteignable AVEC les codes disponibles, jamais une sélection
+    # qui contiendrait menuiseries silencieusement amputée.
+    combi = {
+      ""                                                => { "classe" => "F" },
+      "chauffage"                                       => { "classe" => "D" },  # sans menuiseries
+      "chauffage,menuiseries"                           => { "classe" => "B" },  # seul chemin vers B
+      "chauffage,isolation_toiture,menuiseries"         => { "classe" => "A" }
+    }
+    costs = {
+      "chauffage"         => 10,
+      "menuiseries"       => 100,
+      "isolation_toiture" => 50
+    }
+    available = %w[chauffage isolation_toiture]  # PAS de menuiseries
+
+    r = derive(current_dpe_idx: 5, target_idx: 1,  # cible B
+               combinaisons: combi, costs: costs,
+               available_codes: available)
+
+    # La sélection ne doit PAS contenir menuiseries.
+    refute_includes r["checked"], "menuiseries",
+      "Ne doit JAMAIS renvoyer une sélection contenant menuiseries " \
+      "quand elle n'est pas dans availableCodes. checked=#{r["checked"].inspect}"
+
+    # Pessimist : classe > B (=1) atteignable avec les codes dispos.
+    # chauffage seul → D (=3). Retour = ["chauffage"], derived=3, recale=true.
+    assert_equal ["chauffage"], r["checked"]
+    assert_equal 3, r["derivedClasseIdx"],
+      "Doit dériver honnêtement à D (chauffage seul), pas prétendre atteindre B"
+    assert_equal true, r["recale"],
+      "Recale posé car dérivée (D) ≠ cible (B) — la vue affichera le microtexte"
+  end
+
+  test "bouclage : classe dérivée des cases COCHABLES == derivedClasseIdx retourné" do
+    # Verrou de cohérence : pour toute cible, res.derivedClasseIdx (annoncée
+    # par deriveSelectionForTarget) DOIT coïncider avec ce que
+    # deriveTargetFromSelection donnerait à partir de res.checked. Preuve
+    # que la vue peut cocher res.checked ET afficher res.derivedClasseIdx
+    # sans que le pin rebondisse à la re-dérivation.
+    available = %w[isolation_murs chauffage isolation_toiture]
+    (0..4).each do |tgt|
+      r = derive(current_dpe_idx: 5, target_idx: tgt,
+                 combinaisons: COMBI_SYNTH, costs: COSTS_SYNTH,
+                 available_codes: available)
+      idx_from_cases = run_target(r["checked"],
+                                  combinaisons: COMBI_SYNTH,
+                                  current_dpe_idx: 5)
+      assert_equal r["derivedClasseIdx"], idx_from_cases,
+        "tgt=#{tgt}, checked=#{r["checked"].inspect} : " \
+        "annoncé #{r["derivedClasseIdx"]} vs re-dérivé #{idx_from_cases}"
+    end
+  end
+
+  test "availableCodes null (backward compat) — aucun filtre, comportement historique" do
+    # Sans availableCodes, on garde exactement le résultat des tests
+    # antérieurs. Garantit qu'on n'a pas cassé le contrat pour les
+    # appelants qui ne fournissent pas le périmètre.
+    with    = derive(current_dpe_idx: 5, target_idx: 4)  # nil default
+    without = derive(current_dpe_idx: 5, target_idx: 4, available_codes: nil)
+    assert_equal with, without
+  end
+
+  test "computeDominatedClasses respecte availableCodes (affordance non menteuse)" do
+    # Sur COMBI_E_DOMINE, sans filtre, E est dominée par D.
+    # Si D exige un code sans checkbox (ex : mur), l'affordance mentirait
+    # (« E dominée par D » alors qu'on ne peut PAS atteindre D dans l'UI).
+    # Avec availableCodes=[toiture uniquement], D devient inatteignable →
+    # E n'est plus dominée par D.
+    available = %w[isolation_toiture]
+    payload = {
+      currentDpeIdx: 5,
+      combinaisons:  COMBI_E_DOMINE,
+      travauxCosts:  COSTS_E_DOMINE,
+      availableCodes: available
+    }.to_json
+    script = <<~JS
+      const { computeDominatedClasses } = require(#{LOGIC_FILE.inspect});
+      console.log(JSON.stringify(computeDominatedClasses(JSON.parse(process.argv[1]))));
+    JS
+    out, err, st = Open3.capture3(NODE_BIN, "-e", script, payload)
+    assert st.success?, "node script a échoué : #{err}"
+    dominated = JSON.parse(out)
+    refute_includes dominated, 4,
+      "E ne doit PAS être dominée quand D (via murs) n'est pas dans availableCodes. " \
+      "Obtenu : #{dominated.inspect}"
   end
 
   # ─── Pureté ───────────────────────────────────────────────────────────

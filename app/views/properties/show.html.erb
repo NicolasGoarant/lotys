@@ -920,6 +920,21 @@ function extractTravauxCosts(){
   return costs;
 }
 
+// Helper : liste des codes RÉELLEMENT actionnables dans l'UI (data-code
+// sur chaque .travail-check). Bug bien 215 : la matrice serveur porte 7
+// gestes fixes mais la vue ne rend une checkbox que pour ce que Claude
+// a proposé — sans ce périmètre, deriveSelectionForTarget pouvait rendre
+// un ensemble contenant `menuiseries` alors qu'aucune case ne l'incarne,
+// résultant en une sélection amputée puis une classe re-dérivée qui
+// s'écarte de la classe annoncée.
+function extractAvailableCodes(){
+  var codes = [];
+  document.querySelectorAll('.travail-check').forEach(function(row){
+    if(row.dataset.code) codes.push(row.dataset.code);
+  });
+  return codes;
+}
+
 // Affiche le microtexte de recalage : "Bonne nouvelle : atteindre D coûte
 // moins cher que E — objectif recalé sur D". Persistance minimum 6s pour
 // laisser à l'utilisateur le temps de le lire ; effacé plus tôt UNIQUEMENT
@@ -973,12 +988,31 @@ function onSliderChange(newTgtVal){
   // LE MOINS CHER dont la classe dérivée est <= tgtIdx. Peut donc être
   // MEILLEURE que ce qui a été cliqué — flag `recale` posé pour qu'on
   // affiche honnêtement le décalage à l'utilisateur.
+  // availableCodes = périmètre des cases réellement présentes dans le
+  // DOM. Sans ce filtre, la fonction renvoyait un set incluant des codes
+  // sans checkbox (bug bien 215).
+  var availableCodes = extractAvailableCodes();
   var res = deriveSelectionForTarget({
     currentDpeIdx:  CUR,
     targetIdx:      tgtIdx,
     combinaisons:   DPE_MATRIX.combinaisons,
-    travauxCosts:   extractTravauxCosts()
+    travauxCosts:   extractTravauxCosts(),
+    availableCodes: availableCodes
   });
+
+  // Garde-fou : après le filtre availableCodes, res.checked ne devrait
+  // JAMAIS contenir de code sans checkbox. Si ça arrive quand même
+  // (régression future ou incohérence de source), on loggue bruyamment
+  // — un console.error explicite fait gagner une journée de debug.
+  var availSet = new Set(availableCodes);
+  var missing = res.checked.filter(function(c){ return !availSet.has(c); });
+  if(missing.length){
+    console.error(
+      '[jauge DPE] Sélection contient des codes sans checkbox : ' + missing.join(', ') +
+      '. Filtre availableCodes défaillant ou source DOM incohérente ' +
+      '(cf. deriveSelectionForTarget dans app/javascript/dpe_slider_logic.js).'
+    );
+  }
 
   // Écriture DOM : on coche exactement ce que res.checked contient,
   // on décoche le reste. Sacrifice assumé "cochage manuel ne survit
@@ -1134,11 +1168,13 @@ function initShow(){
   // Au clic (via la hit-area du slider), showRecaleNote s'affiche déjà —
   // le user voit à la fois la modification visuelle du pin ET le microtexte.
   if(DPE_MATRIX){
-    var costsInit = extractTravauxCosts();
+    var costsInit    = extractTravauxCosts();
+    var availInit    = extractAvailableCodes();
     var dominated = computeDominatedClasses({
-      currentDpeIdx: CUR,
-      combinaisons:  DPE_MATRIX.combinaisons,
-      travauxCosts:  costsInit
+      currentDpeIdx:  CUR,
+      combinaisons:   DPE_MATRIX.combinaisons,
+      travauxCosts:   costsInit,
+      availableCodes: availInit
     });
     var segs = document.querySelectorAll('.dpe-seg');
     dominated.forEach(function(i){
@@ -1147,17 +1183,16 @@ function initShow(){
       seg.dataset.dominated = '1';
       seg.style.textDecoration = 'line-through';
       seg.style.textDecorationThickness = '2px';
-      // Hachures diagonales : préserve la couleur de fond (non écrasée
-      // car backgroundColor et backgroundImage sont deux propriétés
-      // distinctes en CSS ; l'image se pose PAR-DESSUS la couleur).
       seg.style.backgroundImage =
         'repeating-linear-gradient(45deg,' +
         ' transparent 0 4px,' +
         ' rgba(255,255,255,0.35) 4px 6px)';
       seg.style.cursor = 'help';
       var alt = deriveSelectionForTarget({
-        currentDpeIdx: CUR, targetIdx: i,
-        combinaisons: DPE_MATRIX.combinaisons, travauxCosts: costsInit
+        currentDpeIdx:  CUR, targetIdx: i,
+        combinaisons:   DPE_MATRIX.combinaisons,
+        travauxCosts:   costsInit,
+        availableCodes: availInit
       });
       seg.title = dpe_all[i] + ' n\'est pas un objectif utile pour ce bien : ' +
                   'atteindre ' + dpe_all[alt.derivedClasseIdx] +
