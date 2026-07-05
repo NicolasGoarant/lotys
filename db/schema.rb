@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_04_143530) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_05_202752) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -82,6 +82,20 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_143530) do
     t.integer "estimated_value_after_works"
     t.integer "estimated_gain_after_works"
     t.index ["property_id"], name: "index_analyses_on_property_id"
+  end
+
+  create_table "collectivites", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "slug", null: false
+    t.string "primary_color", null: false
+    t.text "welcome_text"
+    t.jsonb "insee_codes", default: [], null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_collectivites_on_active"
+    t.index ["insee_codes"], name: "index_collectivites_on_insee_codes", using: :gin
+    t.index ["slug"], name: "index_collectivites_on_slug", unique: true
   end
 
   create_table "device_simulations", force: :cascade do |t|
@@ -310,7 +324,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_143530) do
     t.string "zipcode_detected"
     t.string "address_source"
     t.datetime "address_confirmed_at"
+    t.bigint "collectivite_id"
     t.index ["claim_token"], name: "index_properties_on_claim_token", unique: true
+    t.index ["collectivite_id"], name: "index_properties_on_collectivite_id"
     t.index ["user_id"], name: "index_properties_on_user_id"
   end
 
@@ -354,6 +370,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_143530) do
   add_foreign_key "local_aid_results", "properties"
   add_foreign_key "offers", "properties"
   add_foreign_key "offers", "users"
+  add_foreign_key "properties", "collectivites", on_delete: :nullify
   add_foreign_key "properties", "users"
   add_foreign_key "valuations", "properties"
 end
