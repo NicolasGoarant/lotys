@@ -8,11 +8,14 @@
      pas une marque blanche).
      ═══════════════════════════════════════════════════════════════════ %>
 
-<% content_for :meta do %>
-  <%# SEO/partage — un vrai title et og:image par collectivité arriveront
-       en C7 (avec fallback si pas de logo attaché). Pour l'instant, la
-       structure est en place mais le fallback vit dans les balises head
-       du layout global. -%>
+<%# SEO / partage social — surcharge le title et og:image du layout
+     global via content_for (cf. layouts/application.html.erb). Le partage
+     d'un lien de portail sur un canal social affiche le nom de la
+     collectivité et son logo (ou l'og:image de Lauze en fallback). -%>
+<% content_for :title do %><%= @collectivite.name %> — Portail rénovation | Lauze<% end %>
+<% content_for :og_description do %><%= @collectivite.welcome_text.presence || "Estimez votre projet de rénovation énergétique — MaPrimeRénov', CEE et aides de la collectivité calculées automatiquement." %><% end %>
+<% if @collectivite.logo.attached? %>
+  <% content_for :og_image do %><%= url_for(@collectivite.logo) %><% end %>
 <% end %>
 
 <%# ── Bandeau branding — logo (ou initiales) + nom + welcome_text ── %>

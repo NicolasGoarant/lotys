@@ -3,7 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Lauze</title>
+  <%# Title et og:image surchargables par la vue via content_for. Fallback
+       "Lauze" si aucune vue n'a défini de titre — comportement historique
+       préservé. Utilisé notamment par le portail EPCI (C7) pour un partage
+       social crédible aux couleurs de la collectivité. %>
+  <title><%= content_for?(:title) ? yield(:title) : "Lauze" %></title>
+  <% if content_for?(:og_image) %>
+    <meta property="og:image" content="<%= yield(:og_image) %>">
+    <meta name="twitter:card"  content="summary_large_image">
+  <% end %>
+  <% if content_for?(:og_description) %>
+    <meta property="og:description" content="<%= yield(:og_description) %>">
+    <meta name="description"        content="<%= yield(:og_description) %>">
+  <% end %>
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
   <link rel="icon" href="/favicon.ico" sizes="any">

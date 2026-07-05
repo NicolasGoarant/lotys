@@ -136,4 +136,42 @@ class CollectivitesPortailTest < ActionDispatch::IntegrationTest
     assert_equal new_property_path(collectivite: "grand-nancy"), cta["href"],
       "Le CTA doit pré-paramétrer le formulaire avec le slug (rattachement C6)"
   end
+
+  # ── C7 : SEO / partage social ─────────────────────────────────────────
+
+  test "portail : title HTML contient le nom de la collectivité" do
+    setup_grand_nancy
+    get "/collectivites/grand-nancy"
+    title = css_select("title").first
+    assert title
+    assert_match "Métropole du Grand Nancy", title.text
+    assert_match "Lauze", title.text, "Garde 'Lauze' pour la reconnaissance de marque"
+  end
+
+  test "portail : meta description = welcome_text (partage social)" do
+    setup_grand_nancy
+    get "/collectivites/grand-nancy"
+    assert_select "meta[name='description'][content*='Bienvenue']"
+  end
+
+  test "portail sans logo attaché : pas de meta og:image (fallback layout)" do
+    setup_grand_nancy
+    get "/collectivites/grand-nancy"
+    # Aucun logo attaché → pas d'og:image spécifique. Le partage social
+    # tombera sur les defaults du site (favicon, etc.).
+    assert_select "meta[property='og:image']", { count: 0 }
+  end
+
+  # ── Non-régression du parcours public (sans slug) ─────────────────────
+
+  test "GET / (home) rend toujours 'Lauze' comme title (fallback layout inchangé)" do
+    get "/"
+    assert_select "title", "Lauze"
+  end
+
+  test "GET /properties/new sans slug : parcours nominal inchangé, aucun rattachement" do
+    get "/properties/new"
+    assert_response :success
+    assert_select "input[type=hidden][name='property[collectivite_id]']", { count: 0 }
+  end
 end

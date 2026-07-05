@@ -159,6 +159,27 @@
 
 <div class="sh">
 
+<%# Badge portail collectivité (feature C7) : affiché UNIQUEMENT si le
+     bien est rattaché à une collectivité active (@property.collectivite
+     est nil quand le bien vient du parcours nominal OU quand le
+     rattachement a été retiré par le garde-fou C6 "hors ressort").
+     Rendu discret — c'est un signal de provenance, pas une accroche
+     visuelle. Le lien renvoie au portail pour la traçabilité. %>
+<% if @property.collectivite&.active %>
+  <a id="collectivite-badge"
+     href="<%= collectivite_portail_path(@property.collectivite.slug) %>"
+     style="display:inline-flex;align-items:center;gap:8px;
+            background:#{@property.collectivite.primary_color}12;
+            color:#{@property.collectivite.primary_color};
+            border:1px solid #{@property.collectivite.primary_color}40;
+            border-radius:999px;padding:6px 14px;
+            font-size:.78rem;font-weight:700;
+            text-decoration:none;margin-bottom:12px;">
+    <span style="opacity:.85;">🏛️</span>
+    <span>Analyse au titre du <%= @property.collectivite.name %></span>
+  </a>
+<% end %>
+
 <%= render "analysis_status", property: @property %>
 
 <%# ── Adresse : tri-état exclusif quand @property.address est vide ─────

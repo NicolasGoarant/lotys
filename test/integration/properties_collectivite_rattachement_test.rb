@@ -200,6 +200,55 @@ class PropertiesCollectiviteRattachementTest < ActionDispatch::IntegrationTest
     assert_nil p.collectivite_id
   end
 
+  # ── C7 : badge portail sur la fiche du bien ──────────────────────────
+
+  test "show : bien rattaché → badge collectivité affiché" do
+    p = Property.new(
+      claim_token: TOKEN,
+      collectivite: @grand_nancy,
+      address: "1 rue de Test", city: "Nancy", zipcode: "54000",
+      code_insee: "54395", status: :analyzed
+    )
+    p.save!
+
+    get property_path(p)
+    assert_response :success
+    assert_select "#collectivite-badge", { count: 1 }
+    assert_match "Métropole du Grand Nancy", response.body
+    # Le badge est un lien vers le portail (traçabilité provenance).
+    badge = css_select("#collectivite-badge").first
+    assert_equal collectivite_portail_path("grand-nancy"), badge["href"]
+  end
+
+  test "show : bien NON rattaché → aucun badge (parcours nominal)" do
+    p = Property.new(
+      claim_token: TOKEN,
+      collectivite: nil,
+      address: "1 rue de Test", city: "Nancy", zipcode: "54000",
+      code_insee: "54395", status: :analyzed
+    )
+    p.save!
+
+    get property_path(p)
+    assert_response :success
+    assert_select "#collectivite-badge", { count: 0 }
+  end
+
+  test "show : bien rattaché à une collectivité DÉSACTIVÉE → aucun badge (portail éteint)" do
+    p = Property.new(
+      claim_token: TOKEN, collectivite: @grand_nancy,
+      address: "1 rue de Test", city: "Nancy", zipcode: "54000",
+      code_insee: "54395", status: :analyzed
+    )
+    p.save!
+    @grand_nancy.update!(active: false)
+
+    get property_path(p)
+    assert_response :success
+    assert_select "#collectivite-badge", { count: 0 },
+      "Un bien reste rattaché en base mais la collectivité est éteinte : pas de badge"
+  end
+
   private
 
   def set_signed_cookie(name, value)
