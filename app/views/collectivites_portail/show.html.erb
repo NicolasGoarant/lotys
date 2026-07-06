@@ -30,29 +30,32 @@
 <% if @collectivite.demo? %>
   <div id="portail-demo-banner"
        style="background:#fef3c7; border-bottom:1px solid #fcd34d;
-              color:#78350f; font-size:0.85rem; line-height:1.5;
-              padding:12px 24px;">
+              color:#78350f; font-size:0.9rem; line-height:1.55;
+              padding:14px 24px;">
     <div style="max-width:960px; margin:0 auto;
-                display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
       <span aria-hidden="true"
             style="display:inline-flex; align-items:center; justify-content:center;
-                   width:24px; height:24px; border-radius:50%;
-                   background:#f59e0b; color:#fff; font-size:0.75rem; font-weight:800;
+                   width:26px; height:26px; border-radius:50%;
+                   background:#f59e0b; color:#fff; font-size:0.8rem; font-weight:800;
                    flex-shrink:0;">i</span>
       <p style="margin:0; flex:1; min-width:220px;"><strong>Page de démonstration</strong> — ce portail est un prototype présenté à la Métropole du Grand Nancy et à l'ALEC Nancy Grands Territoires. Il ne constitue pas un service officiel de la collectivité.</p>
-      <%# Logo ALEC : sobre, uniquement dans le contexte "démonstration" pour %>
-      <%# rester honnête sur la nature de la relation (pressentie, pas officielle). %>
-      <span style="display:inline-flex; align-items:center; gap:8px; flex-shrink:0;">
-        <span style="font-size:0.7rem; font-weight:700;
-                     text-transform:uppercase; letter-spacing:0.08em; opacity:0.8;">
+      <%# Logo ALEC : rendu à ~40 px pour être identifiable, aligné %>
+      <%# verticalement avec le pill "PARTENAIRE PRESSENTI". Reste DANS %>
+      <%# le bandeau ambre — contexte démo, pas co-porteur du portail. %>
+      <span style="display:inline-flex; align-items:center; gap:12px; flex-shrink:0;">
+        <span style="font-size:0.75rem; font-weight:700;
+                     text-transform:uppercase; letter-spacing:0.1em;
+                     opacity:0.85; white-space:nowrap;">
           Partenaire pressenti
         </span>
         <%= image_tag "Alec.png",
               alt: "ALEC Nancy Grands Territoires",
               id: "alec-logo",
-              style: "height:28px; width:auto; background:#fff;
-                      padding:3px 6px; border-radius:6px;
-                      border:1px solid #fcd34d;" %>
+              style: "height:40px; width:auto; background:#fff;
+                      padding:5px 10px; border-radius:8px;
+                      border:1px solid #fcd34d;
+                      box-shadow:0 1px 3px rgba(0,0,0,0.06);" %>
       </span>
     </div>
   </div>
@@ -73,10 +76,10 @@
                   radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1.6px),
                   linear-gradient(135deg, <%= primary %> 0%, <%= primary %>e0 55%, <%= primary %>a8 100%);
                 background-size: auto, auto, 22px 22px, auto;
-                padding: 56px 24px 100px;
+                padding: 64px 24px 108px;
                 color: white;">
   <div style="max-width: 960px; margin: 0 auto; position: relative;">
-    <div style="display: flex; align-items: center; gap: 24px; margin-bottom: 24px; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 28px; margin-bottom: 28px; flex-wrap: wrap;">
       <%# Trois branches d'affichage du logo, par priorité décroissante : %>
       <%# (1) Active Storage attaché — la source de vérité future, remplace tout ; %>
       <%# (2) Fallback asset statique de démo pour grand-nancy — retiré %>
@@ -105,12 +108,12 @@
       <% end %>
 
       <div style="flex: 1; min-width: 240px;">
-        <p style="margin: 0 0 6px; font-size: 0.72rem; font-weight: 800;
-                  letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.85;">
+        <p style="margin: 0 0 8px; font-size: 0.78rem; font-weight: 800;
+                  letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.9;">
           Portail rénovation énergétique
         </p>
         <h1 style="margin: 0; font-family:'Fraunces',Georgia,serif;
-                   font-size: clamp(2rem, 3.6vw, 2.75rem);
+                   font-size: clamp(2.1rem, 3.8vw, 2.9rem);
                    font-weight: 700; letter-spacing: -0.02em; line-height: 1.1;
                    text-shadow: 0 2px 12px rgba(0,0,0,0.15);">
           <%= nom %>
@@ -120,8 +123,8 @@
 
     <% if @collectivite.welcome_text.present? %>
       <p id="welcome-text"
-         style="margin: 12px 0 0; font-size: 1.08rem; line-height: 1.65;
-                max-width: 62ch; opacity: 0.95;">
+         style="margin: 18px 0 0; font-size: 1.15rem; line-height: 1.7;
+                max-width: 62ch; opacity: 0.96;">
         <%= simple_format(@collectivite.welcome_text, {}, wrapper_tag: "span") %>
       </p>
     <% end %>
@@ -131,15 +134,15 @@
 <%# ── Compteur + CTA — cartes flottantes chevauchant le bandeau. ── %>
 <%# margin-top négatif : les cartes "montent" sur le hero. Ombre plus %>
 <%# marquée pour l'effet de levée. Sur mobile, le grid empile naturellement. %>
-<section style="max-width: 960px; margin: -60px auto 0; padding: 0 24px; position: relative; z-index: 2;">
-  <div style="display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: stretch;">
+<section style="max-width: 960px; margin: -64px auto 0; padding: 0 24px; position: relative; z-index: 2;">
+  <div style="display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: stretch;">
 
     <%# Bloc compteur — donnée réelle, jamais inventée. %>
     <div style="background: white; border: 1px solid #e5e7eb; border-radius: 18px;
-                padding: 26px 24px; text-align: center;
+                padding: 30px 26px; text-align: center;
                 box-shadow: 0 18px 40px -12px rgba(15,23,42,0.18), 0 4px 12px rgba(15,23,42,0.06);">
-      <p style="margin: 0 0 8px; font-size: 0.7rem; font-weight: 800;
-                letter-spacing: 0.16em; text-transform: uppercase; color: #6b7280;">
+      <p style="margin: 0 0 12px; font-size: 0.78rem; font-weight: 800;
+                letter-spacing: 0.18em; text-transform: uppercase; color: #6b7280;">
         Près de chez vous
       </p>
       <p id="count-biens"
@@ -149,7 +152,7 @@
                 letter-spacing: -0.02em; color: <%= primary %>;">
         <%= @count_biens %>
       </p>
-      <p style="margin: 10px 0 0; font-size: 0.9rem; color: #6b7280; line-height: 1.5;">
+      <p style="margin: 14px 0 0; font-size: 1rem; color: #4b5563; line-height: 1.6;">
         <%= @count_biens == 1 ? "bien déjà analysé" : "biens déjà analysés" %>
         par des habitants
       </p>
@@ -157,14 +160,15 @@
 
     <%# Bloc CTA — link vers /properties/new pré-paramétré (rattachement C6). %>
     <div style="background: white; border: 1px solid #e5e7eb; border-radius: 18px;
-                padding: 26px 24px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;
+                padding: 30px 26px; display: flex; flex-direction: column; justify-content: space-between; gap: 20px;
                 box-shadow: 0 18px 40px -12px rgba(15,23,42,0.18), 0 4px 12px rgba(15,23,42,0.06);">
       <div>
-        <p style="margin: 0 0 8px; font-family:'Fraunces',Georgia,serif;
-                  font-size: 1.35rem; font-weight: 700; color: #0f172a; line-height: 1.2;">
+        <p style="margin: 0 0 12px; font-family:'Fraunces',Georgia,serif;
+                  font-size: 1.5rem; font-weight: 700; color: #0f172a; line-height: 1.2;
+                  letter-spacing:-0.01em;">
           Analysez votre bien
         </p>
-        <p style="margin: 0; font-size: 0.94rem; color: #4b5563; line-height: 1.55;">
+        <p style="margin: 0; font-size: 1rem; color: #475569; line-height: 1.65;">
           Estimation des travaux, aides nationales et locales, reste à charge.
           Le résultat prend 1 à 3 minutes.
         </p>
@@ -173,8 +177,8 @@
             new_property_path(collectivite: @collectivite.slug),
             id: "cta-new-property",
             style: "display: inline-block; background: #{primary};
-                    color: white; padding: 14px 22px; border-radius: 12px;
-                    font-weight: 800; font-size: 1rem; text-decoration: none; text-align: center;
+                    color: white; padding: 15px 24px; border-radius: 12px;
+                    font-weight: 800; font-size: 1.05rem; text-decoration: none; text-align: center;
                     box-shadow: 0 8px 18px -6px #{primary}80, 0 2px 6px rgba(0,0,0,0.08);" %>
     </div>
   </div>
@@ -186,22 +190,22 @@
 <%# Ne PAS remplacer par le contenu décideur de /collectivites marketing — %>
 <%# audiences distinctes (élu vs habitant). Le nom EPCI est interpolé dans 01. %>
 <%# Le point 03 reprend les engagements existants (/properties/new + /confidentialite). %>
-<section style="max-width: 960px; margin: 0 auto; padding: 64px 24px 32px;">
-  <p style="margin: 0 0 22px; font-size: 0.72rem; font-weight: 800;
-            letter-spacing: 0.16em; text-transform: uppercase; color: <%= primary %>;">
+<section style="max-width: 960px; margin: 0 auto; padding: 88px 24px 48px;">
+  <p style="margin: 0 0 28px; font-size: 0.8rem; font-weight: 800;
+            letter-spacing: 0.18em; text-transform: uppercase; color: <%= primary %>;">
     Ce que Lauze vous apporte
   </p>
 
-  <div style="display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+  <div style="display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
 
     <%# Carte 01 — pictogramme euro dans cercle (aides/calcul). %>
     <article style="background: <%= primary %>0d;
                     border: 1px solid <%= primary %>26;
-                    border-radius: 18px; padding: 26px 22px;">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                    border-radius: 18px; padding: 30px 26px;">
+      <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px;">
         <span aria-hidden="true"
               style="display: inline-flex; align-items: center; justify-content: center;
-                     width: 44px; height: 44px; border-radius: 12px;
+                     width: 48px; height: 48px; border-radius: 12px;
                      background: <%= primary %>1a; color: <%= primary %>;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="9"/>
@@ -210,25 +214,25 @@
           </svg>
         </span>
         <p style="margin: 0; font-family:'Fraunces',Georgia,serif;
-                  font-size: 0.95rem; font-weight: 700; color: <%= primary %>;
-                  letter-spacing: 0.02em;">01</p>
+                  font-size: 1.05rem; font-weight: 700; color: <%= primary %>;
+                  letter-spacing: 0.04em;">01</p>
       </div>
-      <h3 style="margin: 0 0 12px; font-family:'Fraunces',Georgia,serif;
-                 font-size: 1.35rem; font-weight: 700; color: #0f172a;
+      <h3 style="margin: 0 0 18px; font-family:'Fraunces',Georgia,serif;
+                 font-size: 1.5rem; font-weight: 700; color: #0f172a;
                  line-height: 1.2; letter-spacing: -0.01em;">
         Vos aides, calculées
       </h3>
-      <p style="margin: 0; font-size: 1rem; color: #334155; line-height: 1.7;">Les aides de <%= nom %> s'ajoutent automatiquement à MaPrimeRénov', aux CEE et à l'éco-PTZ. Vous voyez le total et votre reste à charge, à l'euro près.</p>
+      <p style="margin: 0; font-size: 1.05rem; color: #334155; line-height: 1.75;">Les aides de <%= nom %> s'ajoutent automatiquement à MaPrimeRénov', aux CEE et à l'éco-PTZ. Vous voyez le total et votre reste à charge, à l'euro près.</p>
     </article>
 
     <%# Carte 02 — pictogramme chemin/étapes (parcours). %>
     <article style="background: <%= primary %>0d;
                     border: 1px solid <%= primary %>26;
-                    border-radius: 18px; padding: 26px 22px;">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                    border-radius: 18px; padding: 30px 26px;">
+      <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px;">
         <span aria-hidden="true"
               style="display: inline-flex; align-items: center; justify-content: center;
-                     width: 44px; height: 44px; border-radius: 12px;
+                     width: 48px; height: 48px; border-radius: 12px;
                      background: <%= primary %>1a; color: <%= primary %>;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="4.5" cy="12" r="1.6"/>
@@ -240,25 +244,25 @@
           </svg>
         </span>
         <p style="margin: 0; font-family:'Fraunces',Georgia,serif;
-                  font-size: 0.95rem; font-weight: 700; color: <%= primary %>;
-                  letter-spacing: 0.02em;">02</p>
+                  font-size: 1.05rem; font-weight: 700; color: <%= primary %>;
+                  letter-spacing: 0.04em;">02</p>
       </div>
-      <h3 style="margin: 0 0 12px; font-family:'Fraunces',Georgia,serif;
-                 font-size: 1.35rem; font-weight: 700; color: #0f172a;
+      <h3 style="margin: 0 0 18px; font-family:'Fraunces',Georgia,serif;
+                 font-size: 1.5rem; font-weight: 700; color: #0f172a;
                  line-height: 1.2; letter-spacing: -0.01em;">
         Un parcours simple
       </h3>
-      <p style="margin: 0; font-size: 1rem; color: #334155; line-height: 1.7;">Déposez votre DPE : travaux prioritaires, aides et reste à charge en quelques minutes. Sans démarchage, sans création de compte obligatoire.</p>
+      <p style="margin: 0; font-size: 1.05rem; color: #334155; line-height: 1.75;">Déposez votre DPE : travaux prioritaires, aides et reste à charge en quelques minutes. Sans démarchage, sans création de compte obligatoire.</p>
     </article>
 
     <%# Carte 03 — pictogramme bouclier (protection). %>
     <article style="background: <%= primary %>0d;
                     border: 1px solid <%= primary %>26;
-                    border-radius: 18px; padding: 26px 22px;">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                    border-radius: 18px; padding: 30px 26px;">
+      <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px;">
         <span aria-hidden="true"
               style="display: inline-flex; align-items: center; justify-content: center;
-                     width: 44px; height: 44px; border-radius: 12px;
+                     width: 48px; height: 48px; border-radius: 12px;
                      background: <%= primary %>1a; color: <%= primary %>;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 3l8 3v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-3z"/>
@@ -266,15 +270,15 @@
           </svg>
         </span>
         <p style="margin: 0; font-family:'Fraunces',Georgia,serif;
-                  font-size: 0.95rem; font-weight: 700; color: <%= primary %>;
-                  letter-spacing: 0.02em;">03</p>
+                  font-size: 1.05rem; font-weight: 700; color: <%= primary %>;
+                  letter-spacing: 0.04em;">03</p>
       </div>
-      <h3 style="margin: 0 0 12px; font-family:'Fraunces',Georgia,serif;
-                 font-size: 1.35rem; font-weight: 700; color: #0f172a;
+      <h3 style="margin: 0 0 18px; font-family:'Fraunces',Georgia,serif;
+                 font-size: 1.5rem; font-weight: 700; color: #0f172a;
                  line-height: 1.2; letter-spacing: -0.01em;">
         Vos documents protégés
       </h3>
-      <p style="margin: 0; font-size: 1rem; color: #334155; line-height: 1.7;">Vos pièces (DPE, titre, factures) sont supprimées après l'analyse. Vos données ne sont jamais transmises sans votre accord.</p>
+      <p style="margin: 0; font-size: 1.05rem; color: #334155; line-height: 1.75;">Vos pièces (DPE, titre, factures) sont supprimées après l'analyse. Vos données ne sont jamais transmises sans votre accord.</p>
     </article>
   </div>
 </section>
@@ -283,24 +287,24 @@
 <%# Reprend strictement le vocabulaire de /properties/new + /confidentialite %>
 <%# + le pill "sans appel commercial" de la home. Aucune promesse nouvelle. %>
 <section id="portail-reassurance"
-         style="margin-top: 32px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
-  <div style="max-width: 960px; margin: 0 auto; padding: 22px 24px;
-              display: flex; gap: 12px 28px; flex-wrap: wrap; align-items: center; justify-content: center;
-              font-size: 0.85rem; color: #475569; line-height: 1.4;">
-    <span style="display: inline-flex; align-items: center; gap: 8px;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: #059669;">
+         style="margin-top: 48px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+  <div style="max-width: 960px; margin: 0 auto; padding: 30px 24px;
+              display: flex; gap: 16px 36px; flex-wrap: wrap; align-items: center; justify-content: center;
+              font-size: 1rem; color: #334155; line-height: 1.6;">
+    <span style="display: inline-flex; align-items: center; gap: 10px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: #059669;">
         <path d="M20 6L9 17l-5-5"/>
       </svg>
       Sans appel commercial
     </span>
-    <span style="display: inline-flex; align-items: center; gap: 8px;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: #059669;">
+    <span style="display: inline-flex; align-items: center; gap: 10px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: #059669;">
         <path d="M20 6L9 17l-5-5"/>
       </svg>
       Documents supprimés après analyse
     </span>
-    <span style="display: inline-flex; align-items: center; gap: 8px;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: #059669;">
+    <span style="display: inline-flex; align-items: center; gap: 10px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: #059669;">
         <path d="M20 6L9 17l-5-5"/>
       </svg>
       Données jamais transmises sans accord
