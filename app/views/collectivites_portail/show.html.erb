@@ -1,5 +1,5 @@
 <%# Portail collectivité (feature B2G niveau 1) — /collectivites/:slug. %>
-<%# Layout global (navbar + footer), branding EPCI = bandeau + primary_color en accent. %>
+<%# Layout global (navbar + footer), branding EPCI = primary_color en accent. %>
 <%# Principe : page Lauze aux couleurs d'un EPCI, pas une marque blanche. %>
 <%# SEO / partage social — surcharge le title et og:image du layout via content_for. %>
 <% content_for :title do %><%= @collectivite.name %> — Portail rénovation | Lauze<% end %>
@@ -14,18 +14,26 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&display=swap">
 
 <%
-  # Raccourcis locaux — le nom de la collectivité et sa couleur sont réutilisés
-  # partout ; on les capture pour lisibilité et éviter de refaire tourner le
-  # method_missing d'ActiveRecord à chaque interpolation ERB.
+  # Raccourcis locaux — le nom et la couleur sont réutilisés partout ; on les
+  # capture pour lisibilité et éviter de refaire tourner le method_missing
+  # d'ActiveRecord à chaque interpolation ERB.
   primary = @collectivite.primary_color
   nom     = @collectivite.name
+
+  # Le logo ALEC est un partenaire pressenti, PAS acquis. Il n'apparaît sur
+  # la page que dans deux cas cumulatifs :
+  #   1) la collectivité est en démonstration (le bandeau démo l'annonce
+  #      explicitement — c'est ce qui rend le co-affichage honnête),
+  #   2) la collectivité est bien grand-nancy — sinon la mention n'a aucun
+  #      sens (la démo banner texte cite d'ailleurs spécifiquement le GN).
+  show_alec = @collectivite.demo? && @collectivite.slug == "grand-nancy"
 %>
 
 <%# ── Bandeau de démonstration (opt-in via Collectivite#demo). ── %>
-<%# Affiché AU-DESSUS du hero coloré : premier signal donné à l'habitant. %>
+<%# Affiché AU-DESSUS du hero : premier signal donné à l'habitant. %>
 <%# Ambre pâle : ton neutre, ni alerte ni marketing — juste une clarification. %>
-<%# La mention ALEC vit ICI uniquement (partenaire pressenti, pas acquis) — %>
-<%# afficher son logo en partenaire officiel ailleurs sur la page serait faux. %>
+<%# Le petit logo ALEC est parti dans le hero à côté de MGN, où il est plus %>
+<%# lisible ; le bandeau garde SEULEMENT le texte (mention ALEC en toutes lettres). %>
 <%# Le jour où demo passe à false en console, tout ce bloc disparaît sans redéploiement. %>
 <% if @collectivite.demo? %>
   <div id="portail-demo-banner"
@@ -33,114 +41,144 @@
               color:#78350f; font-size:0.9rem; line-height:1.55;
               padding:14px 24px;">
     <div style="max-width:960px; margin:0 auto;
-                display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
       <span aria-hidden="true"
             style="display:inline-flex; align-items:center; justify-content:center;
                    width:26px; height:26px; border-radius:50%;
                    background:#f59e0b; color:#fff; font-size:0.8rem; font-weight:800;
                    flex-shrink:0;">i</span>
       <p style="margin:0; flex:1; min-width:220px;"><strong>Page de démonstration</strong> — ce portail est un prototype présenté à la Métropole du Grand Nancy et à l'ALEC Nancy Grands Territoires. Il ne constitue pas un service officiel de la collectivité.</p>
-      <%# Logo ALEC : rendu à ~40 px pour être identifiable, aligné %>
-      <%# verticalement avec le pill "PARTENAIRE PRESSENTI". Reste DANS %>
-      <%# le bandeau ambre — contexte démo, pas co-porteur du portail. %>
-      <span style="display:inline-flex; align-items:center; gap:12px; flex-shrink:0;">
-        <span style="font-size:0.75rem; font-weight:700;
-                     text-transform:uppercase; letter-spacing:0.1em;
-                     opacity:0.85; white-space:nowrap;">
-          Partenaire pressenti
-        </span>
-        <%= image_tag "Alec.png",
-              alt: "ALEC Nancy Grands Territoires",
-              id: "alec-logo",
-              style: "height:40px; width:auto; background:#fff;
-                      padding:5px 10px; border-radius:8px;
-                      border:1px solid #fcd34d;
-                      box-shadow:0 1px 3px rgba(0,0,0,0.06);" %>
-      </span>
     </div>
   </div>
 <% end %>
 
-<%# ── Bandeau branding — hero avec profondeur (glows + trame subtile). ── %>
-<%# background_image cumule 4 couches : glow blanc en haut-gauche, glow sombre %>
-<%# en bas-droite (relief), trame de points blancs quasi transparents (texture) %>
-<%# et dégradé diagonal primary → primary opacifié (base). primary_color pilote %>
-<%# tout — la page reste belle pour n'importe quelle couleur d'EPCI. %>
+<%# ── HERO — inspiration grandnancy.eu : fond très clair, titre noir avec ── %>
+<%# soulignement court en primary_color, décor géométrique filaire dans le %>
+<%# coin (SVG inline, dessiné ICI — aucun asset repris du site EPCI). %>
+<%# Fond = teinte primary à 3% : perceptible, lié à la charte, marche pour %>
+<%# n'importe quelle primary_color d'une autre collectivité. %>
 <section id="collectivite-portail"
          data-slug="<%= @collectivite.slug %>"
          style="position:relative;
-                background-color: <%= primary %>;
-                background-image:
-                  radial-gradient(circle at 18% 12%, rgba(255,255,255,0.18), rgba(255,255,255,0) 45%),
-                  radial-gradient(circle at 88% 85%, rgba(0,0,0,0.22), rgba(0,0,0,0) 45%),
-                  radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1.6px),
-                  linear-gradient(135deg, <%= primary %> 0%, <%= primary %>e0 55%, <%= primary %>a8 100%);
-                background-size: auto, auto, 22px 22px, auto;
+                background: <%= primary %>08;
+                border-bottom: 1px solid <%= primary %>14;
                 padding: 64px 24px 108px;
-                color: white;">
+                color: #0f172a;
+                overflow: hidden;">
+
+  <%# Décor filaire discret (angle sup. droit) — abstrait, sans référence à %>
+  <%# aucun graphique de la Métropole. Réseau de triangles ; couleur primary. %>
+  <svg width="380" height="220" viewBox="0 0 380 220" fill="none"
+       stroke="currentColor" stroke-width="0.9" stroke-linecap="round"
+       aria-hidden="true"
+       style="position:absolute; top:-10px; right:-20px;
+              color:<%= primary %>; opacity:0.22; pointer-events:none;">
+    <path d="M40 0 L200 120 L380 40"/>
+    <path d="M40 0 L120 220"/>
+    <path d="M200 120 L120 220 L280 220"/>
+    <path d="M200 120 L280 220 L380 100"/>
+    <path d="M380 40 L280 220"/>
+    <path d="M40 0 L200 120"/>
+    <circle cx="40"  cy="0"   r="2.6" fill="currentColor" stroke="none"/>
+    <circle cx="200" cy="120" r="2.6" fill="currentColor" stroke="none"/>
+    <circle cx="380" cy="40"  r="2.6" fill="currentColor" stroke="none"/>
+    <circle cx="120" cy="220" r="2.6" fill="currentColor" stroke="none"/>
+    <circle cx="280" cy="220" r="2.6" fill="currentColor" stroke="none"/>
+  </svg>
+
   <div style="max-width: 960px; margin: 0 auto; position: relative;">
-    <div style="display: flex; align-items: center; gap: 28px; margin-bottom: 28px; flex-wrap: wrap;">
-      <%# Trois branches d'affichage du logo, par priorité décroissante : %>
-      <%# (1) Active Storage attaché — la source de vérité future, remplace tout ; %>
-      <%# (2) Fallback asset statique de démo pour grand-nancy — retiré %>
-      <%#     automatiquement le jour où le logo officiel sera attaché en console ; %>
-      <%# (3) Fallback initiales générique — pour toute autre collectivité sans logo. %>
-      <% if @collectivite.logo.attached? %>
-        <%= image_tag @collectivite.logo,
-              id: "collectivite-logo",
-              alt: nom,
-              style: "height: 96px; width: auto; background: white; padding: 12px 16px; border-radius: 16px; box-shadow: 0 10px 26px rgba(0,0,0,0.20);" %>
-      <% elsif @collectivite.slug == "grand-nancy" %>
-        <%= image_tag "logo_mgn.png",
-              id: "collectivite-logo-static",
-              alt: nom,
-              style: "height: 96px; width: auto; background: white; padding: 12px 16px; border-radius: 16px; box-shadow: 0 10px 26px rgba(0,0,0,0.20);" %>
-      <% else %>
-        <div id="collectivite-initiales"
-             style="height: 96px; min-width: 96px; padding: 0 22px;
-                    background: white; color: <%= primary %>;
-                    border-radius: 16px; box-shadow: 0 10px 26px rgba(0,0,0,0.20);
-                    display: flex; align-items: center; justify-content: center;
-                    font-family:'Fraunces',Georgia,serif;
-                    font-weight: 900; font-size: 1.9rem; letter-spacing: 0.04em;">
-          <%= @collectivite.initiales %>
-        </div>
-      <% end %>
+
+    <%# Rangée LOGOS + TITRE. Sur mobile, flex-wrap:wrap fait descendre le %>
+    <%# bloc titre sous les logos. Les deux logos restent côte à côte tant que %>
+    <%# la largeur le permet (même hauteur, cadres identiques). %>
+    <div style="display: flex; align-items: center; gap: 24px;
+                margin-bottom: 32px; flex-wrap: wrap;">
+
+      <%# Rangée LOGOS interne (deux cadres identiques quand ALEC est visible). %>
+      <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+
+        <%# Trois branches d'affichage du logo principal, par priorité : %>
+        <%# (1) Active Storage attaché — source de vérité future ; %>
+        <%# (2) Fallback asset statique de démo pour grand-nancy ; %>
+        <%# (3) Fallback initiales générique pour toute autre collectivité. %>
+        <% logo_frame = "height: 88px; width: auto; background: #fff; padding: 10px 18px; border-radius: 6px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(15,23,42,0.08);" %>
+        <% if @collectivite.logo.attached? %>
+          <%= image_tag @collectivite.logo,
+                id: "collectivite-logo",
+                alt: nom,
+                style: logo_frame %>
+        <% elsif @collectivite.slug == "grand-nancy" %>
+          <%= image_tag "logo_mgn.png",
+                id: "collectivite-logo-static",
+                alt: nom,
+                style: logo_frame %>
+        <% else %>
+          <div id="collectivite-initiales"
+               style="height: 88px; min-width: 88px; padding: 0 22px;
+                      background: #fff; color: <%= primary %>;
+                      border-radius: 6px; border: 1px solid #e2e8f0;
+                      box-shadow: 0 4px 12px rgba(15,23,42,0.08);
+                      display: flex; align-items: center; justify-content: center;
+                      font-family:'Fraunces',Georgia,serif;
+                      font-weight: 900; font-size: 1.9rem; letter-spacing: 0.04em;">
+            <%= @collectivite.initiales %>
+          </div>
+        <% end %>
+
+        <%# Logo ALEC — même cadre, MÊME hauteur que MGN. Reste conditionné %>
+        <%# à demo? && grand-nancy : disparaît si la démo se termine, ne %>
+        <%# s'affiche pas pour une autre collectivité. %>
+        <% if show_alec %>
+          <%= image_tag "Alec.png",
+                id: "alec-logo",
+                alt: "ALEC Nancy Grands Territoires",
+                style: logo_frame %>
+        <% end %>
+      </div>
 
       <div style="flex: 1; min-width: 240px;">
         <p style="margin: 0 0 8px; font-size: 0.78rem; font-weight: 800;
-                  letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.9;">
+                  letter-spacing: 0.18em; text-transform: uppercase;
+                  color: <%= primary %>;">
           Portail rénovation énergétique
         </p>
         <h1 style="margin: 0; font-family:'Fraunces',Georgia,serif;
                    font-size: clamp(2.1rem, 3.8vw, 2.9rem);
-                   font-weight: 700; letter-spacing: -0.02em; line-height: 1.1;
-                   text-shadow: 0 2px 12px rgba(0,0,0,0.15);">
+                   font-weight: 900; letter-spacing: -0.02em; line-height: 1.1;
+                   color: #0f172a;">
           <%= nom %>
         </h1>
+        <%# Soulignement court primary_color — motif de titre inspiré de %>
+        <%# grandnancy.eu (barre discrète sous les titres). Angulaire (0 radius). %>
+        <div id="portail-title-underline"
+             style="margin: 16px 0 0; width: 72px; height: 5px;
+                    background: <%= primary %>; border-radius: 0;"></div>
       </div>
     </div>
 
     <% if @collectivite.welcome_text.present? %>
       <p id="welcome-text"
-         style="margin: 18px 0 0; font-size: 1.15rem; line-height: 1.7;
-                max-width: 62ch; opacity: 0.96;">
+         style="margin: 22px 0 0; font-size: 1.15rem; line-height: 1.7;
+                max-width: 62ch; color: #334155;">
         <%= simple_format(@collectivite.welcome_text, {}, wrapper_tag: "span") %>
       </p>
     <% end %>
   </div>
 </section>
 
-<%# ── Compteur + CTA — cartes flottantes chevauchant le bandeau. ── %>
-<%# margin-top négatif : les cartes "montent" sur le hero. Ombre plus %>
-<%# marquée pour l'effet de levée. Sur mobile, le grid empile naturellement. %>
-<section style="max-width: 960px; margin: -64px auto 0; padding: 0 24px; position: relative; z-index: 2;">
-  <div style="display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: stretch;">
+<%# ── Compteur + CTA — cartes flottantes, angles peu arrondis. ── %>
+<%# margin-top négatif conservé : léger chevauchement, cohérent avec le fond %>
+<%# clair du hero. Angles arrondis réduits (18 → 8) pour un ton plus anguleux. %>
+<section style="max-width: 960px; margin: -64px auto 0; padding: 0 24px;
+                position: relative; z-index: 2;">
+  <div style="display: grid; gap: 22px;
+              grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+              align-items: stretch;">
 
     <%# Bloc compteur — donnée réelle, jamais inventée. %>
-    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 18px;
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px;
                 padding: 30px 26px; text-align: center;
-                box-shadow: 0 18px 40px -12px rgba(15,23,42,0.18), 0 4px 12px rgba(15,23,42,0.06);">
+                box-shadow: 0 18px 40px -12px rgba(15,23,42,0.16), 0 4px 12px rgba(15,23,42,0.05);">
       <p style="margin: 0 0 12px; font-size: 0.78rem; font-weight: 800;
                 letter-spacing: 0.18em; text-transform: uppercase; color: #6b7280;">
         Près de chez vous
@@ -159,9 +197,10 @@
     </div>
 
     <%# Bloc CTA — link vers /properties/new pré-paramétré (rattachement C6). %>
-    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 18px;
-                padding: 30px 26px; display: flex; flex-direction: column; justify-content: space-between; gap: 20px;
-                box-shadow: 0 18px 40px -12px rgba(15,23,42,0.18), 0 4px 12px rgba(15,23,42,0.06);">
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px;
+                padding: 30px 26px; display: flex; flex-direction: column;
+                justify-content: space-between; gap: 20px;
+                box-shadow: 0 18px 40px -12px rgba(15,23,42,0.16), 0 4px 12px rgba(15,23,42,0.05);">
       <div>
         <p style="margin: 0 0 12px; font-family:'Fraunces',Georgia,serif;
                   font-size: 1.5rem; font-weight: 700; color: #0f172a; line-height: 1.2;
@@ -177,7 +216,7 @@
             new_property_path(collectivite: @collectivite.slug),
             id: "cta-new-property",
             style: "display: inline-block; background: #{primary};
-                    color: white; padding: 15px 24px; border-radius: 12px;
+                    color: white; padding: 15px 24px; border-radius: 6px;
                     font-weight: 800; font-size: 1.05rem; text-decoration: none; text-align: center;
                     box-shadow: 0 8px 18px -6px #{primary}80, 0 2px 6px rgba(0,0,0,0.08);" %>
     </div>
@@ -185,10 +224,9 @@
 </section>
 
 <%# ── Proposition de valeur — orientée HABITANT (audience du portail). ── %>
-<%# Trois colonnes en cartes légères : fond très pâle teinté primary, %>
-<%# bordure fine, coin arrondi, pictogramme SVG monoline (pas d'emoji). %>
+<%# Trois cartes avec picto SVG monoline (pas d'emoji). Angles réduits (8). %>
 <%# Ne PAS remplacer par le contenu décideur de /collectivites marketing — %>
-<%# audiences distinctes (élu vs habitant). Le nom EPCI est interpolé dans 01. %>
+<%# audiences distinctes (élu vs habitant). Nom EPCI interpolé dans 01. %>
 <%# Le point 03 reprend les engagements existants (/properties/new + /confidentialite). %>
 <section style="max-width: 960px; margin: 0 auto; padding: 88px 24px 48px;">
   <p style="margin: 0 0 28px; font-size: 0.8rem; font-weight: 800;
@@ -196,16 +234,17 @@
     Ce que Lauze vous apporte
   </p>
 
-  <div style="display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+  <div style="display: grid; gap: 22px;
+              grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
 
     <%# Carte 01 — pictogramme euro dans cercle (aides/calcul). %>
     <article style="background: <%= primary %>0d;
                     border: 1px solid <%= primary %>26;
-                    border-radius: 18px; padding: 30px 26px;">
+                    border-radius: 8px; padding: 30px 26px;">
       <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px;">
         <span aria-hidden="true"
               style="display: inline-flex; align-items: center; justify-content: center;
-                     width: 48px; height: 48px; border-radius: 12px;
+                     width: 48px; height: 48px; border-radius: 8px;
                      background: <%= primary %>1a; color: <%= primary %>;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="9"/>
@@ -228,11 +267,11 @@
     <%# Carte 02 — pictogramme chemin/étapes (parcours). %>
     <article style="background: <%= primary %>0d;
                     border: 1px solid <%= primary %>26;
-                    border-radius: 18px; padding: 30px 26px;">
+                    border-radius: 8px; padding: 30px 26px;">
       <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px;">
         <span aria-hidden="true"
               style="display: inline-flex; align-items: center; justify-content: center;
-                     width: 48px; height: 48px; border-radius: 12px;
+                     width: 48px; height: 48px; border-radius: 8px;
                      background: <%= primary %>1a; color: <%= primary %>;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="4.5" cy="12" r="1.6"/>
@@ -258,11 +297,11 @@
     <%# Carte 03 — pictogramme bouclier (protection). %>
     <article style="background: <%= primary %>0d;
                     border: 1px solid <%= primary %>26;
-                    border-radius: 18px; padding: 30px 26px;">
+                    border-radius: 8px; padding: 30px 26px;">
       <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px;">
         <span aria-hidden="true"
               style="display: inline-flex; align-items: center; justify-content: center;
-                     width: 48px; height: 48px; border-radius: 12px;
+                     width: 48px; height: 48px; border-radius: 8px;
                      background: <%= primary %>1a; color: <%= primary %>;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 3l8 3v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-3z"/>
@@ -284,12 +323,13 @@
 </section>
 
 <%# ── Bande de réassurance — engagements déjà tenus ailleurs. ── %>
-<%# Reprend strictement le vocabulaire de /properties/new + /confidentialite %>
-<%# + le pill "sans appel commercial" de la home. Aucune promesse nouvelle. %>
+<%# Reprend le vocabulaire de /properties/new + /confidentialite + le pill %>
+<%# "sans appel commercial" de la home. Aucune promesse nouvelle. %>
 <section id="portail-reassurance"
          style="margin-top: 48px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
   <div style="max-width: 960px; margin: 0 auto; padding: 30px 24px;
-              display: flex; gap: 16px 36px; flex-wrap: wrap; align-items: center; justify-content: center;
+              display: flex; gap: 16px 36px; flex-wrap: wrap;
+              align-items: center; justify-content: center;
               font-size: 1rem; color: #334155; line-height: 1.6;">
     <span style="display: inline-flex; align-items: center; gap: 10px;">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: #059669;">

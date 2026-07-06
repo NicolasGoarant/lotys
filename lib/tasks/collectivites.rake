@@ -22,8 +22,12 @@ namespace :collectivites do
     if grand_nancy.new_record?
       grand_nancy.assign_attributes(
         name:          "Métropole du Grand Nancy",
-        primary_color: "#0066a1",
-        welcome_text:  "Bienvenue habitants du Grand Nancy. " \
+        # primary_color : rouge Grand Nancy (charte grandnancy.eu). L'ancienne
+        # valeur bleue #0066a1 était une approximation avant charte définitive.
+        # Le seed ne re-force PAS ce champ sur un enregistrement existant —
+        # si l'admin l'a édité en console il est préservé (branche else plus bas).
+        primary_color: "#E30613",
+        welcome_text:  "Bienvenue aux habitants du Grand Nancy. " \
                        "Estimez votre projet de rénovation en quelques clics — " \
                        "les aides MaPrimeRénov', CEE et celles de la Métropole " \
                        "sont calculées automatiquement.",
