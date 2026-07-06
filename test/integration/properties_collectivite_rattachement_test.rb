@@ -231,6 +231,16 @@ class PropertiesCollectiviteRattachementTest < ActionDispatch::IntegrationTest
       "Style : #{style.inspect}")
     refute_match(/#\{/, style,
       'Aucune interpolation ERB "#{…}" littérale ne doit rester dans le style rendu')
+
+    # Anti-régression : aucun fragment de commentaire ERB ne doit fuiter
+    # dans le HTML rendu (bug d'un <%# … %> multi-ligne dont le corps
+    # citait un %> et refermait le tag au mauvais endroit).
+    refute_match(/CSS invalide/, response.body,
+      "Un fragment de commentaire ERB (« CSS invalide ») a fuité dans le HTML rendu")
+    refute_match(/-%>/, response.body,
+      "Un délimiteur ERB fermant '-%>' apparaît en texte visible")
+    refute_match(/badge sans couleurs/, response.body,
+      "Un fragment de commentaire ERB (« badge sans couleurs ») a fuité dans le HTML rendu")
   end
 
   test "show : bien NON rattaché → aucun badge (parcours nominal)" do

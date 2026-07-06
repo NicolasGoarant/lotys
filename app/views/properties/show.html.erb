@@ -166,11 +166,12 @@
      Rendu discret — c'est un signal de provenance, pas une accroche
      visuelle. Le lien renvoie au portail pour la traçabilité. %>
 <% if @property.collectivite&.active %>
-  <%# Extraire la couleur dans une variable Ruby : #{…} n'est PAS
-       interpolé dans du HTML brut (ERB n'évalue que dans <%= %> ou
-       <% %>), donc rendre la couleur directement dans le style="…"
-       laissait la chaîne littérale « #{@property.collectivite.primary_color}12 »
-       — CSS invalide, badge sans couleurs en prod. -%>
+  <%# Couleur extraite dans une variable Ruby AVANT le HTML. %>
+  <%# Motif : une interpolation Ruby posée dans du HTML brut n'est %>
+  <%# pas évaluée par ERB. Injecter la couleur directement dans %>
+  <%# l'attribut de style laissait donc la chaîne d'interpolation %>
+  <%# littérale dans la valeur CSS produite, ce qui rendait un %>
+  <%# badge sans couleurs en prod. %>
   <% color = @property.collectivite.primary_color %>
   <a id="collectivite-badge"
      href="<%= collectivite_portail_path(@property.collectivite.slug) %>"

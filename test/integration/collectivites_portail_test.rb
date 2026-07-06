@@ -23,6 +23,13 @@ class CollectivitesPortailTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "Métropole du Grand Nancy", response.body
     assert_select "#collectivite-portail[data-slug='grand-nancy']"
+
+    # Anti-régression : aucun fragment de commentaire ERB ne doit fuiter
+    # dans le HTML rendu du portail (même risque que sur properties/show).
+    refute_match(/-%>/, response.body,
+      "Un délimiteur ERB fermant '-%>' apparaît en texte visible sur le portail")
+    refute_match(/CSS invalide/, response.body,
+      "Un fragment de commentaire ERB (« CSS invalide ») a fuité sur le portail")
   end
 
   test "GET /collectivites/<slug inconnu> → redirect vers /collectivites avec alert" do
