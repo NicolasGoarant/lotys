@@ -3,7 +3,7 @@ class PropertiesController < ApplicationController
                                               :confirm_address, :update_income_bracket]
 
   # Lecture : propriétaire toujours, prestataire uniquement si le bien est publié.
-  before_action :set_property_for_read, only: [:show, :preview]
+  before_action :set_property_for_read, only: [:show]
 
   # Confirmation d'adresse (C5) : le propriétaire connecté OU le
   # détenteur du claim_token dans son cookie signé. Pas le fallback
@@ -24,7 +24,7 @@ class PropertiesController < ApplicationController
   # suppression, modification, publication, dépublication d'un bien
   # qui n'appartient pas à l'utilisateur courant.
   before_action :set_property_for_write, only: [
-    :edit, :update, :destroy, :analyze, :publish, :unpublish,
+    :edit, :update, :destroy, :analyze, :publish, :unpublish, :preview,
     :update_dpe_target,
     :update_travaux, :update_travaux_selection
   ]

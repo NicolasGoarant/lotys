@@ -1,0 +1,37 @@
+<%# Prévisualisation de publication (owner-only, gate dans le controller).
+     Rend la fiche PUBLIQUE du bien (celle qu'un tiers verra une fois
+     publié), précédée d'une bannière collante avec les actions de
+     décision : Annuler → retour à la fiche owner ; Confirmer → POST
+     publish_property_path.
+
+     Fonctionnement : on positionne @preview_mode = true et on inclut le
+     template show. Les deux dérivations en tête de show
+     (is_owner_connecte / can_see_full_dossier) tombent à false — toute la
+     cascade des blocs privés (foyer fiscal, valeur, documents, boutons
+     Publier/Modifier, aides, financement) est masquée automatiquement.
+     C'est le SEUL flag à poser : la règle de confidentialité vit dans
+     show.html.erb, pas ici. %>
+<% @preview_mode = true %>
+
+<div id="preview-banner"
+     style="position:sticky;top:0;z-index:50;background:#fef3c7;border-bottom:2px solid #fbbf24;padding:12px 16px;margin-bottom:16px;">
+  <div style="max-width:1024px;margin:0 auto;display:flex;flex-direction:column;gap:10px;">
+    <div>
+      <p style="margin:0;font-size:.9rem;font-weight:800;color:#78350f;">
+        👁️ Mode prévisualisation — voici ce que les visiteurs verront
+      </p>
+      <p style="margin:4px 0 0;font-size:.78rem;color:#92400e;line-height:1.4;">
+        Votre foyer fiscal, vos documents et vos boutons d'édition ne sont pas visibles.
+      </p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <%= link_to "← Annuler", property_path(@property),
+            style: "font-size:.82rem;font-weight:700;padding:9px 14px;border-radius:8px;border:1px solid #d97706;color:#78350f;background:#fff;text-decoration:none;" %>
+      <%= button_to "📢 Confirmer la publication", publish_property_path(@property),
+            method: :post,
+            style: "font-size:.82rem;font-weight:800;padding:9px 16px;border-radius:8px;background:#059669;color:#fff;border:none;cursor:pointer;" %>
+    </div>
+  </div>
+</div>
+
+<%= render template: "properties/show" %>

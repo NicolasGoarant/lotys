@@ -12,8 +12,14 @@
        OU détenteur en cookie signé du claim_token du bien (parcours
        d'estimation anonyme). Le calcul correspondant côté serveur
        (@aid_result) est élargi de la même façon dans PropertiesController#show. %>
-<% is_owner_connecte    = user_signed_in? && current_user == @property.user %>
-<% can_see_full_dossier = is_owner_connecte || claimable_by_browser?(@property) %>
+<%# En mode prévisualisation (action #preview), on FORCE la vue publique :
+     l'owner voit sa fiche telle qu'un visiteur tiers la verra. Un seul
+     flag (@preview_mode) bascule les deux dérivations ci-dessous — toute
+     la cascade des gates dans cette vue (foyer fiscal, valeur, documents,
+     boutons Publier/Modifier, aides, financement) suit automatiquement.
+     C'est le point unique où se matérialise la règle de confidentialité. %>
+<% is_owner_connecte    = user_signed_in? && current_user == @property.user && !@preview_mode %>
+<% can_see_full_dossier = (is_owner_connecte || claimable_by_browser?(@property)) && !@preview_mode %>
 
 <% dpe_all    = %w[A B C D E F G] %>
 <% dpe_colors = {"A"=>"#16a34a","B"=>"#4ade80","C"=>"#a3e635","D"=>"#ca8a04","E"=>"#fb923c","F"=>"#ef4444","G"=>"#991b1b"} %>
