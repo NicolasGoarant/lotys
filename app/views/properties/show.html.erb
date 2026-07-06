@@ -165,32 +165,6 @@
 
 <div class="sh">
 
-<%# Badge portail collectivité (feature C7) : affiché UNIQUEMENT si le
-     bien est rattaché à une collectivité active (@property.collectivite
-     est nil quand le bien vient du parcours nominal OU quand le
-     rattachement a été retiré par le garde-fou C6 "hors ressort").
-     Rendu discret — c'est un signal de provenance, pas une accroche
-     visuelle. Le lien renvoie au portail pour la traçabilité. %>
-<% if @property.collectivite&.active %>
-  <%# Couleur extraite dans une variable Ruby AVANT le HTML. %>
-  <%# Motif : une interpolation Ruby posée dans du HTML brut n'est %>
-  <%# pas évaluée par ERB. Injecter la couleur directement dans %>
-  <%# l'attribut de style laissait donc la chaîne d'interpolation %>
-  <%# littérale dans la valeur CSS produite, ce qui rendait un %>
-  <%# badge sans couleurs en prod. %>
-  <% color = @property.collectivite.primary_color %>
-  <a id="collectivite-badge"
-     href="<%= collectivite_portail_path(@property.collectivite.slug) %>"
-     style="display:inline-flex;align-items:center;gap:8px;background:<%= color %>12;color:<%= color %>;border:1px solid <%= color %>40;border-radius:999px;padding:6px 14px;font-size:.78rem;font-weight:700;text-decoration:none;margin-bottom:12px;">
-    <span style="opacity:.85;">🏛️</span>
-    <%# Formulation neutre : "Analyse au titre du <nom>" produit
-         "Analyse au titre du Métropole du Grand Nancy" (article
-         doublonné). "Portail <nom>" marche pour tous les noms
-         d'EPCI, avec ou sans article dans la dénomination officielle. -%>
-    <span>Portail <%= @property.collectivite.name %></span>
-  </a>
-<% end %>
-
 <%= render "analysis_status", property: @property %>
 
 <%# ── Adresse : tri-état exclusif quand @property.address est vide ─────
@@ -334,6 +308,33 @@
     <% end %>
   </div>
 </div>
+
+<%# Badge portail collectivité (feature C7) — signal de PROVENANCE.
+     Position : juste sous la carte photo/mini-map, avant "Valeur estimée",
+     pour ne pas ressembler à un onglet de navigation en tête de page. Le
+     libellé "Analysé via le portail <nom>" dit ce qu'est le badge (label
+     d'origine, pas un CTA obligatoire), et le title au survol détaille la
+     conséquence produit (aides intégrées au calcul). Affiché UNIQUEMENT
+     si le bien est rattaché à une collectivité active (le garde-fou C6
+     retire le rattachement si le geocoding tombe hors ressort). %>
+<% if @property.collectivite&.active %>
+  <%# Couleur extraite dans une variable Ruby AVANT le HTML : une
+       interpolation Ruby posée dans du HTML brut n'est pas évaluée par
+       ERB. Injecter la couleur directement dans l'attribut de style
+       laissait la chaîne d'interpolation littérale dans la valeur CSS
+       produite, ce qui rendait un badge sans couleurs en prod. %>
+  <% color = @property.collectivite.primary_color %>
+  <% collectivite_nom = @property.collectivite.name %>
+  <div style="margin-bottom:12px;">
+    <a id="collectivite-badge"
+       href="<%= collectivite_portail_path(@property.collectivite.slug) %>"
+       title="Ce bien a été analysé via le portail rénovation de <%= collectivite_nom %>. Les aides de cette collectivité sont intégrées au calcul."
+       style="display:inline-flex;align-items:center;gap:8px;background:<%= color %>12;color:<%= color %>;border:1px solid <%= color %>40;border-radius:999px;padding:6px 14px;font-size:.78rem;font-weight:700;text-decoration:none;">
+      <span style="opacity:.85;">🏛️</span>
+      <span>Analysé via le portail <%= collectivite_nom %></span>
+    </a>
+  </div>
+<% end %>
 
 <%# ── VALEUR (dossier complet : propriétaire ou claimant) ────── %>
 <% if v && can_see_full_dossier %>

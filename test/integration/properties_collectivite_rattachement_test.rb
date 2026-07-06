@@ -216,11 +216,20 @@ class PropertiesCollectiviteRattachementTest < ActionDispatch::IntegrationTest
     assert_select "#collectivite-badge", { count: 1 }
 
     badge = css_select("#collectivite-badge").first
-    # Libellé neutre : "Portail <nom>" — évite le doublon d'article
-    # ("Analyse au titre du Métropole du Grand Nancy" en ancien libellé).
-    assert_match "Portail Métropole du Grand Nancy", badge.text
+    # Libellé explicite : "Analysé via le portail <nom>" — dit ce que
+    # le badge EST (label de provenance), pas ce qu'il pousse à faire.
+    # Le texte s'assemble sans doublon d'article — cf. anti-régression
+    # ci-dessous du vieux "au titre du <nom>".
+    assert_match "Analysé via le portail Métropole du Grand Nancy", badge.text
     refute_match(/au titre du/, badge.text,
       "Anti-régression du libellé 'Analyse au titre du <nom>' qui doublait 'du'")
+    # Title au survol : contexte + conséquence produit — explique
+    # pourquoi le badge est là et à quoi il sert.
+    title = badge["title"].to_s
+    assert_match(/analysé via le portail rénovation de Métropole du Grand Nancy/i, title,
+      "Le title doit expliciter la provenance ; reçu : #{title.inspect}")
+    assert_match(/aides.*intégrées au calcul/i, title,
+      "Le title doit mentionner la conséquence produit (aides intégrées)")
     # Lien vers le portail (traçabilité provenance).
     assert_equal collectivite_portail_path("grand-nancy"), badge["href"]
     # Primary_color EFFECTIVEMENT interpolée dans le style (anti-régression
@@ -241,6 +250,24 @@ class PropertiesCollectiviteRattachementTest < ActionDispatch::IntegrationTest
       "Un délimiteur ERB fermant '-%>' apparaît en texte visible")
     refute_match(/badge sans couleurs/, response.body,
       "Un fragment de commentaire ERB (« badge sans couleurs ») a fuité dans le HTML rendu")
+
+    # Position : le badge doit être RENDU APRÈS la mini-map (carte du bien)
+    # et AVANT le bloc "Valeur estimée". C'est un signal de provenance
+    # discret sous le header, pas un onglet de navigation en tête de page.
+    body       = response.body
+    idx_map    = body.index('id="prop-map"')
+    idx_badge  = body.index('id="collectivite-badge"')
+    idx_valeur = body.index("Valeur estimée")
+    assert idx_map,   "Repère mini-map introuvable dans la vue"
+    assert idx_badge, "Badge introuvable dans la vue"
+    assert idx_map < idx_badge,
+      "Le badge doit venir APRÈS la mini-map (position sous le header), " \
+      "reçu idx_map=#{idx_map} idx_badge=#{idx_badge}"
+    if idx_valeur
+      assert idx_badge < idx_valeur,
+        "Le badge doit précéder le bloc Valeur estimée, " \
+        "reçu idx_badge=#{idx_badge} idx_valeur=#{idx_valeur}"
+    end
   end
 
   test "show : bien NON rattaché → aucun badge (parcours nominal)" do

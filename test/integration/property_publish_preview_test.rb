@@ -158,6 +158,38 @@ class PropertyPublishPreviewTest < ActionDispatch::IntegrationTest
     assert_equal "published", @property.reload.status
   end
 
+  # ── Badge collectivité en preview : présent et sous le header ────
+
+  test "preview : badge collectivité affiché avec le nouveau libellé et title au survol" do
+    collectivite = Collectivite.create!(
+      name:          "Métropole du Grand Nancy",
+      slug:          "grand-nancy",
+      primary_color: "#0066a1",
+      welcome_text:  "Bienvenue",
+      insee_codes:   %w[54395],
+      active:        true
+    )
+    @property.update!(collectivite: collectivite)
+
+    sign_in @owner
+    get preview_property_path(@property)
+    assert_response :success
+
+    assert_select "#collectivite-badge", { count: 1 }
+    badge = css_select("#collectivite-badge").first
+    assert_match "Analysé via le portail Métropole du Grand Nancy", badge.text
+    assert_match(/analysé via le portail rénovation de/i, badge["title"].to_s)
+
+    # Position dans la vue preview : après la mini-map, avant tout bloc
+    # aval — identique au show, la règle vit à un endroit unique.
+    body      = response.body
+    idx_map   = body.index('id="prop-map"')
+    idx_badge = body.index('id="collectivite-badge"')
+    assert idx_map && idx_badge, "Repères mini-map + badge attendus"
+    assert idx_map < idx_badge,
+      "En preview aussi, le badge doit venir APRÈS la mini-map"
+  end
+
   # ── Bloc proposition en preview : rendu mais INERTE ───────────────
 
   test "preview : le bloc proposition est présent mais tous ses contrôles sont dans un <fieldset disabled>" do
