@@ -72,7 +72,7 @@
                 padding: 24px; text-align: center;">
       <p style="margin: 0 0 6px; font-size: 0.72rem; font-weight: 800;
                 letter-spacing: 0.14em; text-transform: uppercase; color: #6b7280;">
-        Usage sur votre territoire
+        Près de chez vous
       </p>
       <p id="count-biens"
          data-count="<%= @count_biens %>"
@@ -81,8 +81,8 @@
         <%= @count_biens %>
       </p>
       <p style="margin: 8px 0 0; font-size: 0.9rem; color: #6b7280;">
-        <%= @count_biens == 1 ? "bien analysé" : "biens analysés" %>
-        depuis Lauze
+        <%= @count_biens == 1 ? "bien déjà analysé" : "biens déjà analysés" %>
+        par des habitants
       </p>
     </div>
 
@@ -109,25 +109,33 @@
   </div>
 </section>
 
-<%# ── Réutilisation du bloc "proposition de valeur" existant ─────────
-     Le partial shared/feature_columns est déjà utilisé sur la page
-     marketing /collectivites — on le remonte tel quel pour rester
-     cohérent visuellement sans dupliquer les contenus. %>
+<%# ── Proposition de valeur — orientée HABITANT (destinataire du portail).
+     ATTENTION : ne pas remplacer par le contenu du bloc décideur de la
+     page marketing /collectivites — ce sont deux audiences distinctes.
+     La page marketing s'adresse aux élus/EPCI (pilotage, tableau de
+     bord), le portail s'adresse aux habitants (aides, parcours,
+     confidentialité). Toucher aux deux endroits en même temps est
+     précisément le bug qui avait fait passer le discours décideur ici.
+     Le nom de la collectivité est interpolé dans la colonne 01 pour
+     rendre concret "les aides de la collectivité". Le point 03 reprend
+     les engagements déjà présents sur /properties/new (suppression des
+     documents après analyse) et /confidentialite (données non vendues
+     ni transmises sans accord) — aucune promesse nouvelle. %>
 <section style="max-width: 960px; margin: 0 auto; padding: 20px 24px 60px;">
   <p style="margin: 0 0 12px; font-size: 0.72rem; font-weight: 800;
             letter-spacing: 0.14em; text-transform: uppercase; color: #059669;">
-    Ce que Lauze fait pour votre territoire
+    Ce que Lauze vous apporte
   </p>
   <%= render "shared/feature_columns",
         items: [
           { numero: "01",
-            titre:  "Vos aides, intégrées",
-            corps:  "Vos dispositifs locaux apparaissent en cohérence avec MaPrimeRénov', CEE et éco-PTZ. L'habitant voit le total à l'euro près, sans démarches multiples." },
+            titre:  "Vos aides, calculées",
+            corps:  "Les aides de #{@collectivite.name} s'ajoutent automatiquement à MaPrimeRénov', aux CEE et à l'éco-PTZ. Vous voyez le total et votre reste à charge, à l'euro près." },
           { numero: "02",
-            titre:  "Un parcours clair",
-            corps:  "Le propriétaire dépose son DPE, voit ses travaux prioritaires, ses aides calculées et son reste à charge. Sans appel à votre service, sans formulaire complexe." },
+            titre:  "Un parcours simple",
+            corps:  "Déposez votre DPE : travaux prioritaires, aides et reste à charge en quelques minutes. Sans démarchage, sans création de compte obligatoire." },
           { numero: "03",
-            titre:  "Vos statistiques",
-            corps:  "Un tableau de bord territorial (à venir) : biens analysés, gestes envisagés, budgets. Pour piloter votre programme rénovation avec des chiffres." }
+            titre:  "Vos documents protégés",
+            corps:  "Vos pièces (DPE, titre, factures) sont supprimées après l'analyse. Vos données ne sont jamais transmises sans votre accord." }
         ] %>
 </section>

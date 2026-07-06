@@ -55,6 +55,19 @@ class CollectivitesPortailTest < ActionDispatch::IntegrationTest
     # ferait matcher /collectivites → controller portail avec slug vide.
   end
 
+  test "page marketing /collectivites : le discours DÉCIDEUR reste intact (audience distincte du portail)" do
+    get "/collectivites"
+    assert_response :success
+    # Ces éléments visent les élus/EPCI, ils DOIVENT rester ici même
+    # après le nettoyage habitant du portail /collectivites/:slug.
+    assert_match(/Ce que Lauze fait pour votre territoire/, response.body,
+      "Le titre décideur doit rester sur la page marketing")
+    assert_match(/Piloter votre politique/, response.body,
+      "La colonne pilotage doit rester sur la page marketing")
+    assert_match(/Tableau de bord/, response.body,
+      "La promesse tableau de bord doit rester sur la page marketing")
+  end
+
   # ── Compteur biens ────────────────────────────────────────────────────
 
   test "compteur biens : ne compte QUE les biens analyzed/published sur les INSEE couverts" do
@@ -167,6 +180,74 @@ class CollectivitesPortailTest < ActionDispatch::IntegrationTest
     # Aucun logo attaché → pas d'og:image spécifique. Le partage social
     # tombera sur les defaults du site (favicon, etc.).
     assert_select "meta[property='og:image']", { count: 0 }
+  end
+
+  # ── Contenu adressé à l'HABITANT (pas au décideur EPCI) ───────────────
+
+  test "portail : titre de la section = 'Ce que Lauze vous apporte' (audience habitant)" do
+    setup_grand_nancy
+    get "/collectivites/grand-nancy"
+    assert_response :success
+    assert_match(/Ce que Lauze vous apporte/, response.body,
+      "Le titre habitant doit remplacer l'ancien 'Ce que Lauze fait pour votre territoire'")
+    refute_match(/Ce que Lauze fait pour votre territoire/, response.body,
+      "L'ancien titre (audience décideur) ne doit plus apparaître sur le portail")
+  end
+
+  test "portail : promesse habitant — aides de la collectivité s'ajoutent aux dispositifs nationaux" do
+    setup_grand_nancy
+    get "/collectivites/grand-nancy"
+    assert_match(/Les aides de Métropole du Grand Nancy s'ajoutent/, response.body,
+      "Le nom de la collectivité doit être interpolé dans le pitch aides (colonne 01)")
+    assert_match(/MaPrimeRénov'/, response.body)
+    assert_match(/CEE/, response.body)
+    assert_match(/éco-PTZ/, response.body)
+    assert_match(/reste à charge/, response.body)
+  end
+
+  test "portail : promesse habitant — parcours simple, sans compte obligatoire" do
+    setup_grand_nancy
+    get "/collectivites/grand-nancy"
+    assert_match(/Déposez votre DPE/, response.body)
+    assert_match(/sans création de compte obligatoire/, response.body)
+  end
+
+  test "portail : promesse habitant — pièces supprimées, données non transmises" do
+    setup_grand_nancy
+    get "/collectivites/grand-nancy"
+    assert_match(/pièces .*supprimées après l'analyse/, response.body,
+      "Reprend l'engagement déjà présent sur /properties/new")
+    assert_match(/jamais transmises sans votre accord/, response.body)
+  end
+
+  test "portail : les libellés du DISCOURS DÉCIDEUR ont été retirés" do
+    setup_grand_nancy
+    get "/collectivites/grand-nancy"
+    # Vocabulaire élu/EPCI n'a rien à faire sur une page destinée à
+    # l'habitant. Ces phrases restent OK sur /collectivites marketing.
+    refute_match(/Vos dispositifs locaux/, response.body,
+      "Wording décideur — n'a pas sa place sur le portail habitant")
+    refute_match(/sans appel à votre service/, response.body,
+      "Wording décideur — présuppose le lecteur = agent EPCI")
+    refute_match(/piloter votre programme rénovation/i, response.body,
+      "Wording décideur — présuppose le lecteur = élu")
+    refute_match(/tableau de bord territorial/i, response.body,
+      "Promesse pilotage — reste sur /collectivites, pas ici")
+    refute_match(/Vos statistiques/, response.body,
+      "Wording décideur — 'vos statistiques' vise l'EPCI, pas l'habitant")
+  end
+
+  test "portail : compteur adressé à l'habitant (label + légende)" do
+    setup_grand_nancy
+    get "/collectivites/grand-nancy"
+    # Nouveau label : "Près de chez vous" (habitant), plus "Usage sur
+    # votre territoire" (décideur).
+    assert_match(/Près de chez vous/i, response.body)
+    refute_match(/Usage sur votre territoire/i, response.body)
+    # Nouvelle légende : "biens déjà analysés par des habitants"
+    # (plus "depuis Lauze", trop générique et froid).
+    assert_match(/biens déjà analysés\s+par des habitants/i, response.body)
+    refute_match(/biens analysés\s+depuis Lauze/i, response.body)
   end
 
   # ── Non-régression du parcours public (sans slug) ─────────────────────
