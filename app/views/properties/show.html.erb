@@ -325,10 +325,14 @@
        produite, ce qui rendait un badge sans couleurs en prod. %>
   <% color = @property.collectivite.primary_color %>
   <% collectivite_nom = @property.collectivite.name %>
+  <%# Mention "(démonstration)" appendée au title quand la collectivité est %>
+  <%# en démo — l'utilisateur qui survole le badge sait alors que ce n'est %>
+  <%# pas un service officiel signé. Cohérent avec le bandeau démo du portail. %>
+  <% demo_suffix = @property.collectivite.demo? ? " (démonstration)" : "" %>
   <div style="margin-bottom:12px;">
     <a id="collectivite-badge"
        href="<%= collectivite_portail_path(@property.collectivite.slug) %>"
-       title="Ce bien a été analysé via le portail rénovation de <%= collectivite_nom %>. Les aides de cette collectivité sont intégrées au calcul."
+       title="Ce bien a été analysé via le portail rénovation de <%= collectivite_nom %><%= demo_suffix %>. Les aides de cette collectivité sont intégrées au calcul."
        style="display:inline-flex;align-items:center;gap:8px;background:<%= color %>12;color:<%= color %>;border:1px solid <%= color %>40;border-radius:999px;padding:6px 14px;font-size:.78rem;font-weight:700;text-decoration:none;">
       <span style="opacity:.85;">🏛️</span>
       <span>Analysé via le portail <%= collectivite_nom %></span>

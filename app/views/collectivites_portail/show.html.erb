@@ -21,6 +21,43 @@
   nom     = @collectivite.name
 %>
 
+<%# ── Bandeau de démonstration (opt-in via Collectivite#demo). ── %>
+<%# Affiché AU-DESSUS du hero coloré : premier signal donné à l'habitant. %>
+<%# Ambre pâle : ton neutre, ni alerte ni marketing — juste une clarification. %>
+<%# La mention ALEC vit ICI uniquement (partenaire pressenti, pas acquis) — %>
+<%# afficher son logo en partenaire officiel ailleurs sur la page serait faux. %>
+<%# Le jour où demo passe à false en console, tout ce bloc disparaît sans redéploiement. %>
+<% if @collectivite.demo? %>
+  <div id="portail-demo-banner"
+       style="background:#fef3c7; border-bottom:1px solid #fcd34d;
+              color:#78350f; font-size:0.85rem; line-height:1.5;
+              padding:12px 24px;">
+    <div style="max-width:960px; margin:0 auto;
+                display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      <span aria-hidden="true"
+            style="display:inline-flex; align-items:center; justify-content:center;
+                   width:24px; height:24px; border-radius:50%;
+                   background:#f59e0b; color:#fff; font-size:0.75rem; font-weight:800;
+                   flex-shrink:0;">i</span>
+      <p style="margin:0; flex:1; min-width:220px;"><strong>Page de démonstration</strong> — ce portail est un prototype présenté à la Métropole du Grand Nancy et à l'ALEC Nancy Grands Territoires. Il ne constitue pas un service officiel de la collectivité.</p>
+      <%# Logo ALEC : sobre, uniquement dans le contexte "démonstration" pour %>
+      <%# rester honnête sur la nature de la relation (pressentie, pas officielle). %>
+      <span style="display:inline-flex; align-items:center; gap:8px; flex-shrink:0;">
+        <span style="font-size:0.7rem; font-weight:700;
+                     text-transform:uppercase; letter-spacing:0.08em; opacity:0.8;">
+          Partenaire pressenti
+        </span>
+        <%= image_tag "Alec.png",
+              alt: "ALEC Nancy Grands Territoires",
+              id: "alec-logo",
+              style: "height:28px; width:auto; background:#fff;
+                      padding:3px 6px; border-radius:6px;
+                      border:1px solid #fcd34d;" %>
+      </span>
+    </div>
+  </div>
+<% end %>
+
 <%# ── Bandeau branding — hero avec profondeur (glows + trame subtile). ── %>
 <%# background_image cumule 4 couches : glow blanc en haut-gauche, glow sombre %>
 <%# en bas-droite (relief), trame de points blancs quasi transparents (texture) %>
@@ -40,10 +77,19 @@
                 color: white;">
   <div style="max-width: 960px; margin: 0 auto; position: relative;">
     <div style="display: flex; align-items: center; gap: 24px; margin-bottom: 24px; flex-wrap: wrap;">
-      <%# Logo si attaché, sinon fallback initiales sur fond blanc (mêmes IDs qu'avant). %>
+      <%# Trois branches d'affichage du logo, par priorité décroissante : %>
+      <%# (1) Active Storage attaché — la source de vérité future, remplace tout ; %>
+      <%# (2) Fallback asset statique de démo pour grand-nancy — retiré %>
+      <%#     automatiquement le jour où le logo officiel sera attaché en console ; %>
+      <%# (3) Fallback initiales générique — pour toute autre collectivité sans logo. %>
       <% if @collectivite.logo.attached? %>
         <%= image_tag @collectivite.logo,
               id: "collectivite-logo",
+              alt: nom,
+              style: "height: 96px; width: auto; background: white; padding: 12px 16px; border-radius: 16px; box-shadow: 0 10px 26px rgba(0,0,0,0.20);" %>
+      <% elsif @collectivite.slug == "grand-nancy" %>
+        <%= image_tag "logo_mgn.png",
+              id: "collectivite-logo-static",
               alt: nom,
               style: "height: 96px; width: auto; background: white; padding: 12px 16px; border-radius: 16px; box-shadow: 0 10px 26px rgba(0,0,0,0.20);" %>
       <% else %>

@@ -284,6 +284,41 @@ class PropertiesCollectiviteRattachementTest < ActionDispatch::IntegrationTest
     assert_select "#collectivite-badge", { count: 0 }
   end
 
+  test "show : bien rattaché à une collectivité DÉMO → title du badge suffixé '(démonstration)'" do
+    @grand_nancy.update!(demo: true)
+    p = Property.new(
+      claim_token: TOKEN, collectivite: @grand_nancy,
+      address: "1 rue de Test", city: "Nancy", zipcode: "54000",
+      code_insee: "54395", status: :analyzed
+    )
+    p.save!
+
+    get property_path(p)
+    assert_response :success
+    badge = css_select("#collectivite-badge").first
+    assert badge
+    title = badge["title"].to_s
+    assert_match(/portail rénovation de Métropole du Grand Nancy \(démonstration\)/, title,
+      "Le title doit préciser '(démonstration)' quand la collectivité est en démo — reçu : #{title.inspect}")
+  end
+
+  test "show : bien rattaché à une collectivité OFFICIELLE (demo:false) → title sans mention démo" do
+    @grand_nancy.update!(demo: false)
+    p = Property.new(
+      claim_token: TOKEN, collectivite: @grand_nancy,
+      address: "1 rue de Test", city: "Nancy", zipcode: "54000",
+      code_insee: "54395", status: :analyzed
+    )
+    p.save!
+
+    get property_path(p)
+    assert_response :success
+    badge = css_select("#collectivite-badge").first
+    title = badge["title"].to_s
+    refute_match(/démonstration/, title,
+      "Le title ne doit PAS mentionner 'démonstration' quand demo:false")
+  end
+
   test "show : bien rattaché à une collectivité DÉSACTIVÉE → aucun badge (portail éteint)" do
     p = Property.new(
       claim_token: TOKEN, collectivite: @grand_nancy,

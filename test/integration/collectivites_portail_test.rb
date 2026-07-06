@@ -138,14 +138,37 @@ class CollectivitesPortailTest < ActionDispatch::IntegrationTest
     assert_match "Bienvenue", response.body
   end
 
-  test "logo pas attaché → initiales rendues sur fond blanc en fallback" do
+  test "logo pas attaché sur grand-nancy → fallback asset statique logo_mgn.png (démo)" do
     setup_grand_nancy
     get "/collectivites/grand-nancy"
-    assert_select "#collectivite-initiales", { count: 1 },
-      "Fallback initiales quand aucun logo attaché (permet la démo sans logo officiel)"
+    # Priorité 2 (démo) : logo_mgn.png rendu à la place des initiales.
+    # Sera remplacé automatiquement le jour où le logo officiel sera
+    # attaché en console via Active Storage.
+    assert_select "#collectivite-logo-static", { count: 1 },
+      "Fallback asset statique attendu pour grand-nancy tant qu'aucun logo Active Storage n'est attaché"
+    assert_select "#collectivite-initiales", { count: 0 }
     assert_select "#collectivite-logo", { count: 0 }
-    # Initiales : "Métropole du Grand Nancy" → "MDGN"
-    assert_match "MDGN", response.body
+    assert_match(/logo_mgn/, response.body,
+      "Le nom d'asset logo_mgn doit apparaître dans le src rendu")
+  end
+
+  test "logo pas attaché sur AUTRE collectivité → fallback initiales génériques" do
+    # Non-grand-nancy : pas d'asset dédié, on retombe sur les initiales
+    # (branche 3 du fallback). Verrouille que la démo grand-nancy est
+    # un cas particulier et n'a pas cassé le fallback générique.
+    # Nom sans apostrophe pour un mapping initiales prédictible :
+    # "Pays de Test Central" → chaque premier caractère → "PDTC".
+    Collectivite.create!(
+      name:          "Pays de Test Central",
+      slug:          "pays-test",
+      primary_color: "#7c3aed",
+      insee_codes:   %w[54001],
+      active:        true
+    )
+    get "/collectivites/pays-test"
+    assert_select "#collectivite-initiales", { count: 1 }
+    assert_select "#collectivite-logo-static", { count: 0 }
+    assert_match "PDTC", response.body
   end
 
   test "CTA link pointe vers /properties/new?collectivite=grand-nancy" do
@@ -248,6 +271,68 @@ class CollectivitesPortailTest < ActionDispatch::IntegrationTest
     # (plus "depuis Lauze", trop générique et froid).
     assert_match(/biens déjà analysés\s+par des habitants/i, response.body)
     refute_match(/biens analysés\s+depuis Lauze/i, response.body)
+  end
+
+  # ── Bandeau démonstration (opt-in via Collectivite#demo) ────────────
+
+  test "portail demo:true → bandeau démonstration présent avec mention ALEC + logo" do
+    setup_grand_nancy
+    Collectivite.find_by(slug: "grand-nancy").update!(demo: true)
+    get "/collectivites/grand-nancy"
+    assert_response :success
+
+    assert_select "#portail-demo-banner", { count: 1 },
+      "Le bandeau démonstration doit être rendu quand demo:true"
+    body = response.body
+    assert_match(/Page de démonstration/, body)
+    assert_match(/prototype présenté à la Métropole du Grand Nancy/, body)
+    assert_match(/ALEC Nancy Grands Territoires/, body)
+    assert_match(/ne constitue pas un service officiel/, body)
+    # Logo ALEC : rendu UNIQUEMENT dans ce bandeau (partenaire pressenti).
+    assert_select "#alec-logo", { count: 1 },
+      "Logo ALEC attendu dans le bandeau de démonstration"
+  end
+
+  test "portail demo:false → aucun bandeau, aucun logo ALEC (état signé)" do
+    setup_grand_nancy
+    Collectivite.find_by(slug: "grand-nancy").update!(demo: false)
+    get "/collectivites/grand-nancy"
+    assert_response :success
+    assert_select "#portail-demo-banner", { count: 0 },
+      "Le bandeau démonstration doit disparaître dès que demo:false"
+    assert_select "#alec-logo", { count: 0 },
+      "Le logo ALEC ne doit apparaître qu'en mode démo (partenaire pressenti)"
+    refute_match(/Page de démonstration/, response.body)
+    refute_match(/ALEC/, response.body,
+      "Aucune mention ALEC en dehors du bandeau démonstration — partenaire pas acquis")
+  end
+
+  test "portail : par défaut, une nouvelle collectivité n'est PAS en démo" do
+    # Défaut applicatif : demo=false. Toute nouvelle collectivité créée
+    # est traitée comme officielle. La démo est un opt-in explicite,
+    # pas un état par défaut à corriger.
+    Collectivite.create!(
+      name:          "Communauté d'Agglomération Test",
+      slug:          "ca-nouvelle",
+      primary_color: "#059669",
+      insee_codes:   %w[54001],
+      active:        true
+    )
+    get "/collectivites/ca-nouvelle"
+    assert_response :success
+    assert_select "#portail-demo-banner", { count: 0 }
+    refute_match(/Page de démonstration/, response.body)
+  end
+
+  test "page marketing /collectivites : aucun bandeau démonstration ni logo ALEC" do
+    # Non-régression : la page marketing ne doit RIEN emprunter aux
+    # ajouts du portail. Elle a sa propre audience (décideurs) et sa
+    # propre narration.
+    get "/collectivites"
+    assert_response :success
+    assert_select "#portail-demo-banner", { count: 0 }
+    assert_select "#alec-logo", { count: 0 }
+    refute_match(/Page de démonstration/, response.body)
   end
 
   # ── Bande de réassurance en pied de portail ──────────────────────────
