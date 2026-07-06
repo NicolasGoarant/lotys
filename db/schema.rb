@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_05_202752) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_06_134703) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -93,6 +93,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_05_202752) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "demo", default: false, null: false
     t.index ["active"], name: "index_collectivites_on_active"
     t.index ["insee_codes"], name: "index_collectivites_on_insee_codes", using: :gin
     t.index ["slug"], name: "index_collectivites_on_slug", unique: true

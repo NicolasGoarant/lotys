@@ -28,7 +28,12 @@ namespace :collectivites do
                        "les aides MaPrimeRénov', CEE et celles de la Métropole " \
                        "sont calculées automatiquement.",
         insee_codes:   GrandNancy::COMMUNE_INSEE_CODES.dup,
-        active:        true
+        active:        true,
+        # État initial : le portail est un prototype présenté à la
+        # Métropole et à l'ALEC — bandeau de démonstration affiché en
+        # tête. Bascule à false en console le jour d'un vrai partenariat
+        # signé (aucun redéploiement nécessaire).
+        demo:          true
       )
       grand_nancy.save!
       puts "✓ Collectivite créée : #{grand_nancy.name} (#{grand_nancy.slug}) — " \
