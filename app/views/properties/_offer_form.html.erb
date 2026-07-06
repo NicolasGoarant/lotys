@@ -1,12 +1,42 @@
-<%# Formulaire inline prestataire — affiché dans show.html.erb %>
+<%# Formulaire inline prestataire — affiché dans show.html.erb.
+     Locals :
+       - property : la Property visée par la proposition.
+       - preview  : booléen. Si true, le formulaire est rendu INERTE
+                    (fieldset disabled + pointer-events désactivés +
+                    opacité légère + ruban explicatif). Sert à la vue
+                    properties#preview pour montrer au proprio le
+                    module tel qu'il s'affichera aux artisans, sans
+                    lui permettre d'agir. Défaut false. -%>
+<% preview = local_assigns.fetch(:preview, false) %>
 <% offer = @offer || property.offers.build %>
 
 <div class="cd" id="formulaire-proposition" style="scroll-margin-top:20px;">
   <div class="cd-hd" style="background:#059669;">📩 Faire une proposition</div>
-  <div style="padding:20px;">
+
+  <% if preview %>
+    <%# Ruban explicatif — transforme la source de confusion "dois-je le
+         remplir ?" en argument de valeur "voici ce que verront les tiers". %>
+    <div id="offer-form-preview-ribbon"
+         style="background:#eef2ff;border-bottom:1px solid #c7d2fe;padding:10px 20px;">
+      <p style="margin:0;font-size:.78rem;color:#3730a3;line-height:1.4;font-weight:600;">
+        👀 Ce module s'affichera pour les artisans et investisseurs qui visitent votre annonce.
+      </p>
+    </div>
+  <% end %>
+
+  <div style="padding:20px;<% if preview %>opacity:.72;<% end %>">
 
     <% if user_signed_in? %>
       <%= form_with model: [property, offer], html: { id: "offer-form" } do |f| %>
+        <%# En preview, on enveloppe tout le contenu du form dans un
+             <fieldset disabled> qui désactive nativement l'ensemble des
+             contrôles de formulaire descendants (radios, number, textarea,
+             submit) — pas besoin d'ajouter disabled sur chaque champ.
+             pointer-events:none neutralise aussi les onclick sur les
+             <label> (sélection visuelle des cartes de type), sinon le
+             proprio pourrait cliquer et croire qu'il agit. %>
+        <fieldset <%= 'disabled data-preview="true"'.html_safe if preview %>
+                  style="border:0;padding:0;margin:0;<% if preview %>pointer-events:none;<% end %>">
 
         <%# Type de proposition %>
         <p class="lbl" style="margin-bottom:10px;">Quel type de proposition faites-vous ?</p>
@@ -46,6 +76,7 @@
             style:"display:block;width:100%;background:#059669;color:#fff;font-size:1rem;font-weight:800;padding:16px;border-radius:14px;border:none;cursor:pointer;" %>
         <p class="lbl" style="text-align:center;margin-top:10px;color:#9ca3af;">Votre identité n'est pas visible du propriétaire avant qu'il accepte votre offre.</p>
 
+        </fieldset>
       <% end %>
 
     <% else %>

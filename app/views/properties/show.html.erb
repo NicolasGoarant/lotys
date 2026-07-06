@@ -655,9 +655,13 @@
 
 <%# ── FORMULAIRE PROPOSITION (prestataire) ──────────────────
      Affiché à qui n'est pas en train de consulter SON dossier. Le claimant
-     anonyme regarde sa propre estimation : il n'a pas à voir le bloc artisan. %>
+     anonyme regarde sa propre estimation : il n'a pas à voir le bloc artisan.
+     En mode preview, le proprio VOIT le module (argument produit "voici ce
+     qui s'affichera sur votre annonce") mais il est rendu INERTE — champs
+     désactivés, ruban explicatif — pour éviter la confusion "dois-je le
+     remplir ?" et l'auto-proposition accidentelle. %>
 <% unless can_see_full_dossier %>
-<%= render "offer_form", property: @property %>
+<%= render "offer_form", property: @property, preview: @preview_mode %>
 <% end %>
 
 <%# ── GALERIE PHOTOS ─────────────────────────────────────── %>

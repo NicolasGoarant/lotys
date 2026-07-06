@@ -158,6 +158,84 @@ class PropertyPublishPreviewTest < ActionDispatch::IntegrationTest
     assert_equal "published", @property.reload.status
   end
 
+  # ── Bloc proposition en preview : rendu mais INERTE ───────────────
+
+  test "preview : le bloc proposition est présent mais tous ses contrôles sont dans un <fieldset disabled>" do
+    sign_in @owner
+    get preview_property_path(@property)
+    assert_response :success
+
+    # Le bloc est rendu (argument produit : "voici ce qui apparaîtra
+    # sur votre annonce"), donc le titre doit être là.
+    assert_select "#formulaire-proposition"
+
+    # Tous les inputs/submit du form vivent dans un fieldset disabled.
+    # <fieldset disabled> désactive nativement tous les contrôles
+    # descendants — c'est la barrière DOM/HTML5 la plus fiable.
+    assert_select "#formulaire-proposition fieldset[disabled]", { minimum: 1 },
+      "Le bloc proposition doit être enveloppé dans un <fieldset disabled> en preview"
+
+    # Aucun input ni submit ne doit exister EN DEHORS du fieldset disabled.
+    # (Sinon un contrôle serait cliquable.)
+    all_inputs  = css_select("#formulaire-proposition form input, #formulaire-proposition form textarea").size
+    inputs_in_disabled = css_select("#formulaire-proposition fieldset[disabled] input, #formulaire-proposition fieldset[disabled] textarea").size
+    assert_equal all_inputs, inputs_in_disabled,
+      "Tous les champs du form doivent être sous le fieldset disabled — trouvés #{all_inputs}, dont #{inputs_in_disabled} dans le fieldset"
+  end
+
+  test "preview : ruban explicatif présent sur le bloc proposition" do
+    sign_in @owner
+    get preview_property_path(@property)
+    assert_response :success
+    assert_select "#offer-form-preview-ribbon"
+    assert_match(/Ce module s'affichera pour les artisans et investisseurs/, response.body)
+  end
+
+  test "show hors preview (tiers prestataire sur bien publié) : form actif, sans ruban ni fieldset disabled" do
+    @property.update!(status: :published)
+    prestataire = User.create!(
+      email:                 "artisan-#{SecureRandom.hex(4)}@example.com",
+      password:              "password123",
+      password_confirmation: "password123",
+      role:                  :prestataire,
+      confirmed_at:          Time.current
+    )
+    sign_in prestataire
+
+    get property_path(@property)
+    assert_response :success
+
+    # Bloc rendu (tiers non-owner voit unless can_see_full_dossier)
+    assert_select "#formulaire-proposition"
+    # Pas de ruban preview
+    assert_select "#offer-form-preview-ribbon", false,
+      "Aucun ruban preview ne doit apparaître dans la vraie fiche publiée"
+    # Pas de fieldset disabled : le form doit être actif
+    assert_select "#formulaire-proposition fieldset[disabled]", false,
+      "Sur la vraie fiche publiée, le form doit rester ACTIF (pas de fieldset disabled)"
+    # Submit actif
+    assert_select "#formulaire-proposition input[type=submit]:not([disabled])",
+      { minimum: 1 },
+      "Le bouton d'envoi doit être actif pour un vrai visiteur prestataire"
+  end
+
+  test "show sur bien publié vu par un ANONYME : CTA d'inscription (form non rendu, comportement inchangé)" do
+    @property.update!(status: :published)
+    # Pas de sign_in, pas de cookie.
+    get property_path(@property)
+    assert_response :success
+    # Le partial rend le CTA "S'inscrire" à la place du form quand
+    # le visiteur n'est pas connecté (comportement existant).
+    # Note : l'apostrophe est HTML-encodée en &#39; par link_to,
+    # d'où le motif "Créez un compte prestataire" en assertion stable.
+    assert_match(/Créez un compte prestataire/, response.body)
+    assert_select "a[href=?]", new_user_registration_path,
+      { minimum: 1 },
+      "Lien d'inscription attendu pour un anonyme sur une fiche publiée"
+    # Pas de ruban preview.
+    assert_select "#offer-form-preview-ribbon", false
+  end
+
   # ── Anti-régression du nom de fichier ──────────────────────────────
 
   test "fichier legacy previews.html.erb (avec s) ne doit pas revenir" do

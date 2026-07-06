@@ -89,8 +89,14 @@ class OffersController < ApplicationController
     redirect_to root_path, alert: "Seuls les prestataires peuvent faire une offre."
   end
 
-  # Charge @property parmi les biens publiés. Bloque aussi si le bien appartient
-  # à l'utilisateur courant (on ne fait pas une offre sur son propre bien).
+  # Charge @property parmi les biens publiés puis bloque toute tentative
+  # d'auto-proposition — défense en profondeur. Deux critères cumulatifs
+  # d'exclusion (l'un OU l'autre suffit) :
+  #   - le user connecté possède le bien (propriétaire au sens compte),
+  #   - le navigateur porte le claim_token de ce bien (parcours anonyme).
+  # Le second critère couvre le cas rare où le porteur du bien (au sens
+  # claim_token) crée un compte prestataire et tenterait de s'auto-offrir
+  # une proposition avant que le rattachement ait vidé son cookie.
   def set_property_for_offer
     @property = Property.published.find_by(id: params[:property_id])
 
@@ -99,9 +105,16 @@ class OffersController < ApplicationController
       return
     end
 
-    if user_signed_in? && @property.user_id == current_user.id
+    if porteur_du_bien?(@property)
       redirect_to root_path, alert: "Vous ne pouvez pas faire une offre sur votre propre bien."
     end
+  end
+
+  # Vrai si le visiteur courant est le porteur du bien, au sens large :
+  # propriétaire connecté OU navigateur avec le claim_token du bien.
+  def porteur_du_bien?(property)
+    (user_signed_in? && property.user_id == current_user.id) ||
+      (property.claim_token.present? && claim_tokens.include?(property.claim_token))
   end
 
   def offer_params
