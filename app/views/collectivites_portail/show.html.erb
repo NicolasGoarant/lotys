@@ -1,61 +1,80 @@
-<%# ═══════════════════════════════════════════════════════════════════════
-     Portail collectivité (feature B2G niveau 1) — /collectivites/:slug.
-
-     La page utilise le layout global (navbar Lauze + footer inchangés).
-     Le branding EPCI se limite à un BANDEAU en tête + la couleur primaire
-     de la collectivité utilisée en accent. Zéro refonte visuelle globale
-     (principe projet : c'est une page Lauze aux couleurs d'un EPCI,
-     pas une marque blanche).
-     ═══════════════════════════════════════════════════════════════════ %>
-
-<%# SEO / partage social — surcharge le title et og:image du layout
-     global via content_for (cf. layouts/application.html.erb). Le partage
-     d'un lien de portail sur un canal social affiche le nom de la
-     collectivité et son logo (ou l'og:image de Lauze en fallback). -%>
+<%# Portail collectivité (feature B2G niveau 1) — /collectivites/:slug. %>
+<%# Layout global (navbar + footer), branding EPCI = bandeau + primary_color en accent. %>
+<%# Principe : page Lauze aux couleurs d'un EPCI, pas une marque blanche. %>
+<%# SEO / partage social — surcharge le title et og:image du layout via content_for. %>
 <% content_for :title do %><%= @collectivite.name %> — Portail rénovation | Lauze<% end %>
 <% content_for :og_description do %><%= @collectivite.welcome_text.presence || "Estimez votre projet de rénovation énergétique — MaPrimeRénov', CEE et aides de la collectivité calculées automatiquement." %><% end %>
 <% if @collectivite.logo.attached? %>
   <% content_for :og_image do %><%= url_for(@collectivite.logo) %><% end %>
 <% end %>
 
-<%# ── Bandeau branding — logo (ou initiales) + nom + welcome_text ── %>
+<%# Fraunces : même serif que la home et /collectivites marketing, cohérence visuelle. %>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&display=swap">
+
+<%
+  # Raccourcis locaux — le nom de la collectivité et sa couleur sont réutilisés
+  # partout ; on les capture pour lisibilité et éviter de refaire tourner le
+  # method_missing d'ActiveRecord à chaque interpolation ERB.
+  primary = @collectivite.primary_color
+  nom     = @collectivite.name
+%>
+
+<%# ── Bandeau branding — hero avec profondeur (glows + trame subtile). ── %>
+<%# background_image cumule 4 couches : glow blanc en haut-gauche, glow sombre %>
+<%# en bas-droite (relief), trame de points blancs quasi transparents (texture) %>
+<%# et dégradé diagonal primary → primary opacifié (base). primary_color pilote %>
+<%# tout — la page reste belle pour n'importe quelle couleur d'EPCI. %>
 <section id="collectivite-portail"
          data-slug="<%= @collectivite.slug %>"
-         style="background: linear-gradient(135deg, <%= @collectivite.primary_color %> 0%, <%= @collectivite.primary_color %>dd 100%); padding: 48px 24px 40px; color: white;">
-  <div style="max-width: 960px; margin: 0 auto;">
-    <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
-      <%# Logo si attaché, sinon fallback initiales sur cercle blanc %>
+         style="position:relative;
+                background-color: <%= primary %>;
+                background-image:
+                  radial-gradient(circle at 18% 12%, rgba(255,255,255,0.18), rgba(255,255,255,0) 45%),
+                  radial-gradient(circle at 88% 85%, rgba(0,0,0,0.22), rgba(0,0,0,0) 45%),
+                  radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1.6px),
+                  linear-gradient(135deg, <%= primary %> 0%, <%= primary %>e0 55%, <%= primary %>a8 100%);
+                background-size: auto, auto, 22px 22px, auto;
+                padding: 56px 24px 100px;
+                color: white;">
+  <div style="max-width: 960px; margin: 0 auto; position: relative;">
+    <div style="display: flex; align-items: center; gap: 24px; margin-bottom: 24px; flex-wrap: wrap;">
+      <%# Logo si attaché, sinon fallback initiales sur fond blanc (mêmes IDs qu'avant). %>
       <% if @collectivite.logo.attached? %>
         <%= image_tag @collectivite.logo,
               id: "collectivite-logo",
-              alt: @collectivite.name,
-              style: "height: 80px; width: auto; background: white; padding: 10px 14px; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" %>
+              alt: nom,
+              style: "height: 96px; width: auto; background: white; padding: 12px 16px; border-radius: 16px; box-shadow: 0 10px 26px rgba(0,0,0,0.20);" %>
       <% else %>
         <div id="collectivite-initiales"
-             style="height: 80px; min-width: 80px; padding: 0 18px;
-                    background: white; color: <%= @collectivite.primary_color %>;
-                    border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+             style="height: 96px; min-width: 96px; padding: 0 22px;
+                    background: white; color: <%= primary %>;
+                    border-radius: 16px; box-shadow: 0 10px 26px rgba(0,0,0,0.20);
                     display: flex; align-items: center; justify-content: center;
-                    font-weight: 900; font-size: 1.6rem; letter-spacing: 0.05em;">
+                    font-family:'Fraunces',Georgia,serif;
+                    font-weight: 900; font-size: 1.9rem; letter-spacing: 0.04em;">
           <%= @collectivite.initiales %>
         </div>
       <% end %>
 
       <div style="flex: 1; min-width: 240px;">
-        <p style="margin: 0 0 4px; font-size: 0.75rem; font-weight: 800;
-                  letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.85;">
+        <p style="margin: 0 0 6px; font-size: 0.72rem; font-weight: 800;
+                  letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.85;">
           Portail rénovation énergétique
         </p>
-        <h1 style="margin: 0; font-size: clamp(1.8rem, 3vw, 2.4rem);
-                   font-weight: 900; letter-spacing: -0.02em; line-height: 1.15;">
-          <%= @collectivite.name %>
+        <h1 style="margin: 0; font-family:'Fraunces',Georgia,serif;
+                   font-size: clamp(2rem, 3.6vw, 2.75rem);
+                   font-weight: 700; letter-spacing: -0.02em; line-height: 1.1;
+                   text-shadow: 0 2px 12px rgba(0,0,0,0.15);">
+          <%= nom %>
         </h1>
       </div>
     </div>
 
     <% if @collectivite.welcome_text.present? %>
       <p id="welcome-text"
-         style="margin: 20px 0 0; font-size: 1.05rem; line-height: 1.6;
+         style="margin: 12px 0 0; font-size: 1.08rem; line-height: 1.65;
                 max-width: 62ch; opacity: 0.95;">
         <%= simple_format(@collectivite.welcome_text, {}, wrapper_tag: "span") %>
       </p>
@@ -63,37 +82,43 @@
   </div>
 </section>
 
-<%# ── Compteur biens analysés + CTA principal ─────────────────────── %>
-<section style="max-width: 960px; margin: 0 auto; padding: 40px 24px;">
-  <div style="display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: stretch;">
+<%# ── Compteur + CTA — cartes flottantes chevauchant le bandeau. ── %>
+<%# margin-top négatif : les cartes "montent" sur le hero. Ombre plus %>
+<%# marquée pour l'effet de levée. Sur mobile, le grid empile naturellement. %>
+<section style="max-width: 960px; margin: -60px auto 0; padding: 0 24px; position: relative; z-index: 2;">
+  <div style="display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: stretch;">
 
-    <%# Bloc compteur (donnée réelle, jamais inventée) %>
-    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 16px;
-                padding: 24px; text-align: center;">
-      <p style="margin: 0 0 6px; font-size: 0.72rem; font-weight: 800;
-                letter-spacing: 0.14em; text-transform: uppercase; color: #6b7280;">
+    <%# Bloc compteur — donnée réelle, jamais inventée. %>
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 18px;
+                padding: 26px 24px; text-align: center;
+                box-shadow: 0 18px 40px -12px rgba(15,23,42,0.18), 0 4px 12px rgba(15,23,42,0.06);">
+      <p style="margin: 0 0 8px; font-size: 0.7rem; font-weight: 800;
+                letter-spacing: 0.16em; text-transform: uppercase; color: #6b7280;">
         Près de chez vous
       </p>
       <p id="count-biens"
          data-count="<%= @count_biens %>"
-         style="margin: 0; font-size: 2.5rem; font-weight: 900; line-height: 1;
-                color: <%= @collectivite.primary_color %>;">
+         style="margin: 0; font-family:'Fraunces',Georgia,serif;
+                font-size: 3rem; font-weight: 700; line-height: 1;
+                letter-spacing: -0.02em; color: <%= primary %>;">
         <%= @count_biens %>
       </p>
-      <p style="margin: 8px 0 0; font-size: 0.9rem; color: #6b7280;">
+      <p style="margin: 10px 0 0; font-size: 0.9rem; color: #6b7280; line-height: 1.5;">
         <%= @count_biens == 1 ? "bien déjà analysé" : "biens déjà analysés" %>
         par des habitants
       </p>
     </div>
 
-    <%# Bloc CTA : link vers /properties/new pré-paramétré (rattachement C6) %>
-    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 16px;
-                padding: 24px; display: flex; flex-direction: column; justify-content: space-between;">
+    <%# Bloc CTA — link vers /properties/new pré-paramétré (rattachement C6). %>
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 18px;
+                padding: 26px 24px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;
+                box-shadow: 0 18px 40px -12px rgba(15,23,42,0.18), 0 4px 12px rgba(15,23,42,0.06);">
       <div>
-        <p style="margin: 0 0 8px; font-size: 1.05rem; font-weight: 800; color: #111827;">
+        <p style="margin: 0 0 8px; font-family:'Fraunces',Georgia,serif;
+                  font-size: 1.35rem; font-weight: 700; color: #0f172a; line-height: 1.2;">
           Analysez votre bien
         </p>
-        <p style="margin: 0 0 16px; font-size: 0.9rem; color: #4b5563; line-height: 1.5;">
+        <p style="margin: 0; font-size: 0.94rem; color: #4b5563; line-height: 1.55;">
           Estimation des travaux, aides nationales et locales, reste à charge.
           Le résultat prend 1 à 3 minutes.
         </p>
@@ -101,41 +126,138 @@
       <%= link_to "Commencer →",
             new_property_path(collectivite: @collectivite.slug),
             id: "cta-new-property",
-            style: "display: inline-block; background: #{@collectivite.primary_color};
-                    color: white; padding: 12px 24px; border-radius: 10px;
-                    font-weight: 700; text-decoration: none; text-align: center;
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.1);" %>
+            style: "display: inline-block; background: #{primary};
+                    color: white; padding: 14px 22px; border-radius: 12px;
+                    font-weight: 800; font-size: 1rem; text-decoration: none; text-align: center;
+                    box-shadow: 0 8px 18px -6px #{primary}80, 0 2px 6px rgba(0,0,0,0.08);" %>
     </div>
   </div>
 </section>
 
-<%# ── Proposition de valeur — orientée HABITANT (destinataire du portail).
-     ATTENTION : ne pas remplacer par le contenu du bloc décideur de la
-     page marketing /collectivites — ce sont deux audiences distinctes.
-     La page marketing s'adresse aux élus/EPCI (pilotage, tableau de
-     bord), le portail s'adresse aux habitants (aides, parcours,
-     confidentialité). Toucher aux deux endroits en même temps est
-     précisément le bug qui avait fait passer le discours décideur ici.
-     Le nom de la collectivité est interpolé dans la colonne 01 pour
-     rendre concret "les aides de la collectivité". Le point 03 reprend
-     les engagements déjà présents sur /properties/new (suppression des
-     documents après analyse) et /confidentialite (données non vendues
-     ni transmises sans accord) — aucune promesse nouvelle. %>
-<section style="max-width: 960px; margin: 0 auto; padding: 20px 24px 60px;">
-  <p style="margin: 0 0 12px; font-size: 0.72rem; font-weight: 800;
-            letter-spacing: 0.14em; text-transform: uppercase; color: #059669;">
+<%# ── Proposition de valeur — orientée HABITANT (audience du portail). ── %>
+<%# Trois colonnes en cartes légères : fond très pâle teinté primary, %>
+<%# bordure fine, coin arrondi, pictogramme SVG monoline (pas d'emoji). %>
+<%# Ne PAS remplacer par le contenu décideur de /collectivites marketing — %>
+<%# audiences distinctes (élu vs habitant). Le nom EPCI est interpolé dans 01. %>
+<%# Le point 03 reprend les engagements existants (/properties/new + /confidentialite). %>
+<section style="max-width: 960px; margin: 0 auto; padding: 64px 24px 32px;">
+  <p style="margin: 0 0 22px; font-size: 0.72rem; font-weight: 800;
+            letter-spacing: 0.16em; text-transform: uppercase; color: <%= primary %>;">
     Ce que Lauze vous apporte
   </p>
-  <%= render "shared/feature_columns",
-        items: [
-          { numero: "01",
-            titre:  "Vos aides, calculées",
-            corps:  "Les aides de #{@collectivite.name} s'ajoutent automatiquement à MaPrimeRénov', aux CEE et à l'éco-PTZ. Vous voyez le total et votre reste à charge, à l'euro près." },
-          { numero: "02",
-            titre:  "Un parcours simple",
-            corps:  "Déposez votre DPE : travaux prioritaires, aides et reste à charge en quelques minutes. Sans démarchage, sans création de compte obligatoire." },
-          { numero: "03",
-            titre:  "Vos documents protégés",
-            corps:  "Vos pièces (DPE, titre, factures) sont supprimées après l'analyse. Vos données ne sont jamais transmises sans votre accord." }
-        ] %>
+
+  <div style="display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+
+    <%# Carte 01 — pictogramme euro dans cercle (aides/calcul). %>
+    <article style="background: <%= primary %>0d;
+                    border: 1px solid <%= primary %>26;
+                    border-radius: 18px; padding: 26px 22px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <span aria-hidden="true"
+              style="display: inline-flex; align-items: center; justify-content: center;
+                     width: 44px; height: 44px; border-radius: 12px;
+                     background: <%= primary %>1a; color: <%= primary %>;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M15.5 8.5c-1-1-2.2-1.4-3.5-1.4-2.4 0-4.2 1.8-4.2 4.9s1.8 4.9 4.2 4.9c1.3 0 2.5-.4 3.5-1.4"/>
+            <path d="M7.2 11h6M7.2 13h6"/>
+          </svg>
+        </span>
+        <p style="margin: 0; font-family:'Fraunces',Georgia,serif;
+                  font-size: 0.95rem; font-weight: 700; color: <%= primary %>;
+                  letter-spacing: 0.02em;">01</p>
+      </div>
+      <h3 style="margin: 0 0 12px; font-family:'Fraunces',Georgia,serif;
+                 font-size: 1.35rem; font-weight: 700; color: #0f172a;
+                 line-height: 1.2; letter-spacing: -0.01em;">
+        Vos aides, calculées
+      </h3>
+      <p style="margin: 0; font-size: 1rem; color: #334155; line-height: 1.7;">Les aides de <%= nom %> s'ajoutent automatiquement à MaPrimeRénov', aux CEE et à l'éco-PTZ. Vous voyez le total et votre reste à charge, à l'euro près.</p>
+    </article>
+
+    <%# Carte 02 — pictogramme chemin/étapes (parcours). %>
+    <article style="background: <%= primary %>0d;
+                    border: 1px solid <%= primary %>26;
+                    border-radius: 18px; padding: 26px 22px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <span aria-hidden="true"
+              style="display: inline-flex; align-items: center; justify-content: center;
+                     width: 44px; height: 44px; border-radius: 12px;
+                     background: <%= primary %>1a; color: <%= primary %>;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="4.5" cy="12" r="1.6"/>
+            <path d="M6.5 12h3"/>
+            <circle cx="12" cy="12" r="1.6"/>
+            <path d="M14 12h3"/>
+            <circle cx="19.5" cy="12" r="1.6" fill="currentColor"/>
+            <path d="M17 5l3 3-3 3M17 19l3-3-3-3" stroke-opacity="0"/>
+          </svg>
+        </span>
+        <p style="margin: 0; font-family:'Fraunces',Georgia,serif;
+                  font-size: 0.95rem; font-weight: 700; color: <%= primary %>;
+                  letter-spacing: 0.02em;">02</p>
+      </div>
+      <h3 style="margin: 0 0 12px; font-family:'Fraunces',Georgia,serif;
+                 font-size: 1.35rem; font-weight: 700; color: #0f172a;
+                 line-height: 1.2; letter-spacing: -0.01em;">
+        Un parcours simple
+      </h3>
+      <p style="margin: 0; font-size: 1rem; color: #334155; line-height: 1.7;">Déposez votre DPE : travaux prioritaires, aides et reste à charge en quelques minutes. Sans démarchage, sans création de compte obligatoire.</p>
+    </article>
+
+    <%# Carte 03 — pictogramme bouclier (protection). %>
+    <article style="background: <%= primary %>0d;
+                    border: 1px solid <%= primary %>26;
+                    border-radius: 18px; padding: 26px 22px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <span aria-hidden="true"
+              style="display: inline-flex; align-items: center; justify-content: center;
+                     width: 44px; height: 44px; border-radius: 12px;
+                     background: <%= primary %>1a; color: <%= primary %>;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3l8 3v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-3z"/>
+            <path d="M8.8 12.2l2.2 2.2 4.2-4.2"/>
+          </svg>
+        </span>
+        <p style="margin: 0; font-family:'Fraunces',Georgia,serif;
+                  font-size: 0.95rem; font-weight: 700; color: <%= primary %>;
+                  letter-spacing: 0.02em;">03</p>
+      </div>
+      <h3 style="margin: 0 0 12px; font-family:'Fraunces',Georgia,serif;
+                 font-size: 1.35rem; font-weight: 700; color: #0f172a;
+                 line-height: 1.2; letter-spacing: -0.01em;">
+        Vos documents protégés
+      </h3>
+      <p style="margin: 0; font-size: 1rem; color: #334155; line-height: 1.7;">Vos pièces (DPE, titre, factures) sont supprimées après l'analyse. Vos données ne sont jamais transmises sans votre accord.</p>
+    </article>
+  </div>
+</section>
+
+<%# ── Bande de réassurance — engagements déjà tenus ailleurs. ── %>
+<%# Reprend strictement le vocabulaire de /properties/new + /confidentialite %>
+<%# + le pill "sans appel commercial" de la home. Aucune promesse nouvelle. %>
+<section id="portail-reassurance"
+         style="margin-top: 32px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+  <div style="max-width: 960px; margin: 0 auto; padding: 22px 24px;
+              display: flex; gap: 12px 28px; flex-wrap: wrap; align-items: center; justify-content: center;
+              font-size: 0.85rem; color: #475569; line-height: 1.4;">
+    <span style="display: inline-flex; align-items: center; gap: 8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: #059669;">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+      Sans appel commercial
+    </span>
+    <span style="display: inline-flex; align-items: center; gap: 8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: #059669;">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+      Documents supprimés après analyse
+    </span>
+    <span style="display: inline-flex; align-items: center; gap: 8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: #059669;">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+      Données jamais transmises sans accord
+    </span>
+  </div>
 </section>

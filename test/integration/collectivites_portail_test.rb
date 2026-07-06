@@ -250,6 +250,39 @@ class CollectivitesPortailTest < ActionDispatch::IntegrationTest
     refute_match(/biens analysés\s+depuis Lauze/i, response.body)
   end
 
+  # ── Bande de réassurance en pied de portail ──────────────────────────
+
+  test "portail : bande de réassurance présente avec les 3 engagements textuels" do
+    setup_grand_nancy
+    get "/collectivites/grand-nancy"
+    assert_select "section#portail-reassurance", { count: 1 },
+      "La bande de réassurance en pied doit exister — signal de garantie pour l'habitant"
+    body = response.body
+    assert_match(/Sans appel commercial/, body)
+    assert_match(/Documents supprimés après analyse/, body)
+    assert_match(/Données jamais transmises sans accord/, body)
+  end
+
+  test "portail : primary_color paramétrise plusieurs accents (bandeau + compteur + cartes)" do
+    # Test avec une couleur non-standard pour prouver que la mise en forme
+    # est bien paramétrée (pas juste belle pour le bleu Grand Nancy).
+    Collectivite.create!(
+      name:          "Communauté Urbaine du Test",
+      slug:          "test-cu",
+      primary_color: "#a83279",
+      welcome_text:  "Bonjour",
+      insee_codes:   %w[54001],
+      active:        true
+    )
+    get "/collectivites/test-cu"
+    assert_response :success
+    # La couleur doit apparaître au moins sur : bandeau (background), compteur
+    # (nombre coloré), CTA (background), et cartes propositions (bg + border).
+    # 5 occurrences ~ marque de fond que le thème est vraiment paramétré.
+    assert_operator response.body.scan(/#a83279/i).size, :>=, 5,
+      "primary_color doit apparaître dans plusieurs accents visuels — bandeau, compteur, CTA, cartes"
+  end
+
   # ── Non-régression du parcours public (sans slug) ─────────────────────
 
   test "GET / (home) rend toujours 'Lauze' comme title (fallback layout inchangé)" do
