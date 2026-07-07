@@ -29,16 +29,38 @@
 <% travaux_claude = (e&.[]("travaux") || []).sort_by{|t| t["priorite"].to_i} %>
 <% cur_idx    = dpe_all.index(dpe_cur) || 5 %>
 
-<%# ── Travaux actifs : travaux_selection jsonb sur Property (7 macro-postes) ─
-     On regroupe les travaux Claude par code canonique et on garde le plus
-     représentatif pour l'affichage (prix médian, libellé). -%>
+<%# ── Gestes PROPOSABLES pour ce bien — source serveur ────────────────
+     La liste canonique vient de ProposableGestesService (faits du bien :
+     property_type, is_copropriete, chauffage collectif, position_lot).
+     La narration LLM (travaux_claude) n'apporte plus qu'un enrichissement :
+     libellé long et fourchette de coûts pour chaque geste retenu.
+
+     Bug historique (biens 232/233, diag 07/07) : deux runs LLM sur le
+     même PDF donnaient deux listes de gestes différentes (parfois
+     avec un « remplacement chauffage collectif » chiffré 3 500 € qui
+     n'a pas de sens actionnable pour un lot en copro gaz collectif).
+     Inversion de dépendance : les faits pilotent la liste, le LLM ne
+     décide plus des cases à cocher — il les habille. -%>
+<% codes_proposables = ProposableGestesService.call(@property) %>
 <% travaux_groupes = {} %>
-<% travaux_claude.each do |t|
-     code = TravauxMapperService.code_for_poste(t["poste"])
-     next unless code
-     travaux_groupes[code] ||= { poste: t["poste"], cout_min: 0, cout_max: 0 }
-     travaux_groupes[code][:cout_min] += t["cout_min"].to_i
-     travaux_groupes[code][:cout_max] += t["cout_max"].to_i
+<% codes_proposables.each do |code|
+     entree_llm = travaux_claude.find { |t| TravauxMapperService.code_for_poste(t["poste"]) == code }
+     if entree_llm
+       travaux_groupes[code] = {
+         poste:    entree_llm["poste"],
+         cout_min: entree_llm["cout_min"].to_i,
+         cout_max: entree_llm["cout_max"].to_i,
+         source:   :llm
+       }
+     else
+       fallback = TravauxMapperService::DEFAULT_COSTS[code]
+       travaux_groupes[code] = {
+         poste:    TravauxMapperService::LABELS[code],
+         cout_min: fallback[:cout_min],
+         cout_max: fallback[:cout_max],
+         source:   :estimation
+       }
+     end
    end %>
 
 <%# Travaux cochés (ordre canonique) pour calculs de budget et DPE cible %>
@@ -550,7 +572,12 @@
             <span style="font-size:1rem;flex-shrink:0;"><%= TravauxMapperService::EMOJIS[code] %></span>
             <span class="travail-label bod" style="font-weight:600;flex:1;"><%= TravauxMapperService::LABELS[code] %></span>
             <span class="bod" style="font-weight:700;white-space:nowrap;color:#374151;">
-              ≈ <%= mediane.to_s.reverse.gsub(/(\d{3})(?=\d)/,'\\1 ').reverse %> €
+              ≈ <%= mediane.to_s.reverse.gsub(/(\d{3})(?=\d)/,'\\1 ').reverse %> €<%
+                # Marquage honnête : quand le coût vient du forfait
+                # TravauxMapperService::DEFAULT_COSTS (le LLM n'a rien
+                # chiffré pour ce geste proposable), on signale à
+                # l'utilisateur que c'est une estimation générique.
+              %><% if grp[:source] == :estimation %><span style="font-weight:500;color:#78350f;font-size:.7rem;"> (estimation)</span><% end %>
             </span>
           </label>
         <% end %>

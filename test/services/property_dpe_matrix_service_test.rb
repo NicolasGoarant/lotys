@@ -212,4 +212,55 @@ class PropertyDpeMatrixServiceTest < ActiveSupport::TestCase
     assert duree_ms < 200,
       "Matrice doit tenir sous 200 ms — mesuré #{duree_ms.round(1)} ms"
   end
+
+  # ────────────────────────────────────────────────────────────────────────
+  # 8. Restriction aux gestes proposables (via ProposableGestesService)
+  # ────────────────────────────────────────────────────────────────────────
+  # La matrice n'énumère que les combinaisons des gestes ACTIONNABLES
+  # pour ce bien. Pour une maison, tout est proposable → 128 combi
+  # comme avant (backward-compat). Pour un appartement en copro gaz
+  # collectif, chauffage est exclu → 64 combi et aucune clé ne contient
+  # "chauffage". Cohérence stricte avec ce que la vue affiche comme
+  # cases à cocher — plus de dérive availableCodes ≠ matrice.
+
+  # Copro gaz sans équipement individuel : ProposableGestesService retire
+  # "chauffage" → la matrice passe de 128 à 64 combinaisons.
+  def appartement_copro_gaz_collectif
+    Property.new(base_attrs.merge(
+      surface:                  72,
+      construction_year:        1965,
+      property_type:            "appartement",
+      is_copropriete:           true,
+      dpe_class:                "E",
+      energie_chauffage:        "gaz",
+      energie_chauffage_source: "extrait_description"
+    ))
+  end
+
+  test "matrice restreinte aux gestes proposables : copro gaz collectif → 64 combi, aucune 'chauffage'" do
+    r = PropertyDpeMatrixService.call(appartement_copro_gaz_collectif)
+    combi = r[:combinaisons]
+    # 6 gestes proposables sur 7 (chauffage exclu) → 2^6 = 64.
+    assert_equal 64, combi.size,
+      "Copro gaz collectif : matrice devrait être restreinte à 2^6 = 64 combi. " \
+      "Obtenu #{combi.size}."
+    # Aucune clé de combi ne doit contenir "chauffage" — le geste n'est
+    # tout simplement plus dans l'espace d'énumération.
+    fautes = combi.keys.select { |k| k.split(",").include?("chauffage") }
+    assert_empty fautes,
+      "Aucune combinaison ne doit inclure 'chauffage' pour un lot en copro gaz collectif. " \
+      "Fautes : #{fautes.inspect}"
+    # Les gestes proposables sont exposés dans meta pour la vue.
+    refute_includes r.dig(:meta, :gestes_proposables), "chauffage",
+      "meta[:gestes_proposables] doit refléter le filtre serveur."
+  end
+
+  test "matrice complète pour une maison — 128 combi, backward-compat" do
+    r = PropertyDpeMatrixService.call(maison_oracle_tilleuls)
+    assert_equal 128, r[:combinaisons].size,
+      "Une maison hors copro n'exclut aucun geste : la matrice reste à 128 combi."
+    assert_equal PropertyDpeMatrixService::GESTES.sort,
+                 r.dig(:meta, :gestes_proposables).sort,
+      "Une maison expose l'ensemble canonique dans meta[:gestes_proposables]."
+  end
 end

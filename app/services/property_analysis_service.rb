@@ -276,6 +276,14 @@ class PropertyAnalysisService
       body: {
         model: "claude-sonnet-4-6",
         max_tokens: 4096,
+        # temperature: 0 pour réduire la variance run-to-run sur un même
+        # PDF (cf. écart biens 232/233, diagnostic 07/07). Ce n'est PAS la
+        # correction principale du non-déterminisme des cases à cocher —
+        # celle-ci passe par ProposableGestesService, qui rend la liste
+        # des gestes indépendante de la narration LLM. Baisser la
+        # température aide à stabiliser les valeurs numériques et
+        # libellés qui restent, eux, sourcés du LLM.
+        temperature: 0,
         messages: [{ role: "user", content: prompt }]
       }.to_json,
       timeout: 300

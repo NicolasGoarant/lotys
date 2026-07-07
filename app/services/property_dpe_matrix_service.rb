@@ -14,6 +14,10 @@
 # Service en LECTURE de Property. Ne modifie aucune colonne. Ne modifie pas
 # le moteur ni PropertyDpeService.
 class PropertyDpeMatrixService
+  # Ensemble canonique des 7 gestes. C'est la BORNE SUPÉRIEURE de la
+  # matrice, pas nécessairement les gestes énumérés pour un bien donné —
+  # cf. #gestes_proposables ci-dessous qui restreint selon les faits du
+  # bien (chauffage collectif, appartement mitoyen, etc.).
   GESTES = %w[
     isolation_murs isolation_toiture isolation_plancher_bas
     menuiseries vmc chauffage chauffe_eau
@@ -53,9 +57,18 @@ class PropertyDpeMatrixService
         annee:             @property.construction_year,
         property_type:     @property.property_type,
         zone_climatique:   zone_climatique,
-        dpe_actuel_db:     @property.dpe_class
+        dpe_actuel_db:     @property.dpe_class,
+        gestes_proposables: gestes_proposables
       }
     }
+  end
+
+  # Liste des gestes réellement énumérés dans la matrice pour CE bien.
+  # Source unique de vérité serveur : la vue et la matrice consomment
+  # la même liste, plus de dérive possible entre availableCodes (DOM)
+  # et l'espace des combinaisons calculé côté back.
+  def gestes_proposables
+    @gestes_proposables ||= ProposableGestesService.call(@property)
   end
 
   private
@@ -108,11 +121,18 @@ class PropertyDpeMatrixService
     }
   end
 
-  # ── 128 combinaisons : Hash { "<clé triée>" → {classe, ep, co2, proche_seuil} }
+  # ── 2^N combinaisons sur les gestes PROPOSABLES pour ce bien ──────────
+  # N = gestes_proposables.size ≤ 7. Pour une maison hors copro tout est
+  # proposable → 128 comme avant. Pour un appartement en copro gaz
+  # collectif à étage intermédiaire, N = 4 (chauffage, toiture et
+  # plancher exclus) → 16 combinaisons — matrice cohérente avec les
+  # cases à cocher que la vue affiche réellement.
+  # Hash { "<clé triée>" → {classe, ep, co2, proche_seuil} }
   def calculer_combinaisons(etat)
-    nb_combi = 2**GESTES.size
+    gestes = gestes_proposables
+    nb_combi = 2**gestes.size
     (0...nb_combi).each_with_object({}) do |i, h|
-      gestes_actifs = GESTES.each_with_index.filter_map { |g, idx| g if i[idx] == 1 }
+      gestes_actifs = gestes.each_with_index.filter_map { |g, idx| g if i[idx] == 1 }
       cle = gestes_actifs.sort.join(",")
       h[cle] = appeler_pds(etat, gestes_actifs)
     end
@@ -120,10 +140,11 @@ class PropertyDpeMatrixService
 
   # ── Priorité spécifique au bien : gain EP de chaque geste pris seul ──
   # Trié décroissant. Remplacera l'ordre forfaitaire DPE_IMPACT (qui est
-  # le même pour tous les biens) au Temps 3b-2.
+  # le même pour tous les biens) au Temps 3b-2. On classe uniquement les
+  # gestes proposables pour ce bien (les autres ne servent à rien).
   def classer_priorite_gestes(etat)
     base = appeler_pds(etat, [])
-    GESTES.map do |geste|
+    gestes_proposables.map do |geste|
       r = appeler_pds(etat, [geste])
       {
         code:         geste,

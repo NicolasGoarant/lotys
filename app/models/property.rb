@@ -109,6 +109,47 @@ class Property < ApplicationRecord
     nv > cur
   end
 
+  # ─── Chauffage collectif / individuel ─────────────────────────────────
+  # Détecte si le chauffage du lot est COLLECTIF (chaudière commune de
+  # copropriété). Consommé par ProposableGestesService pour EXCLURE le
+  # geste « remplacement du chauffage » de la liste actionnable : un
+  # propriétaire seul ne peut pas remplacer une chaudière collective
+  # (vote AG requis) — proposer ce geste dans les cases à cocher donne
+  # une matrice DPE mensongère et un chiffrage trompeur (la « part
+  # copro » d'un remplacement collectif n'est pas un devis individuel).
+  #
+  # ── Heuristique (pas de champ explicite en base) ─────────────────────
+  #   - Hors copropriété → toujours false (pas de collectif possible).
+  #   - Copropriété + au moins un équipement individuel de chauffage
+  #     détecté dans equipements_selection (PAC, poêle, insert, réseau
+  #     de chaleur, dépose fioul) → false : le lot a bien son propre
+  #     système.
+  #   - Copropriété + énergie gaz/fioul + aucun équipement individuel
+  #     détecté → true (cas majoritaire : chaudière collective gaz).
+  #   - Copropriété + énergie électrique/bois/PAC/inconnue → false
+  #     (chauffage électrique en copro = convecteurs individuels ;
+  #     bois/PAC = individuels de fait ; :inconnue = pas de signal
+  #     collectif → conservateur côté proposable).
+  #
+  # À l'avenir : peut être remplacé par un champ explicite extrait du
+  # DPE (rubrique « installation collective / individuelle ») avec le
+  # même pattern que energie_chauffage_source (hiérarchie de sources).
+  # En attendant, cette dérivation permet à ProposableGestesService
+  # de trancher sans nouvelle colonne.
+  EQUIPEMENTS_CHAUFFAGE_INDIVIDUELS = %w[
+    pac_air_eau pac_geothermique
+    poele_buches poele_granules insert_foyer
+    raccordement_reseau_chaleur depose_fioul
+  ].freeze
+
+  def chauffage_collectif?
+    return false unless is_copropriete
+    selection = equipements_selection || {}
+    cast = ActiveModel::Type::Boolean.new
+    return false if EQUIPEMENTS_CHAUFFAGE_INDIVIDUELS.any? { |k| cast.cast(selection[k]) }
+    %w[gaz fioul].include?(energie_chauffage.to_s)
+  end
+
   # Proxy fioul : si l'analyse a marqué depose_fioul=true dans
   # equipements_selection (sémantique du prompt PropertyAnalysisService :
   # « depose_fioul = true si chauffage fioul actuel détecté »), on en déduit

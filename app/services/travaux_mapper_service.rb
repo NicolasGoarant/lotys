@@ -44,6 +44,24 @@ class TravauxMapperService
     "menuiseries"            => "Remplacement des fenêtres"
   }.freeze
 
+  # Fourchettes médianes forfaitaires par geste (€ TTC, pose incluse,
+  # base Nancy 2025-2026). Utilisées UNIQUEMENT en fallback quand la
+  # narration LLM n'a pas proposé de chiffrage pour un geste que
+  # ProposableGestesService retient comme actionnable — un geste
+  # proposable sans coût provoquerait un budget à 0 € trompeur.
+  #
+  # Ces valeurs sont AFFICHÉES comme « estimation » par la vue (source
+  # forfaitaire, pas de devis ni contexte bien) — cf. show.html.erb.
+  DEFAULT_COSTS = {
+    "isolation_toiture"      => { cout_min: 5_000,  cout_max: 12_000 },
+    "isolation_murs"         => { cout_min: 8_000,  cout_max: 18_000 },
+    "isolation_plancher_bas" => { cout_min: 3_000,  cout_max: 7_000  },
+    "chauffage"              => { cout_min: 8_000,  cout_max: 15_000 },
+    "chauffe_eau"            => { cout_min: 2_500,  cout_max: 5_000  },
+    "vmc"                    => { cout_min: 3_000,  cout_max: 5_500  },
+    "menuiseries"            => { cout_min: 4_000,  cout_max: 10_000 }
+  }.freeze
+
   # Emojis pour l'affichage (conserve la logique visuelle de show.html.erb).
   EMOJIS = {
     "isolation_toiture"      => "🏠",
