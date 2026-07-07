@@ -108,11 +108,12 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
     JSON.parse(out)
   end
 
-  def run_dominated(current_dpe_idx:, combinaisons:, costs:)
+  def run_dominated(current_dpe_idx:, combinaisons:, costs:, available_codes: nil)
     payload = {
-      currentDpeIdx: current_dpe_idx,
-      combinaisons:  combinaisons,
-      travauxCosts:  costs
+      currentDpeIdx:  current_dpe_idx,
+      combinaisons:   combinaisons,
+      travauxCosts:   costs,
+      availableCodes: available_codes
     }.to_json
     script = <<~JS
       const { computeDominatedClasses } = require(#{LOGIC_FILE.inspect});
@@ -411,6 +412,50 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
     # Que dominated soit vide ou non, aucun idx ne doit être >= 3 (currentDpeIdx).
     assert dominated.all? { |i| i < 3 },
       "Aucun idx >= currentDpeIdx=3 ne doit apparaître. Obtenu : #{dominated.inspect}"
+  end
+
+  # ─── Repro bug bien 232 (copro classe E, 3 gestes proposés) ───────────
+  # La matrice serveur porte 128 combinaisons mais availableCodes limite le
+  # périmètre à 3 gestes. Avec ce périmètre, la meilleure classe atteignable
+  # est D — A, B, C tombent sur le fallback pessimiste (derivedClasseIdx > i).
+  # Avant le fix, computeDominatedClasses ne retournait QUE les recalages
+  # vers MIEUX ; A/B/C restaient sans affordance, l'utilisateur voyait le
+  # pin bloqué sans hachures ni tooltip → "sentiment de panne".
+  # Après le fix, la sémantique est coalescée : dominée OU inatteignable.
+  test "affordance bien 232 : A/B/C marquées inatteignables quand seuls murs/vmc/menuiseries sont disponibles" do
+    # Matrice réduite reproduisant la structure du bien 232 avec le
+    # sous-ensemble actionnable {murs, vmc, menuiseries}. Les combinaisons
+    # avec chauffage/toiture/… ne sont volontairement pas modélisées ici :
+    # availableCodes les rejette de toute façon, mais on garde la matrice
+    # minimale pour tester ce que fait REELLEMENT computeDominatedClasses
+    # dans le périmètre restreint.
+    combi_232 = {
+      ""                                    => { "classe" => "F" },
+      "isolation_murs"                      => { "classe" => "D" },
+      "menuiseries"                         => { "classe" => "F" },
+      "vmc"                                 => { "classe" => "F" },
+      "isolation_murs,menuiseries"          => { "classe" => "D" },
+      "isolation_murs,vmc"                  => { "classe" => "D" },
+      "menuiseries,vmc"                     => { "classe" => "E" },
+      "isolation_murs,menuiseries,vmc"      => { "classe" => "D" }
+    }
+    costs = { "isolation_murs" => 18_000, "menuiseries" => 8_000, "vmc" => 2_000 }
+    available = %w[isolation_murs vmc menuiseries]
+
+    dominated = run_dominated(
+      current_dpe_idx: 4,          # bien classe E
+      combinaisons:    combi_232,
+      costs:           costs,
+      available_codes: available
+    )
+
+    # A (0), B (1), C (2) sont INATTEIGNABLES avec ces 3 gestes → doivent
+    # être marquées (hachures + tooltip côté vue). D (3) EST atteignable
+    # via {murs} → NE doit PAS être marquée (c'est le point d'arrivée réel).
+    assert_includes dominated, 0, "A doit être marquée inatteignable. Obtenu : #{dominated.inspect}"
+    assert_includes dominated, 1, "B doit être marquée inatteignable. Obtenu : #{dominated.inspect}"
+    assert_includes dominated, 2, "C doit être marquée inatteignable. Obtenu : #{dominated.inspect}"
+    refute_includes dominated, 3, "D est le vrai point d'arrivée — pas de hachures. Obtenu : #{dominated.inspect}"
   end
 
   # ═════════════════════════════════════════════════════════════════════════

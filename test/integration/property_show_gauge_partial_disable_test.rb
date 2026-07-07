@@ -162,6 +162,35 @@ class PropertyShowGaugePartialDisableTest < ActionDispatch::IntegrationTest
       "Le microtexte doit démarrer masqué (affiché par JS au recalage). HTML: #{note_html}")
   end
 
+  # ── 4a-bis. Note permanente de plafonnement (bug bien 232) ──────────
+  # Ajouté après le bug bien 232 : quand la meilleure classe atteignable
+  # est capée (seuls 3 gestes proposés), les classes inatteignables (A/B/C
+  # pour un bien E où la meilleure atteignable est D) n'affichaient rien
+  # de spécial et cliquer sur "murs" en plus n'était pas ressenti comme
+  # une amélioration (D → D silencieux). On rend maintenant en DOM une
+  # note de plafonnement, masquée par défaut ; initShow la révèle si
+  # bestAchievableIdx < CUR. Test de PRÉSENCE et d'état initial masqué.
+  test "matrice présente → #dpe-plafond-note en DOM, masqué initialement" do
+    p = creer_bien(surface: 118, construction_year: 1928, dpe_class: "F")
+    get property_path(p)
+    assert_response :success
+
+    assert_select "#dpe-plafond-note", { count: 1 },
+      "La note permanente de plafonnement doit être présente dans le DOM " \
+      "au premier rendu (révélée par initShow si bestAchievableIdx < CUR)"
+
+    note_html = css_select("#dpe-plafond-note").first.to_s
+    assert_match(/display\s*:\s*none/i, note_html,
+      "La note de plafonnement doit démarrer masquée (affichée par initShow " \
+      "quand computeDominatedClasses détecte des classes inatteignables). HTML: #{note_html}")
+    # Le placeholder [data-plafond-classe] est le hook JS qui reçoit le nom
+    # de la meilleure classe atteignable au chargement — anti-régression
+    # d'un renommage/suppression qui casserait initShow silencieusement.
+    assert_select "#dpe-plafond-note [data-plafond-classe]", { count: 1 },
+      "Le placeholder [data-plafond-classe] est nécessaire à initShow pour " \
+      "injecter le nom de la classe atteignable"
+  end
+
   # ── 4b. Hit-area slider : bottom:0 (pas top:0) ──────────────────────
   # Le parent contient AUSSI la rangée "▼ actuel" (~16px) au-dessus de la
   # track (48px). Avec top:0, le range input laissait ~16 derniers pixels

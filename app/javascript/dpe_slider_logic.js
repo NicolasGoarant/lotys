@@ -185,18 +185,26 @@ function deriveTargetFromSelection({
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Fonction PURE — AFFORDANCE : classes DOMINÉES (jamais un point d'arrivée).
+// Fonction PURE — AFFORDANCE : classes qui NE SONT PAS un point d'arrivée.
 //
-// Une classe X est DOMINÉE si deriveSelectionForTarget(X) retourne une
-// sélection dont la classe dérivée est STRICTEMENT MEILLEURE que X.
-// Autrement dit : cliquer sur X recalera toujours vers une classe
-// meilleure et moins chère. C'est le cas de figure « E dominé par D »
-// observé en prod.
+// Deux sémantiques COALESCÉES sous le même retour, parce que la vue
+// applique le même traitement visuel (hachures + line-through + tooltip) :
 //
-// Utilisation prévue par la vue : au chargement, réduire l'opacité des
-// segments dominés + poser un `title` explicatif ("cette classe recalera
-// automatiquement"). L'utilisateur comprend AVANT de cliquer, plutôt
-// qu'après avoir vu le pin sauter.
+//   • DOMINÉE : deriveSelectionForTarget(X) retourne une classe
+//     STRICTEMENT MEILLEURE que X (idx < X). Cliquer sur X recale vers
+//     mieux, moins cher. Cas historique « E dominé par D » observé en
+//     prod sur un bien F.
+//
+//   • INATTEIGNABLE : deriveSelectionForTarget(X) retourne une classe
+//     STRICTEMENT PIRE que X (idx > X). Cliquer sur X ne peut pas
+//     atteindre X — la matrice tombe sur le fallback pessimiste. Cas
+//     bien 232 (copro classe E, 3 gestes) : cliquer A, B ou C recale
+//     vers D, la meilleure classe atteignable avec les gestes proposés.
+//
+// Dans les deux cas, X n'est pas un point d'arrivée du slider. La vue
+// doit donc marquer X pareil (mais avec un tooltip différent — cf.
+// initShow qui appelle deriveSelectionForTarget pour connaître la
+// direction du recalage).
 //
 // Balayage : toutes les classes STRICTEMENT MEILLEURES que currentDpeIdx
 // (targetIdx < currentDpeIdx). currentDpeIdx elle-même n'est pas un
@@ -220,7 +228,7 @@ function computeDominatedClasses({
       travauxCosts,
       availableCodes
     });
-    if (res.derivedClasseIdx < i) dominated.push(i);
+    if (res.derivedClasseIdx !== i) dominated.push(i);
   }
   return dominated;
 }

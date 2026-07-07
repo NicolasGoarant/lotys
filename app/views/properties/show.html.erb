@@ -486,6 +486,17 @@
         <p id="dpe-recale-note"
            style="display:none;text-align:center;margin:0 0 14px;color:#065f46;font-size:.72rem;font-weight:600;background:#d1fae5;border-radius:8px;padding:6px 12px;">
         </p>
+        <%# Message permanent de plafonnement — masqué à l'ERB, révélé par
+             initShow quand bestAchievableIdx < CUR (i.e. il existe au
+             moins une classe meilleure que la meilleure atteignable
+             pour ce bien avec les gestes proposés). Le user comprend
+             AVANT toute interaction que le slider est capé et que
+             D → D n'est pas un dysfonctionnement mais un plafond honnête. -%>
+        <p id="dpe-plafond-note"
+           style="display:none;text-align:center;margin:0 0 14px;color:#78350f;font-size:.72rem;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:6px 12px;">
+          Avec les gestes possibles pour ce bien, la meilleure classe atteignable
+          est <strong data-plafond-classe></strong>.
+        </p>
       <% end %>
     <% end %>
 
@@ -1006,6 +1017,28 @@ function showRecaleNote(clickedIdx, derivedIdx){
   }, RECALE_NOTE_MS);
 }
 
+// Microtexte pour la SECONDE sémantique de non-atterrissage :
+// la classe cliquée est INATTEIGNABLE avec les gestes proposés
+// (matrice tombe sur le fallback pessimiste, derivedClasseIdx > tgtIdx).
+// Message distinct de showRecaleNote : « pas atteignable » plutôt que
+// « moins cher qu'attendu ». Réutilise le même timer/DOM pour éviter le
+// chevauchement de deux bandeaux — un seul microtexte à la fois.
+function showUnreachableNote(clickedIdx, derivedIdx){
+  var el = document.getElementById('dpe-recale-note');
+  if(!el) return;
+  var clicked = dpe_all[clickedIdx];
+  var derived = dpe_all[derivedIdx];
+  el.textContent = clicked + ' n\'est pas atteignable avec les gestes proposés ' +
+                   'pour ce bien — la meilleure classe atteignable est ' +
+                   derived + '.';
+  el.style.display = 'block';
+  if(RECALE_NOTE_TIMER) clearTimeout(RECALE_NOTE_TIMER);
+  RECALE_NOTE_TIMER = setTimeout(function(){
+    if(el) el.style.display = 'none';
+    RECALE_NOTE_TIMER = null;
+  }, RECALE_NOTE_MS);
+}
+
 function clearRecaleNote(){
   var el = document.getElementById('dpe-recale-note');
   if(el) el.style.display = 'none';
@@ -1071,9 +1104,9 @@ function onSliderChange(newTgtVal){
     cb.checked = checkedSet.has(row.dataset.code);
   });
 
-  // Deux chemins visuels distincts selon qu'il y a recalage ou non.
+  // Trois chemins visuels distincts.
   if(res.recale && res.derivedClasseIdx < tgtIdx){
-    // ── Recalage : animation "j'ai cliqué E, on m'emmène à D" ──
+    // ── Recalage vers MIEUX : "j'ai cliqué E, on m'emmène à D" ──
     // 1. Pin visible sur la classe cliquée (CSS transition .3s cubic-bezier
     //    sur `.pin.left` fait le mouvement depuis la position précédente).
     // 2. Microtexte affiché immédiatement (persistant 6s minimum).
@@ -1083,6 +1116,16 @@ function onSliderChange(newTgtVal){
     //    au lieu de conclure "mon clic n'a pas marché".
     updateJaugeDPE(tgtIdx);
     showRecaleNote(tgtIdx, res.derivedClasseIdx);
+    setTimeout(function(){ recalcTravaux(); }, 200);
+  } else if(res.recale && res.derivedClasseIdx > tgtIdx){
+    // ── Classe INATTEIGNABLE : "j'ai cliqué A, on ne peut pas descendre
+    //    en dessous de D avec ces gestes". Même mise en scène que le
+    //    recalage vers mieux (pin sur classe cliquée → recale à +200ms),
+    //    mais message différent — l'utilisateur doit comprendre que le
+    //    plafond est HONNÊTE, pas une panne. Sans ce microtexte, le
+    //    clic paraissait "sans effet" côté user (bug bien 232).
+    updateJaugeDPE(tgtIdx);
+    showUnreachableNote(tgtIdx, res.derivedClasseIdx);
     setTimeout(function(){ recalcTravaux(); }, 200);
   } else {
     // ── Nominal : pas de recalage, tout à jour immédiatement.
@@ -1224,6 +1267,7 @@ function initShow(){
       availableCodes: availInit
     });
     var segs = document.querySelectorAll('.dpe-seg');
+    var bestAchievableIdx = CUR;   // meilleure classe atteignable
     dominated.forEach(function(i){
       var seg = segs[i];
       if(!seg) return;
@@ -1241,10 +1285,39 @@ function initShow(){
         travauxCosts:   costsInit,
         availableCodes: availInit
       });
-      seg.title = dpe_all[i] + ' n\'est pas un objectif utile pour ce bien : ' +
-                  'atteindre ' + dpe_all[alt.derivedClasseIdx] +
-                  ' coûte moins cher. La jauge recalera automatiquement.';
+      // Deux tooltips distincts selon la direction du recalage.
+      // (cf. computeDominatedClasses — sémantique coalescée dominée /
+      // inatteignable, mais le message utilisateur diffère).
+      if (alt.derivedClasseIdx < i) {
+        seg.dataset.dominationKind = 'dominated';
+        seg.title = dpe_all[i] + ' n\'est pas un objectif utile pour ce bien : ' +
+                    'atteindre ' + dpe_all[alt.derivedClasseIdx] +
+                    ' coûte moins cher. La jauge recalera automatiquement.';
+      } else {
+        seg.dataset.dominationKind = 'unreachable';
+        seg.title = dpe_all[i] + ' n\'est pas atteignable avec les gestes proposés ' +
+                    'pour ce bien. La meilleure classe atteignable est ' +
+                    dpe_all[alt.derivedClasseIdx] + '.';
+      }
+      // On mémorise la meilleure classe RÉELLEMENT atteignable en
+      // balayant les recalages (idx le plus bas rencontré).
+      if (alt.derivedClasseIdx < bestAchievableIdx) {
+        bestAchievableIdx = alt.derivedClasseIdx;
+      }
     });
+
+    // ── Message permanent sous la jauge quand la meilleure classe
+    //    atteignable est capée (au moins une classe meilleure est
+    //    inatteignable). Le user sait AVANT toute interaction que
+    //    D → D ne signale pas une panne mais un plafond honnête.
+    //    Rendu masqué par défaut (cf. #dpe-plafond-note) — on ne
+    //    l'affiche qu'ici, quand on connaît bestAchievableIdx.
+    var plafondNote = document.getElementById('dpe-plafond-note');
+    if (plafondNote && bestAchievableIdx > 0 && bestAchievableIdx < CUR) {
+      plafondNote.querySelector('[data-plafond-classe]').textContent =
+        dpe_all[bestAchievableIdx];
+      plafondNote.style.display = 'block';
+    }
   }
 
   // Fallback scroll vers l'ancre (#aides, #financement, #travaux).
