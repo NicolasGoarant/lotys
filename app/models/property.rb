@@ -47,6 +47,26 @@ class Property < ApplicationRecord
        ENERGIE_CHAUFFAGE_SOURCES.zip(ENERGIE_CHAUFFAGE_SOURCES).to_h,
        prefix: :source
 
+  # ─── Position du lot (appartements) ───────────────────────────────────
+  # Détermine quelles parois de l'appartement donnent physiquement sur
+  # l'extérieur vs sur un autre lot chauffé. Ignoré pour les maisons
+  # (toutes les parois sont extérieures par convention).
+  #
+  #   dernier_etage       — toiture réelle, plancher adjacent chauffé.
+  #   etage_intermediaire — plancher ET toiture adjacents chauffés.
+  #   rdc                 — plancher réel (cave/vide sanitaire), toiture adjacente.
+  #   inconnu             — pas encore extrait/confirmé (comportement
+  #                          conservateur en aval : ProposableGestesService
+  #                          laisse toiture et plancher proposables,
+  #                          DpeEngineService applique les b classiques).
+  #
+  # Consommé par ProposableGestesService (cases à cocher) et par
+  # DpeEngineService (coefficients b de mitoyenneté verticale).
+  POSITIONS_LOT = %w[dernier_etage etage_intermediaire rdc inconnu].freeze
+  enum :position_lot,
+       POSITIONS_LOT.zip(POSITIONS_LOT).to_h,
+       prefix: :position
+
   # Hiérarchie de confiance des sources (rang croissant = plus fiable).
   # Une nouvelle source écrase l'actuelle UNIQUEMENT si son rang est supérieur.
   #   inconnue (0) — aucune info

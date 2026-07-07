@@ -146,6 +146,24 @@ class PropertyDataExtractorService
       manuellement. NE DEVINE JAMAIS depuis le nom d'une copropriété
       ou une mention de quartier.
 
+      PRIORITÉ 4 — POSITION DU LOT DANS L'IMMEUBLE (appartements seulement).
+      Cherche dans le DPE ou l'acte notarié une mention explicite du niveau
+      du lot. Le champ "étage" est présent sur la plupart des DPE
+      d'appartements (rubrique identification du logement).
+      Valeurs autorisées (mapping strict) :
+        - "dernier_etage"       : lot en dernier étage sous toiture
+                                  (mention "dernier étage", "sous toit",
+                                  ou étage = nombre d'étages du bâtiment).
+        - "etage_intermediaire" : étage entre le RDC et le dernier étage
+                                  (mention "1er étage", "2e étage", etc.,
+                                  quand le bâtiment en a strictement plus).
+        - "rdc"                 : rez-de-chaussée (mention "RDC", "rez-de-
+                                  chaussée", "étage 0").
+        - null                  : pas d'information fiable dans les documents.
+      NE DEVINE JAMAIS depuis un nom de rue, une photo, ou une adresse
+      qui contient un numéro. Un DPE de maison → null (champ non applicable).
+      Un DPE d'appartement sans mention explicite de l'étage → null.
+
       Documents :
       ---
       #{content.truncate(10000)}
@@ -168,7 +186,8 @@ class PropertyDataExtractorService
         "address": <ligne 1 de l'adresse du bien, null si inconnue — voir PRIORITÉ 3>,
         "city": <ville du bien, null si inconnue — voir PRIORITÉ 3>,
         "zipcode": <code postal 5 chiffres du bien, null si inconnu — voir PRIORITÉ 3>,
-        "address_source": <"dpe", "titre_propriete", "facture" ou null si aucune source fiable>
+        "address_source": <"dpe", "titre_propriete", "facture" ou null si aucune source fiable>,
+        "position_lot": <"dernier_etage", "etage_intermediaire", "rdc" ou null si inconnue — voir PRIORITÉ 4 ; toujours null pour une maison>
       }
 
       Priorité aux données officielles (DPE, acte notarié, certificat Carrez).
@@ -226,6 +245,22 @@ class PropertyDataExtractorService
       updates[:city_detected]     = data["city"].to_s.strip
       updates[:zipcode_detected]  = data["zipcode"].to_s.strip
       updates[:address_source]    = data["address_source"]
+    end
+
+    # ── Position du lot (appartements) ────────────────────────────────
+    # On dépose EXCLUSIVEMENT dans position_lot_detected, jamais dans
+    # position_lot : même discipline que pour l'adresse (pas d'analyse
+    # sur hypothèse non validée). L'utilisateur confirme via
+    # PropertiesController#confirm_position_lot, ce qui pose
+    # position_lot + position_lot_confirmed_at.
+    # Whitelist stricte des valeurs — le LLM peut renvoyer "1er étage"
+    # ou "sous les combles" qui ne sont pas dans le mapping ; on ne
+    # persiste que les 3 valeurs canoniques (le reste → l'utilisateur
+    # devra choisir dans le bandeau).
+    if Property::POSITIONS_LOT.include?(data["position_lot"].to_s) &&
+       data["position_lot"].to_s != "inconnu" &&
+       @property.position_lot_detected.blank?
+      updates[:position_lot_detected] = data["position_lot"].to_s
     end
 
     # ── Capture structurée de l'énergie de chauffage ──────────────────

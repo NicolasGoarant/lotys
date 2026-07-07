@@ -33,6 +33,7 @@ Rails.application.routes.draw do
       post :publish
       post :unpublish
       post :confirm_address
+      post :confirm_position_lot
       get  :preview
       patch :update_dpe_target
       patch :update_income_bracket

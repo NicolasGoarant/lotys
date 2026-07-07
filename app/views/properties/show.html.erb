@@ -266,6 +266,67 @@
   </div>
 <% end %>
 
+<%# ── Position du lot (appartements) — bandeau de confirmation ─────
+     Pour un appartement, la position dans l'immeuble (dernier étage /
+     étage intermédiaire / RDC) détermine quelles parois donnent sur
+     l'extérieur. Sans cette info, la matrice DPE compte des déperditions
+     fictives à travers un toit qui n'est pas le sien ou une dalle
+     adjacente à un lot chauffé (biais démontré dans le diag 07/07).
+
+     On propose la valeur détectée si le LLM l'a trouvée dans le DPE
+     (position_lot_detected), sinon un radio vide. Un seul endpoint :
+     confirm_position_lot_property_path.
+
+     Rendu conditionné à :
+       - appartement (une maison n'a pas de position de lot),
+       - dossier ouvert (owner OU claimant),
+       - pas encore confirmé (position_lot_confirmed_at NULL),
+       - pas en cours d'analyse (les colonnes _detected sont vides
+         par nature tant que l'extraction n'a pas tourné).
+-%>
+<% if can_see_full_dossier && @property.kind_appartement? && @property.position_lot_confirmed_at.blank? && !@property.analyzing? %>
+  <% pos_detected = @property.position_lot_detected.presence %>
+  <% pos_actuelle = pos_detected || @property.position_lot.presence %>
+  <div class="cd" id="confirm-position-lot" style="background:#eff6ff;border:1px solid #93c5fd;border-radius:12px;padding:20px 24px;margin-bottom:16px;">
+    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;">
+      <span style="font-size:1.8rem;line-height:1;">🏢</span>
+      <div>
+        <h2 style="font-size:1.05rem;font-weight:800;color:#1e3a8a;margin:0 0 4px;">
+          <%= pos_detected ? "Position du lot détectée dans vos documents" : "Où se situe votre lot dans l'immeuble ?" %>
+        </h2>
+        <p style="font-size:.88rem;color:#1e40af;margin:0;line-height:1.4;">
+          Cette information affine le calcul thermique — un lot mitoyen haut/bas ne perd pas de chaleur par les parois adjacentes à un autre logement chauffé.
+        </p>
+      </div>
+    </div>
+
+    <%= form_with url: confirm_position_lot_property_path(@property), method: :post, data: { turbo: false } do %>
+      <%
+        libelles_positions = {
+          "dernier_etage"       => "Dernier étage (sous toiture)",
+          "etage_intermediaire" => "Étage intermédiaire",
+          "rdc"                 => "Rez-de-chaussée",
+          "inconnu"             => "Je ne sais pas"
+        }
+      %>
+      <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:12px;">
+        <% libelles_positions.each do |val, label| %>
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid #bfdbfe;border-radius:8px;background:white;cursor:pointer;font-size:.92rem;">
+            <input type="radio" name="property[position_lot]" value="<%= val %>"
+                   <%= "checked" if pos_actuelle == val %>
+                   style="accent-color:#2563eb;">
+            <span><%= label %></span>
+          </label>
+        <% end %>
+      </div>
+      <button type="submit"
+              style="background:#2563eb;color:white;font-weight:700;padding:11px 22px;border-radius:8px;border:none;cursor:pointer;font-size:.95rem;">
+        Confirmer la position
+      </button>
+    <% end %>
+  </div>
+<% end %>
+
 <%# ── HEADER avec photo ────────────────────────────────────── %>
 <div class="cd">
   <% photo_url = @property.property_type == "maison" ?

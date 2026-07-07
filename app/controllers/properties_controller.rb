@@ -1,15 +1,16 @@
 class PropertiesController < ApplicationController
   before_action :authenticate_user!, except: [:index, :new, :create, :show,
-                                              :confirm_address, :update_income_bracket]
+                                              :confirm_address, :confirm_position_lot,
+                                              :update_income_bracket]
 
   # Lecture : propriétaire toujours, prestataire uniquement si le bien est publié.
   before_action :set_property_for_read, only: [:show]
 
-  # Confirmation d'adresse (C5) : le propriétaire connecté OU le
-  # détenteur du claim_token dans son cookie signé. Pas le fallback
-  # "published" — un visiteur random n'a pas à toucher à l'adresse
-  # d'un bien qui n'est pas le sien.
-  before_action :set_property_for_confirm, only: [:confirm_address]
+  # Confirmation d'adresse (C5) et confirmation de position du lot :
+  # même règle d'autorisation — le propriétaire connecté OU le détenteur
+  # du claim_token dans son cookie signé. Pas le fallback "published" :
+  # un visiteur random n'a pas à toucher aux données du bien.
+  before_action :set_property_for_confirm, only: [:confirm_address, :confirm_position_lot]
 
   # Édition du foyer fiscal : même règle que confirm_address —
   # propriétaire connecté OU claimant du navigateur, PAS le fallback
@@ -254,6 +255,38 @@ class PropertiesController < ApplicationController
     LocalAidCalculator.new(@property).call
 
     redirect_to @property, notice: "Adresse confirmée — vos aides locales sont recalculées."
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to @property, alert: e.record.errors.full_messages.to_sentence
+  end
+
+  # Confirmation de la position du lot (appartements seulement — voir
+  # migration AddPositionLotToProperties). Pattern parallèle à
+  # confirm_address : l'utilisateur voit une valeur détectée
+  # (position_lot_detected) et confirme/corrige ; la vue de vérité
+  # (position_lot + position_lot_confirmed_at) n'est écrite qu'ici,
+  # jamais par le pipeline d'extraction.
+  #
+  # Consommé en aval par ProposableGestesService (cases à cocher :
+  # toiture / plancher exclus selon la position) et par DpeEngineService
+  # (coefficients b de mitoyenneté verticale, commit 3).
+  #
+  # Ignoré pour une maison : le champ n'a pas de sens (toutes les parois
+  # donnent sur l'extérieur par convention). Le bandeau côté vue n'est
+  # rendu que pour les appartements, donc en pratique la route n'est
+  # jamais appelée pour une maison.
+  def confirm_position_lot
+    valeur = params.dig(:property, :position_lot).to_s
+    unless Property::POSITIONS_LOT.include?(valeur)
+      redirect_to @property,
+        alert: "Merci de choisir la position du lot dans la liste proposée."
+      return
+    end
+
+    @property.update!(
+      position_lot:              valeur,
+      position_lot_confirmed_at: Time.current
+    )
+    redirect_to @property, notice: "Position du lot confirmée."
   rescue ActiveRecord::RecordInvalid => e
     redirect_to @property, alert: e.record.errors.full_messages.to_sentence
   end

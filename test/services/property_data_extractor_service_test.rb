@@ -228,4 +228,58 @@ class PropertyDataExtractorServiceTest < ActiveSupport::TestCase
     p.reload
     assert_nil p.address_detected, "Trio incomplet → rien n'est déposé (atomique)"
   end
+
+  # ────────────────────────────────────────────────────────────────────
+  # Position du lot (appartements) — dépôt dans position_lot_detected
+  # ────────────────────────────────────────────────────────────────────
+  # Même discipline que pour l'adresse : le LLM renseigne
+  # position_lot_detected, l'utilisateur confirme via
+  # PropertiesController#confirm_position_lot. Whitelist stricte des
+  # valeurs — un « 1er étage » ou « sous les combles » du LLM n'est PAS
+  # persisté (il faudrait un mapping produit tranché en amont).
+
+  test "LLM renvoie position_lot=dernier_etage → position_lot_detected posé, valeur de vérité intacte" do
+    p = fresh_property
+    apply(p, { "position_lot" => "dernier_etage" })
+    p.reload
+    assert_equal "dernier_etage", p.position_lot_detected
+    assert_nil p.position_lot,
+      "position_lot (valeur de vérité) reste NULL — n'est écrit qu'au clic utilisateur"
+    assert_nil p.position_lot_confirmed_at,
+      "Pas de confirmation implicite : seul le controller pose confirmed_at"
+  end
+
+  test "LLM ne renvoie rien pour position_lot → position_lot_detected reste NULL" do
+    p = fresh_property
+    apply(p, { "surface" => 72 })
+    p.reload
+    assert_nil p.position_lot_detected
+    assert_nil p.position_lot
+  end
+
+  test "LLM renvoie position_lot=null (extraction ratée) → position_lot_detected reste NULL" do
+    p = fresh_property
+    apply(p, { "position_lot" => nil })
+    p.reload
+    assert_nil p.position_lot_detected
+  end
+
+  test "LLM renvoie position_lot hors whitelist (« 1er étage » libre) → ignoré" do
+    p = fresh_property
+    apply(p, { "position_lot" => "1er étage" })
+    p.reload
+    assert_nil p.position_lot_detected,
+      "Whitelist stricte — le LLM ne peut pas persister une valeur libre. " \
+      "L'utilisateur devra choisir dans le bandeau (radio)."
+  end
+
+  test "n'écrase pas un position_lot_detected déjà posé" do
+    p = fresh_property
+    p.update_columns(position_lot_detected: "rdc")
+    apply(p, { "position_lot" => "etage_intermediaire" })
+    p.reload
+    assert_equal "rdc", p.position_lot_detected,
+      "Une seconde extraction ne doit pas modifier une détection existante " \
+      "(idempotence sur les colonnes _detected — parallèle à address_source)."
+  end
 end
