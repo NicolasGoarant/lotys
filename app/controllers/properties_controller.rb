@@ -273,10 +273,29 @@ class PropertiesController < ApplicationController
   # recalcul des aides (MPR/CEE via AidCalculatorService) se fait
   # naturellement au prochain rendu de show — pas de service
   # spécifique à appeler.
+  #
+  # ── Contrat d'échec explicite (bug bien 232) ──
+  # Sur prod, un utilisateur signalait des champs household_size / rfr
+  # revenus à vide après « Calculer mes aides » puis un tour par
+  # update_travaux_selection. Diagnostic : la DB n'a JAMAIS reçu les
+  # valeurs — soit le POST n'a pas atteint le serveur (JS/browser),
+  # soit une validation a échoué. Le code d'origine appelait
+  # `@property.update(...)` sans vérifier le retour ET redirigeait avec
+  # un notice de succès dans TOUS les cas. Résultat : « faux OK » côté
+  # user, aucun signal pour investiguer côté serveur.
+  # Nouveau contrat : on VÉRIFIE le retour et on redirige avec ALERT si
+  # la sauvegarde échoue. Aucune régression pour les cas nominaux
+  # (les tests H et H-bis passent en 302 → notice comme avant), mais
+  # les cas dégradés cessent d'être silencieux.
   def update_income_bracket
-    @property.update(params.require(:property).permit(:household_size, :rfr))
-    redirect_to property_path(@property, anchor: "aides"),
-                notice: "Foyer fiscal mis à jour — aides recalculées."
+    if @property.update(params.require(:property).permit(:household_size, :rfr))
+      redirect_to property_path(@property, anchor: "aides"),
+                  notice: "Foyer fiscal mis à jour — aides recalculées."
+    else
+      redirect_to property_path(@property, anchor: "aides"),
+                  alert: "Impossible d'enregistrer le foyer fiscal : " \
+                         "#{@property.errors.full_messages.to_sentence}."
+    end
   end
 
   # Met à jour les quantités précises (formulaire expert MPR Par geste — non rendu
