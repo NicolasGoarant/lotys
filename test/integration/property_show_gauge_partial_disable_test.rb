@@ -193,6 +193,42 @@ class PropertyShowGaugePartialDisableTest < ActionDispatch::IntegrationTest
       "injecter le nom de la classe atteignable"
   end
 
+  # ── 4a-quater. Conteneur EP (bien 266) : présent, masqué avant init JS ──
+  # La matrice serveur porte ep_m2 par combinaison. La vue expose un
+  # conteneur #dpe-ep-estim que le JS remplit et révèle à chaque
+  # recalcTravaux. Bug produit rapporté : sans cet affichage, deux jeux
+  # de gestes qui atterrissent sur la même classe (A → A avec ou sans
+  # planchers) semblent équivalents à l'utilisateur alors que leur
+  # conso réelle diffère (39 800 € pour A à 68 kWh/m², 47 600 € pour A
+  # à 45 kWh/m² — le gain est en conso pas en classe).
+  #
+  # Test structurel : conteneur en DOM, MASQUÉ à l'ERB pour ne pas
+  # afficher un « ≈  kWh/m²/an » vide avant l'exécution de JS.
+  test "matrice présente → #dpe-ep-estim en DOM, masqué initialement" do
+    p = creer_bien(surface: 118, construction_year: 1928, dpe_class: "F")
+    get property_path(p)
+    assert_response :success
+
+    assert_select "#dpe-ep-estim", { count: 1 },
+      "Le conteneur EP doit être présent dans le DOM au premier rendu " \
+      "(rempli par initShow → recalcTravaux → updateEpDisplay)."
+
+    wrap_html = css_select("#dpe-ep-estim").first.to_s
+    assert_match(/display\s*:\s*none/i, wrap_html,
+      "Le conteneur EP doit démarrer MASQUÉ pour ne pas afficher un « ≈  kWh/m² » " \
+      "vide avant l'init JS. HTML : #{wrap_html}")
+
+    # Hook JS : le span où la valeur numérique est injectée. Anti-régression
+    # d'un renommage/suppression qui casserait updateEpDisplay silencieusement.
+    assert_select "#dpe-ep-estim #dpe-ep-val", { count: 1 },
+      "Le span #dpe-ep-val est le hook JS pour injecter la valeur EP arrondie."
+    val_html = css_select("#dpe-ep-val").first.to_s
+    # Vide avant l'exécution de JS (pas de valeur pré-rendue côté ERB).
+    assert_no_match(/\d/, css_select("#dpe-ep-val").first.text,
+      "Le span EP ne doit contenir AUCUNE valeur pré-rendue au premier rendu. " \
+      "HTML : #{val_html}")
+  end
+
   # ── 4a-ter. Note de plafonnement : maison F avec toutes classes atteignables ──
   # Bug rapporté : sur une maison F où seule E était dominée (recale vers D
   # via isolation_murs, moins chère qu'isolation_toiture), l'ancien code

@@ -562,6 +562,18 @@
         <p class="lbl" id="dpe-estim-lbl" style="text-align:center;margin-bottom:6px;color:#059669;font-size:.66rem;">
           Objectif : <span id="dpe-estim-val"><%= dpe_all[tgt_idx] %></span> · estimation indicative · glissez la jauge : les travaux s'ajustent à la cible
         </p>
+        <%# Consommation EP de la sélection courante — lue dans la matrice
+             serveur (ep_m2 par combinaison). Rendu MASQUÉ par défaut ;
+             initShow le révèle avec la valeur de la sélection initiale.
+             Utilité produit (bien 266) : deux jeux de travaux différents
+             peuvent tomber sur la même classe (A → A) mais avec des EP
+             très différents — la classe seule cache le delta de conso.
+             Donner l'EP à l'utilisateur lui permet de voir ce que les
+             gestes supplémentaires lui apportent réellement. -%>
+        <p id="dpe-ep-estim"
+           style="display:none;text-align:center;margin:-2px 0 6px;color:#065f46;font-size:.66rem;">
+          ≈ <span id="dpe-ep-val"></span> kWh/m²/an <span style="color:#78716c;">(estimation indicative)</span>
+        </p>
         <%# Microtexte de recalage — masqué par défaut, révélé par
              onSliderChange quand la sémantique "au moins X" a recalé
              vers une classe MEILLEURE (et moins chère) que celle cliquée.
@@ -912,6 +924,30 @@ var TRAVAUX_DIRTY = false;
 // le hidden field form-dpe-target persiste cette cible non choisie au
 // premier submit). On positionne donc la jauge sur SERVER_TGT_IDX et on
 // ne marque rien comme "à recalculer".
+// Suivi de l'état précédent de la sélection pour détecter les transitions
+// « même classe, EP différent » (bien 266). Mis à jour à chaque
+// recalcTravaux ; comparé au tour suivant pour décider si on affiche
+// le microtexte showEpChangeNote. null au premier passage → aucune
+// comparaison possible, on initialise sans note.
+var LAST_TGT_IDX = null;
+var LAST_EP_M2   = null;
+
+// Met à jour l'affichage EP (« ≈ NN kWh/m²/an ») sous la ligne Objectif.
+// Rendu MASQUÉ dans l'ERB par défaut — on le révèle dès qu'on a une
+// valeur typée à afficher. Si l'ep_m2 n'est pas dans la matrice (matrice
+// tronquée, cas dégradé), on masque le conteneur — pas de valeur inventée.
+function updateEpDisplay(epM2){
+  var wrap = document.getElementById('dpe-ep-estim');
+  var val  = document.getElementById('dpe-ep-val');
+  if(!wrap || !val) return;
+  if(typeof epM2 === 'number'){
+    val.textContent = Math.round(epM2);
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
 function recalcTravaux(initialLoad){
   var total=0;
   var codesActifs=[];
@@ -942,20 +978,39 @@ function recalcTravaux(initialLoad){
   //    Si la matrice n'a pas d'entrée pour la combinaison, fallback
   //    pessimiste à CUR (pas d'objectif inventé). Fix du bug prod
   //    « MÊME set de cases affiche tantôt A tantôt B selon l'historique ».
+  var combi = DPE_MATRIX ? DPE_MATRIX.combinaisons : null;
+  var newTgtIdx;
   if(initialLoad){
-    updateJaugeDPE(SERVER_TGT_IDX);
+    newTgtIdx = SERVER_TGT_IDX;
+    updateJaugeDPE(newTgtIdx);
     var sliderInit=document.getElementById('dpe-slider');
-    if(sliderInit && sliderInit.value != SERVER_TGT_IDX){ sliderInit.value = SERVER_TGT_IDX; }
+    if(sliderInit && sliderInit.value != newTgtIdx){ sliderInit.value = newTgtIdx; }
   } else {
-    var tgtIdx = deriveTargetFromSelection({
+    newTgtIdx = deriveTargetFromSelection({
       codesActifs:   codesActifs,
-      combinaisons:  DPE_MATRIX ? DPE_MATRIX.combinaisons : null,
+      combinaisons:  combi,
       currentDpeIdx: CUR
     });
-    updateJaugeDPE(tgtIdx);
+    updateJaugeDPE(newTgtIdx);
     var slider=document.getElementById('dpe-slider');
-    if(slider && slider.value != tgtIdx){ slider.value = tgtIdx; }
+    if(slider && slider.value != newTgtIdx){ slider.value = newTgtIdx; }
   }
+
+  // EP de la sélection courante — lue dans la matrice serveur (source
+  // de vérité unique, cohérente avec la classe affichée par la même
+  // matrice). Toujours mise à jour à l'écran ; le microtexte "toujours
+  // X — de NN à MM" ne se déclenche que sur transition à classe égale.
+  var newEpM2 = lookupCombinaisonEp({ codesActifs: codesActifs, combinaisons: combi });
+  updateEpDisplay(newEpM2);
+  if(!initialLoad &&
+     LAST_TGT_IDX !== null && LAST_EP_M2 !== null &&
+     newTgtIdx === LAST_TGT_IDX &&
+     typeof newEpM2 === 'number' &&
+     Math.round(newEpM2) !== Math.round(LAST_EP_M2)){
+    showEpChangeNote(dpe_all[newTgtIdx], LAST_EP_M2, newEpM2);
+  }
+  LAST_TGT_IDX = newTgtIdx;
+  LAST_EP_M2   = newEpM2;
 
   // Feedback proportionnel sur les aides et le reste à financer.
   // Si le budget a varié, on applique le même ratio aux aides serveur connues.
@@ -1127,6 +1182,28 @@ function showUnreachableNote(clickedIdx, derivedIdx){
   }, RECALE_NOTE_MS);
 }
 
+// Microtexte pour le cas où cocher/décocher un geste ne change PAS la
+// classe DPE atteignable mais change la CONSOMMATION EP. Cas produit
+// (bien 266) : passer d'une combinaison A à 39 800 € à une combinaison
+// A à 47 600 € avec deux gestes en plus — sans feedback, l'utilisateur
+// ne voit rien changer. Réutilise le même DOM/timer que showRecaleNote
+// (un seul bandeau à la fois — principe projet).
+function showEpChangeNote(classeStr, oldEpM2, newEpM2){
+  var el = document.getElementById('dpe-recale-note');
+  if(!el) return;
+  var lo = Math.min(oldEpM2, newEpM2);
+  var hi = Math.max(oldEpM2, newEpM2);
+  el.textContent = 'Toujours ' + classeStr +
+                   ' — consommation estimée de ' + Math.round(lo) +
+                   ' à ' + Math.round(hi) + ' kWh/m²/an.';
+  el.style.display = 'block';
+  if(RECALE_NOTE_TIMER) clearTimeout(RECALE_NOTE_TIMER);
+  RECALE_NOTE_TIMER = setTimeout(function(){
+    if(el) el.style.display = 'none';
+    RECALE_NOTE_TIMER = null;
+  }, RECALE_NOTE_MS);
+}
+
 function clearRecaleNote(){
   var el = document.getElementById('dpe-recale-note');
   if(el) el.style.display = 'none';
@@ -1289,12 +1366,15 @@ function initShow(){
   // en premier argument de recalcTravaux, sinon initialLoad = Event =
   // truthy et on calerait le label sur SERVER_TGT_IDX à chaque clic.
   // Toute manipulation manuelle des cases fait disparaître le microtexte
-  // de recalage (principe projet : le message ne persiste pas au-delà de
-  // l'action qui l'a déclenchée).
+  // de recalage précédent (principe projet : le message ne persiste pas
+  // au-delà de l'action qui l'a déclenchée). ORDRE IMPORTANT :
+  // clearRecaleNote D'ABORD, puis recalcTravaux — recalcTravaux peut
+  // afficher un NOUVEAU microtexte (showEpChangeNote sur transition
+  // « même classe, EP différent »), qui doit survivre à ce cycle.
   document.querySelectorAll('.travail-cb').forEach(function(cb){
     cb.addEventListener('change', function(){
-      recalcTravaux();
       clearRecaleNote();
+      recalcTravaux();
     });
   });
 

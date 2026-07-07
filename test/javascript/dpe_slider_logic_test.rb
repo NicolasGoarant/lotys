@@ -818,4 +818,102 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
     assert_equal 2, r["bestAchievableIdx"],
       "La meilleure classe réellement atteignable est C (idx=2). Obtenu : #{r.inspect}"
   end
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # lookupCombinaisonEp — EP de la sélection courante depuis la matrice
+  # ═════════════════════════════════════════════════════════════════════════
+  # Bien 266 : deux jeux de gestes différents peuvent atterrir sur la même
+  # classe (A → A) avec des EP très différents. Le lookup rend l'EP sans
+  # interprétation métier — la vue décide de l'affichage et du seuil
+  # « EP-a-changé ».
+
+  def run_lookup_ep(codes_actifs:, combinaisons:)
+    payload = { codesActifs: codes_actifs, combinaisons: combinaisons }.to_json
+    script = <<~JS
+      const { lookupCombinaisonEp } = require(#{LOGIC_FILE.inspect});
+      console.log(JSON.stringify(lookupCombinaisonEp(JSON.parse(process.argv[1]))));
+    JS
+    out, err, st = Open3.capture3(NODE_BIN, "-e", script, payload)
+    raise "node failed (#{st.exitstatus}): #{err}" unless st.success?
+    JSON.parse(out)
+  end
+
+  # Matrice type bien 266 : deux jeux de gestes atteignent A mais avec des
+  # EP différents (un jeu minimal + un jeu élargi qui rajoute planchers
+  # et chauffe-eau — mêmes 130 kWhEP/m² vs 90 kWhEP/m²).
+  COMBI_BIEN_266 = {
+    ""                                                                           => { "classe" => "F", "ep_m2" => 350.0 },
+    "isolation_murs,isolation_toiture,menuiseries"                               => { "classe" => "B", "ep_m2" => 150.0 },
+    "chauffage,isolation_murs,isolation_toiture,menuiseries,vmc"                 => { "classe" => "A", "ep_m2" => 68.0 },   # minimal → A
+    "chauffage,chauffe_eau,isolation_murs,isolation_plancher_bas,isolation_toiture,menuiseries,vmc" => { "classe" => "A", "ep_m2" => 45.0 } # élargi → A
+  }.freeze
+
+  test "L-nominal : lookup rend l'EP d'une combinaison existante" do
+    r = run_lookup_ep(
+      codes_actifs: %w[chauffage isolation_murs isolation_toiture menuiseries vmc],
+      combinaisons: COMBI_BIEN_266
+    )
+    assert_equal 68.0, r,
+      "La combinaison A « minimale » (5 gestes) doit rendre son ep_m2=68. Obtenu : #{r.inspect}"
+  end
+
+  test "L-266 : deux sélections A → A, EP différents (le vrai delta que la classe cache)" do
+    r_minimal = run_lookup_ep(
+      codes_actifs: %w[chauffage isolation_murs isolation_toiture menuiseries vmc],
+      combinaisons: COMBI_BIEN_266
+    )
+    r_elargi = run_lookup_ep(
+      codes_actifs: %w[chauffage chauffe_eau isolation_murs isolation_plancher_bas isolation_toiture menuiseries vmc],
+      combinaisons: COMBI_BIEN_266
+    )
+    # Les deux sélections tombent sur classe A (test métier ci-dessous)
+    # mais leurs EP diffèrent — c'est CE delta que le lookup expose.
+    assert_operator r_elargi, :<, r_minimal,
+      "L'élargie (avec planchers+chauffe-eau) doit consommer STRICTEMENT MOINS " \
+      "que la minimale. Obtenu minimale=#{r_minimal}, élargie=#{r_elargi}."
+    # Contrôle croisé : les deux sont bien de classe A (matrice cohérente).
+    ORDRE = "ABCDEFG"
+    minimal_classe = COMBI_BIEN_266["chauffage,isolation_murs,isolation_toiture,menuiseries,vmc"]["classe"]
+    elargi_classe  = COMBI_BIEN_266["chauffage,chauffe_eau,isolation_murs,isolation_plancher_bas,isolation_toiture,menuiseries,vmc"]["classe"]
+    assert_equal "A", minimal_classe
+    assert_equal "A", elargi_classe
+  end
+
+  test "L-tri : le lookup trie codesActifs (invariance à l'ordre d'entrée)" do
+    # Format canonique = "isolation_murs,isolation_toiture,menuiseries" (trié).
+    # Le lookup DOIT être invariant à l'ordre pour ne pas être piégé par
+    # l'ordre du DOM (data-code visités dans l'ordre du CANONICAL_CODES).
+    r_alpha  = run_lookup_ep(
+      codes_actifs: %w[isolation_murs isolation_toiture menuiseries],
+      combinaisons: COMBI_BIEN_266
+    )
+    r_random = run_lookup_ep(
+      codes_actifs: %w[menuiseries isolation_toiture isolation_murs],
+      combinaisons: COMBI_BIEN_266
+    )
+    assert_equal r_alpha, r_random,
+      "L'ordre d'entrée ne doit pas influer sur le lookup. " \
+      "alpha=#{r_alpha.inspect}, random=#{r_random.inspect}."
+  end
+
+  test "L-manquant : combinaison absente de la matrice → null" do
+    r = run_lookup_ep(
+      codes_actifs: %w[vmc],   # pas dans COMBI_BIEN_266
+      combinaisons: COMBI_BIEN_266
+    )
+    assert_nil r,
+      "Combinaison absente → null (pas d'EP inventée). Obtenu : #{r.inspect}"
+  end
+
+  test "L-matrice-nil : combinaisons null → null" do
+    r = run_lookup_ep(codes_actifs: [], combinaisons: nil)
+    assert_nil r
+  end
+
+  test "L-ep-absent : entrée sans ep_m2 typé → null" do
+    combi = { "" => { "classe" => "F" } } # pas de ep_m2
+    r = run_lookup_ep(codes_actifs: [], combinaisons: combi)
+    assert_nil r,
+      "Une entrée sans ep_m2 doit rendre null — la vue masquera son conteneur EP."
+  end
 end

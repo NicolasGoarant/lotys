@@ -234,6 +234,36 @@ function computeDominatedClasses({
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Fonction PURE — consommation EP de la sélection courante.
+//
+// Retourne le kWhEP/m²/an calculé par PropertyDpeMatrixService pour la
+// combinaison correspondant à `codesActifs` (indépendamment de la classe).
+//
+// La matrice serveur porte déjà ep_m2 pour chaque combinaison (cf.
+// PropertyDpeMatrixService#appeler_pds — l'ep vient du moteur 3CL et
+// permet de départager deux jeux de gestes qui atterrissent sur la
+// même classe DPE mais consomment différemment (bien 266 : A à 39 800 €
+// en combinaison minimale, A à 47 600 € avec planchers + chauffe-eau
+// en plus — la classe cache le vrai delta de conso).
+//
+// Contrat :
+//   - Clé de lookup = codesActifs.sort().join(",") (format
+//     PropertyDpeMatrixService#calculer_combinaisons, ligne 116).
+//   - Retour Number si la combinaison existe et porte un ep_m2 typé
+//     nombre ; null sinon (matrice tronquée, entrée corrompue,
+//     combinaison hors périmètre calculé).
+//   - Aucune interprétation métier ici : l'appelant décide de l'affichage
+//     (arrondi, unité, seuil de comparaison EP-a-changé).
+function lookupCombinaisonEp({ codesActifs, combinaisons }) {
+  if (!combinaisons) return null;
+  var cle = codesActifs.slice().sort().join(",");
+  var entry = combinaisons[cle];
+  if (!entry) return null;
+  var ep = entry.ep_m2;
+  return typeof ep === "number" ? ep : null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Fonction PURE — meilleure classe atteignable + drapeau d'inaccessibilité.
 //
 // Balaye TOUTES les classes strictement meilleures que la classe actuelle
@@ -330,6 +360,7 @@ if (typeof module !== 'undefined' && module.exports) {
     deriveTargetFromSelection,
     computeDominatedClasses,
     computeBestAchievable,
+    lookupCombinaisonEp,
     targetIdxFromSegment
   };
 }
