@@ -161,7 +161,14 @@ class PropertyDpeMatrixService
       annee_construction: @property.construction_year,
       zone_climatique:    zone_climatique,
       etat_initial:       etat,
-      gestes:             gestes
+      gestes:             gestes,
+      # Mitoyenneté verticale : propagée jusqu'au moteur pour annuler
+      # les déperditions par les parois adjacentes à un lot chauffé
+      # (appartement en RDC / intermédiaire / dernier étage). Pour une
+      # maison ou un appartement de position :inconnu, le moteur retombe
+      # sur le comportement historique (B_EXTERIEUR / B_PLANCHER_BAS).
+      property_type: @property.property_type,
+      position_lot:  @property.position_lot
     )
     {
       classe:       pds[:classe_apres],

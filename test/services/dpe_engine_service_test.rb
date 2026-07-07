@@ -263,4 +263,156 @@ class DpeEngineServiceTest < ActiveSupport::TestCase
     # à 2,0 et le test précédent échouerait — c'est volontaire.
     assert_operator 1.5, :<, DpeEngineService::UMUR_PLAFOND_CALCUL
   end
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # Mitoyenneté verticale — coefficients b sur toiture et plancher bas
+  # ═════════════════════════════════════════════════════════════════════════
+  # Pour un appartement, une paroi adjacente à un autre lot chauffé ne
+  # perd rien (b=0). NF EN ISO 13789 §5.3. Sans cette correction, la
+  # matrice DPE compte des déperditions fictives (démontré diag 07/07
+  # sur le bien 232 : toit fictif = 33 % du GV initial d'un lot 3e étage).
+  #
+  # Contrat clé : quand property_type et position_lot sont nil (comportement
+  # de tous les callers pré-commit-3), les résultats sont STRICTEMENT
+  # identiques à avant.
+
+  # Bien de test : mêmes paramètres physiques que le bien 232 (5 rue des
+  # Ombelles), utilisé pour chiffrer l'écart avec/sans mitoyenneté.
+  APPART_232_BASE = {
+    surface_habitable:      72,
+    annee_construction:     1965,
+    energie_chauffage:      :gaz,
+    zone_climatique:        :h1,
+    niveaux:                1,
+    isolation_murs:         :non_isole,
+    isolation_toiture:      :non_isole,
+    isolation_plancher_bas: :non_isole,
+    isolation_menuiseries:  :non_isole,
+    ventilation:            :aucune_vmc,
+    inclure_ecs:            true
+  }.freeze
+
+  # ── 1. Non-régression : sans property_type ni position_lot → comportement historique ──
+  test "backward-compat : property_type=nil, position_lot=nil → résultats inchangés" do
+    r_avant = DpeEngineService.call(**APPART_232_BASE) # sans les nouveaux params
+    r_apres = DpeEngineService.call(**APPART_232_BASE, property_type: nil, position_lot: nil)
+    # Comparaison au kWh près (§9 tolérance ±5 %, ici on veut STRICT).
+    assert_equal r_avant[:conso_ep_m2],     r_apres[:conso_ep_m2],
+      "params nil ne doivent RIEN changer sur le Cep"
+    assert_equal r_avant[:classe_finale],   r_apres[:classe_finale]
+    assert_equal r_avant[:_details][:gv],   r_apres[:_details][:gv]
+  end
+
+  # ── 2. Maison : les nouveaux paramètres n'ont pas d'effet ──────────────
+  test "maison + position_lot ignoré : résultats identiques à property_type=nil" do
+    r_ref = DpeEngineService.call(**APPART_232_BASE) # property_type nil
+    # property_type=:maison, position_lot doit être ignoré (le champ n'a pas
+    # de sens pour une maison — toutes les parois donnent sur l'extérieur).
+    r_maison = DpeEngineService.call(
+      **APPART_232_BASE,
+      property_type: :maison,
+      position_lot:  :etage_intermediaire # aberrant sur maison → ignoré
+    )
+    assert_equal r_ref[:_details][:gv], r_maison[:_details][:gv],
+      "Une maison ignore position_lot — le résultat doit être identique."
+    assert_equal r_ref[:classe_finale], r_maison[:classe_finale]
+  end
+
+  # ── 3. Appartement position :inconnu → même comportement (conservateur) ──
+  test "appartement position :inconnu → comportement conservateur (identique à nil)" do
+    r_ref = DpeEngineService.call(**APPART_232_BASE)
+    r_inc = DpeEngineService.call(**APPART_232_BASE, property_type: :appartement, position_lot: :inconnu)
+    assert_equal r_ref[:_details][:gv], r_inc[:_details][:gv],
+      "position_lot :inconnu doit tomber sur le comportement historique — pas de mitoyenneté inventée."
+  end
+
+  # ── 4. Appartement étage intermédiaire → toiture ET plancher b=0 ──────
+  test "appartement étage intermédiaire : dp_toit=0 ET dp_plancher_bas=0" do
+    r = DpeEngineService.call(
+      **APPART_232_BASE,
+      property_type: :appartement,
+      position_lot:  :etage_intermediaire
+    )
+    breakdown = r[:_details][:gv_breakdown]
+    assert_equal 0.0, breakdown[:toit],
+      "Étage intermédiaire : la toiture est adjacente à un lot chauffé → dp_toit=0."
+    assert_equal 0.0, breakdown[:plancher_bas],
+      "Étage intermédiaire : le plancher est adjacent à un lot chauffé → dp_pb=0."
+  end
+
+  # ── 5. Appartement dernier étage → toiture réelle, plancher b=0 ────────
+  test "appartement dernier étage : dp_toit>0 (toiture réelle), dp_plancher_bas=0" do
+    r = DpeEngineService.call(
+      **APPART_232_BASE,
+      property_type: :appartement,
+      position_lot:  :dernier_etage
+    )
+    breakdown = r[:_details][:gv_breakdown]
+    assert_operator breakdown[:toit], :>, 0,
+      "Dernier étage : toiture réelle → dp_toit > 0."
+    assert_equal 0.0, breakdown[:plancher_bas],
+      "Dernier étage : plancher adjacent au lot du dessous → dp_pb=0."
+  end
+
+  # ── 6. Appartement RDC → plancher réel, toiture b=0 ────────────────────
+  test "appartement RDC : dp_toit=0, dp_plancher_bas>0 (dalle sur vide sanitaire)" do
+    r = DpeEngineService.call(
+      **APPART_232_BASE,
+      property_type: :appartement,
+      position_lot:  :rdc
+    )
+    breakdown = r[:_details][:gv_breakdown]
+    assert_equal 0.0, breakdown[:toit],
+      "RDC : la toiture est adjacente à un lot chauffé → dp_toit=0."
+    assert_operator breakdown[:plancher_bas], :>, 0,
+      "RDC : dalle sur vide sanitaire / cave → dp_pb > 0 avec b=B_PLANCHER_BAS."
+  end
+
+  # ── 7. Chiffrage impact bien 232 : 3 gestes réalistes en mitoyen gagnent 1 classe ──
+  # Reproduit le calcul du diag 07/07 (avec ECS inclus comme en prod —
+  # PropertyDpeService force inclure_ecs: true). Sans mitoyenneté, murs +
+  # VMC + fenêtres plafonnent à D. Avec mitoyenneté verticale (étage
+  # intermédiaire), les mêmes 3 gestes atteignent C — gagné 1 classe.
+  # La borne C vient du CO2 : le mix gaz (0,234 kgCO₂/kWh) + ECS pousse
+  # le carbone juste au-dessus du seuil B/C. Pour aller à B, il faut
+  # ajouter le geste chauffage (comme bien 233) ou réduire l'ECS.
+  test "bien 232 mitoyen étage intermédiaire : 3 gestes atteignent C (contre D sans mitoyenneté)" do
+    etat_reno_3 = {
+      isolation_murs:         :isole,
+      isolation_toiture:      :non_isole, # non actionnable en mitoyen
+      isolation_plancher_bas: :non_isole, # non actionnable en mitoyen
+      isolation_menuiseries:  :isole,
+      ventilation:            :vmc_double_flux
+    }
+    r_sans = DpeEngineService.call(**APPART_232_BASE.merge(etat_reno_3))
+    r_avec = DpeEngineService.call(
+      **APPART_232_BASE.merge(etat_reno_3),
+      property_type: :appartement,
+      position_lot:  :etage_intermediaire
+    )
+    assert_equal "D", r_sans[:classe_finale],
+      "Rappel diag : sans mitoyenneté, les 3 gestes plafonnent à D (obtenu #{r_sans[:classe_finale]})."
+    assert_equal "C", r_avec[:classe_finale],
+      "Avec mitoyenneté verticale, les 3 gestes atteignent C (obtenu #{r_avec[:classe_finale]}). " \
+      "La borne C vient du CO2 gaz+ECS (seuil B/C à 11 kgCO₂/m²) — pour aller à B, " \
+      "il faut aussi le geste chauffage (comme bien 233 le proposait) ou le geste chauffe-eau."
+  end
+
+  # ── 8. Impact chiffré : sur l'état INITIAL, la mitoyenneté retire ~33 % de GV ──
+  # Chiffre-clé du diag 07/07 : 180 W/K de toit + 25.9 W/K de plancher sur
+  # un GV initial de 533 W/K = 38,7 % du bilan initial imputé à des parois
+  # fictives pour un appartement mitoyen. Test de non-régression sur cette
+  # correction structurelle.
+  test "état initial appartement étage intermédiaire : GV réduit d'au moins 30 % vs modèle historique" do
+    r_ref = DpeEngineService.call(**APPART_232_BASE) # sans mitoyenneté
+    r_mit = DpeEngineService.call(
+      **APPART_232_BASE,
+      property_type: :appartement,
+      position_lot:  :etage_intermediaire
+    )
+    reduction_pct = 100.0 * (r_ref[:_details][:gv] - r_mit[:_details][:gv]) / r_ref[:_details][:gv]
+    assert_operator reduction_pct, :>=, 30.0,
+      "Un appartement étage intermédiaire doit voir son GV initial réduit d'au moins 30 % " \
+      "(mitoyenneté haut+bas). Obtenu #{reduction_pct.round(1)} %."
+  end
 end

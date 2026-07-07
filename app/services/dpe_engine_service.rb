@@ -52,8 +52,28 @@ class DpeEngineService
   R_RESIDUELLE_PAROI = 0.17
 
   # ── §1 — coefficients de réduction des déperditions b ──────────────────
+  # Comportement de base (maison ou appartement de position inconnue) :
+  #   B_EXTERIEUR    = 1.0  toit sur extérieur / murs / fenêtres
+  #   B_PLANCHER_BAS = 0.8  dalle sur vide sanitaire / cave non chauffés
+  # Ces coefficients restent LA source de vérité tant qu'aucune info de
+  # mitoyenneté ne les remplace (cf. b_toiture / b_plancher_bas ci-dessous).
   B_EXTERIEUR    = 1.0
   B_PLANCHER_BAS = 0.8   # sur vide sanitaire / cave / garage non chauffé
+
+  # ── Mitoyenneté verticale (appartements) ─────────────────────────────
+  # Un appartement mitoyen d'un lot chauffé au-dessus n'a pas de perte
+  # par la toiture (paroi adjacente = paroi entre deux ambiances au même
+  # T°). Idem pour le plancher bas quand un lot est chauffé en-dessous.
+  # NF EN ISO 13789 : b ≈ 0 dans ces cas. Notre §1 (§1 du doc) reprend
+  # cette convention (ADEME 3CL sur les parties courantes uniquement).
+  #
+  # Ces coefficients ne s'appliquent QUE si property_type=:appartement
+  # ET position_lot est explicitement connue (dernier_etage / rdc /
+  # etage_intermediaire). Pour position_lot :inconnu ou nil, on retombe
+  # sur B_EXTERIEUR / B_PLANCHER_BAS — comportement conservateur : on
+  # préfère surestimer les déperditions plutôt qu'inventer une
+  # mitoyenneté non validée.
+  B_MITOYEN_CHAUFFE = 0.0
 
   # §1 — forfait ponts thermiques (fourchette 5–20 %), milieu
   COEF_PT = 0.12
@@ -155,6 +175,12 @@ class DpeEngineService
     surface_plancher_bas: nil,
     surface_fenetres: nil,
     nombre_fenetres: nil,
+    # Mitoyenneté verticale (optionnelle — backward-compat).
+    # Quand les deux sont nil, comportement identique à avant :
+    # b_toiture=1.0, b_plancher_bas=0.8. Une maison ou un appartement de
+    # position inconnue prend le comportement conservateur historique.
+    property_type: nil,
+    position_lot: nil,
     # Switches / overrides de calibrage — restent ouverts tant que le
     # §5ter du doc n'est pas figé.
     inclure_ecs: false,
@@ -176,6 +202,8 @@ class DpeEngineService
     @h = hauteur_sous_plafond.to_f
     @toiture_rampants = toiture_rampants
     @ventilation = ventilation.to_sym
+    @property_type = property_type&.to_sym
+    @position_lot  = position_lot&.to_sym
     @inclure_ecs = inclure_ecs
     @coef_apports = coef_apports
     @n_override = n_ventilation_override
@@ -228,6 +256,29 @@ class DpeEngineService
 
   private
 
+  # Coefficient b de la paroi haute (toiture). Zéro quand la paroi est
+  # adjacente à un lot chauffé (appartement en RDC ou étage
+  # intermédiaire). Sinon comportement historique (B_EXTERIEUR = 1.0).
+  # NF EN ISO 13789 §5.3.
+  def b_toiture
+    return B_EXTERIEUR unless @property_type == :appartement
+    case @position_lot
+    when :rdc, :etage_intermediaire then B_MITOYEN_CHAUFFE
+    else B_EXTERIEUR # :dernier_etage → toiture réelle ; :inconnu / nil → conservateur
+    end
+  end
+
+  # Coefficient b du plancher bas. Zéro quand la paroi est adjacente à
+  # un lot chauffé (appartement en dernier étage ou intermédiaire).
+  # Sinon comportement historique (B_PLANCHER_BAS = 0.8, vide sanitaire).
+  def b_plancher_bas
+    return B_PLANCHER_BAS unless @property_type == :appartement
+    case @position_lot
+    when :dernier_etage, :etage_intermediaire then B_MITOYEN_CHAUFFE
+    else B_PLANCHER_BAS # :rdc → dalle réelle ; :inconnu / nil → conservateur
+    end
+  end
+
   def defaut_surface_murs
     perimetre = 4 * Math.sqrt(@s_sol)         # maison carrée
     brut = perimetre * @niveaux * @h
@@ -241,8 +292,8 @@ class DpeEngineService
 
   def calcul_gv
     dp_murs = B_EXTERIEUR    * @s_mur     * u_courant(:murs)
-    dp_toit = B_EXTERIEUR    * @s_toiture * u_courant(:toiture)
-    dp_pb   = B_PLANCHER_BAS * @s_pb      * u_courant(:plancher_bas)
+    dp_toit = b_toiture      * @s_toiture * u_courant(:toiture)
+    dp_pb   = b_plancher_bas * @s_pb      * u_courant(:plancher_bas)
     dp_fen  = B_EXTERIEUR    * @s_fen     * u_courant(:menuiseries)
     parois  = dp_murs + dp_toit + dp_pb + dp_fen
 

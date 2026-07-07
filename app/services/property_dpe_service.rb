@@ -56,7 +56,10 @@ class PropertyDpeService
     # Géométrie optionnelle (passée telle quelle au moteur si fournie ;
     # sinon le moteur applique ses défauts §5ter.a).
     surface_murs: nil, surface_toiture: nil, surface_plancher_bas: nil,
-    surface_fenetres: nil, nombre_fenetres: nil
+    surface_fenetres: nil, nombre_fenetres: nil,
+    # Mitoyenneté verticale (appartements) — passé tel quel au moteur.
+    # Quand les deux sont nil, comportement historique (backward-compat).
+    property_type: nil, position_lot: nil
   )
     unless etat_initial.is_a?(Hash)
       raise ArgumentError,
@@ -87,6 +90,10 @@ class PropertyDpeService
       surface_murs: surface_murs, surface_toiture: surface_toiture,
       surface_plancher_bas: surface_plancher_bas, surface_fenetres: surface_fenetres,
       nombre_fenetres: nombre_fenetres
+    }.compact
+    @opts_mitoyen = {
+      property_type: property_type,
+      position_lot:  position_lot
     }.compact
   end
 
@@ -153,7 +160,8 @@ class PropertyDpeService
       isolation_menuiseries:  etat[:isolation_menuiseries],
       ventilation:            etat[:ventilation],
       inclure_ecs:            true,
-      **@opts_geom
+      **@opts_geom,
+      **@opts_mitoyen
     )
   end
 
