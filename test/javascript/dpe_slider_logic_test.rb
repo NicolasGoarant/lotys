@@ -707,4 +707,115 @@ class DpeSliderLogicTest < ActiveSupport::TestCase
     assert st.success?, "node script a échoué : #{err}"
     assert JSON.parse(out)["intact"]
   end
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # computeBestAchievable — meilleure classe atteignable + hasUnreachable
+  # ═════════════════════════════════════════════════════════════════════════
+  # Sépare proprement les deux sémantiques que computeDominatedClasses
+  # coalesce (dominée / inatteignable) pour piloter l'affichage de la note
+  # de plafonnement dans la vue. Bug d'origine : sur une maison F où seule
+  # E était dominée par D, l'ancien code affichait « plafond D » alors
+  # que A est atteignable directement. La note confondait les sémantiques.
+
+  def run_best_achievable(current_dpe_idx:, combinaisons:, costs:, available_codes: nil)
+    payload = {
+      currentDpeIdx:  current_dpe_idx,
+      combinaisons:   combinaisons,
+      travauxCosts:   costs,
+      availableCodes: available_codes
+    }.to_json
+    script = <<~JS
+      const { computeBestAchievable } = require(#{LOGIC_FILE.inspect});
+      console.log(JSON.stringify(computeBestAchievable(JSON.parse(process.argv[1]))));
+    JS
+    out, err, st = Open3.capture3(NODE_BIN, "-e", script, payload)
+    raise "node failed (#{st.exitstatus}): #{err}" unless st.success?
+    JSON.parse(out)
+  end
+
+  # Matrice « maison F pleine » : toutes les classes A→E ont une combinaison
+  # qui les atteint. E est dominée par D (isolation_murs plus efficace ET
+  # moins cher que isolation_toiture), mais toutes les autres classes sont
+  # ATTEIGNABLES. Cas emblématique du bug corrigé.
+  COMBI_MAISON_F_TOUT_ATTEIGNABLE = {
+    ""                                                              => { "classe" => "F" },
+    "isolation_toiture"                                             => { "classe" => "E" }, # dominée par D
+    "isolation_murs"                                                => { "classe" => "D" }, # cheaper → domine E
+    "isolation_murs,isolation_toiture"                              => { "classe" => "C" },
+    "isolation_murs,isolation_toiture,menuiseries"                  => { "classe" => "B" },
+    "chauffage,isolation_murs,isolation_toiture,menuiseries,vmc"    => { "classe" => "A" }
+  }.freeze
+
+  test "CBA-maison : maison F avec toutes classes atteignables → hasUnreachable=false, bestAchievableIdx=0 (A)" do
+    r = run_best_achievable(
+      current_dpe_idx: 5,
+      combinaisons:    COMBI_MAISON_F_TOUT_ATTEIGNABLE,
+      costs:           COSTS_SYNTH
+    )
+    assert_equal false, r["hasUnreachable"],
+      "Aucune classe n'est inatteignable — hasUnreachable doit être false. Obtenu : #{r.inspect}"
+    assert_equal 0, r["bestAchievableIdx"],
+      "A est directement atteignable via la combinaison à 5 gestes → bestAchievableIdx=0. Obtenu : #{r.inspect}"
+  end
+
+  test "CBA-plafonné : bien 232 (A/B/C inatteignables, D atteignable) → hasUnreachable=true, best=D" do
+    # Repro fidèle bien 232 (copro E, 3 gestes actionnables). Cliquer A/B/C
+    # recale vers D via le fallback pessimiste ; cliquer D reste sur D.
+    combi_232 = {
+      ""                                    => { "classe" => "F" },
+      "isolation_murs"                      => { "classe" => "D" },
+      "menuiseries"                         => { "classe" => "F" },
+      "vmc"                                 => { "classe" => "F" },
+      "isolation_murs,menuiseries"          => { "classe" => "D" },
+      "isolation_murs,vmc"                  => { "classe" => "D" },
+      "menuiseries,vmc"                     => { "classe" => "E" },
+      "isolation_murs,menuiseries,vmc"      => { "classe" => "D" }
+    }
+    costs = { "isolation_murs" => 18_000, "menuiseries" => 8_000, "vmc" => 2_000 }
+    r = run_best_achievable(
+      current_dpe_idx: 4,             # bien classe E
+      combinaisons:    combi_232,
+      costs:           costs,
+      available_codes: %w[isolation_murs menuiseries vmc]
+    )
+    assert_equal true, r["hasUnreachable"],
+      "A, B, C sont inatteignables avec ces 3 gestes → hasUnreachable=true. Obtenu : #{r.inspect}"
+    assert_equal 3, r["bestAchievableIdx"],
+      "La meilleure classe réellement atteignable est D (idx=3). Obtenu : #{r.inspect}"
+  end
+
+  test "CBA-mixte : E dominée par D + tout le reste atteignable → hasUnreachable=false, pas de plafond" do
+    # Le cas exact du bug rapporté : une classe est dominée (E→D) MAIS
+    # rien n'est inatteignable au sens strict. La note ne doit PAS
+    # s'afficher — une meilleure classe (A) reste atteignable en cliquant
+    # plus haut. Avant le fix, l'ancien code prenait le min sur les
+    # marquées (E incluse, dérive D) et concluait à tort « plafond D ».
+    r = run_best_achievable(
+      current_dpe_idx: 5,
+      combinaisons:    COMBI_MAISON_F_TOUT_ATTEIGNABLE,
+      costs:           COSTS_SYNTH
+    )
+    # Le contrat clé : hasUnreachable=false. Le fait que bestAchievableIdx
+    # soit 0 (A) est cohérent avec le balayage complet ; la note serait
+    # de toute façon INHIBÉE par !hasUnreachable côté vue.
+    assert_equal false, r["hasUnreachable"],
+      "Une classe seulement dominée (E→D) ne plafonne rien. hasUnreachable doit rester false. Obtenu : #{r.inspect}"
+  end
+
+  # ─── Non-régression : la matrice E-dominée pure (sans A ni B) plafonne ─
+  test "CBA-tronqué : matrice E-dominée sans A/B → hasUnreachable=true (plafond C)" do
+    # COMBI_E_DOMINE ne contient PAS de combinaison atteignant A ou B.
+    # Cliquer A ou B tombe donc sur le fallback pessimiste vers C.
+    # C'est un cas légitimement plafonné (matrice tronquée).
+    r = run_best_achievable(
+      current_dpe_idx: 5,
+      combinaisons:    COMBI_E_DOMINE,
+      costs:           COSTS_E_DOMINE
+    )
+    assert_equal true, r["hasUnreachable"],
+      "A et B ne sont pas dans la matrice → cliquer A ou B recale vers C > i. " \
+      "hasUnreachable doit être true. Obtenu : #{r.inspect}"
+    assert_equal 2, r["bestAchievableIdx"],
+      "La meilleure classe réellement atteignable est C (idx=2). Obtenu : #{r.inspect}"
+  end
 end

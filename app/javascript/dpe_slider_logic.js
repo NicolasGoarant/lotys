@@ -234,6 +234,73 @@ function computeDominatedClasses({
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Fonction PURE — meilleure classe atteignable + drapeau d'inaccessibilité.
+//
+// Balaye TOUTES les classes strictement meilleures que la classe actuelle
+// (i ∈ [0, currentDpeIdx[), applique deriveSelectionForTarget à chacune et
+// classe chaque i en trois cas :
+//
+//   • ATTEIGNABLE   : derivedClasseIdx === i.
+//     Le drag sur i s'arrête sur i — la classe est un vrai point d'arrivée.
+//   • DOMINÉE       : derivedClasseIdx <  i.
+//     Le drag sur i recale vers MIEUX (moins cher, meilleure classe).
+//     Une classe seulement dominée NE PLAFONNE RIEN — une meilleure
+//     classe est atteignable en cliquant plus haut.
+//   • INATTEIGNABLE : derivedClasseIdx >  i.
+//     La matrice tombe sur le fallback pessimiste. Aucun geste combiné
+//     dans le périmètre ne descend jusqu'à i.
+//
+// Retour :
+//   {
+//     bestAchievableIdx: min(derivedClasseIdx) sur i ∈ [0, currentDpeIdx[
+//                       — inclut les i atteignables (dérivent i eux-mêmes)
+//                       ET les valeurs dérivées des dominées / inatteignables
+//                       (car dériver = la meilleure classe réellement obtenue
+//                        pour cette cible). Au pire currentDpeIdx (pas de
+//                        classe meilleure atteinte).
+//     hasUnreachable   : true dès qu'il existe un i tel que derivedClasseIdx > i.
+//                       C'est le PRÉDICAT QUI PILOTE l'affichage de la note
+//                       de plafonnement dans la vue — un cas purement dominé
+//                       (E → D sur une maison F) ne doit RIEN afficher.
+//   }
+//
+// ── Pourquoi séparer bestAchievableIdx et hasUnreachable ──
+// L'ancien code de la vue calculait bestAchievableIdx en itérant sur les
+// classes MARQUÉES par computeDominatedClasses (sémantique coalescée
+// dominée/inatteignable). Sur une maison F où seule E était dominée par D,
+// le min tombait sur D et la note affichait « plafond D » alors que
+// A est atteignable directement en cliquant A. La note confondait les
+// deux sémantiques que le commit 42f7bc8 avait pourtant introduites côté
+// tooltip. On sépare ici proprement : la meilleure classe atteignable est
+// TOUJOURS calculée sur le balayage complet, et l'AFFICHAGE de la note
+// est conditionné à hasUnreachable (pas de note quand rien n'est plafonné).
+function computeBestAchievable({
+  currentDpeIdx,
+  combinaisons,
+  travauxCosts,
+  availableCodes
+}) {
+  var bestAchievableIdx = currentDpeIdx;
+  var hasUnreachable = false;
+  for (var i = 0; i < currentDpeIdx; i++) {
+    var res = deriveSelectionForTarget({
+      currentDpeIdx: currentDpeIdx,
+      targetIdx: i,
+      combinaisons: combinaisons,
+      travauxCosts: travauxCosts,
+      availableCodes: availableCodes
+    });
+    if (res.derivedClasseIdx < bestAchievableIdx) {
+      bestAchievableIdx = res.derivedClasseIdx;
+    }
+    if (res.derivedClasseIdx > i) {
+      hasUnreachable = true;
+    }
+  }
+  return { bestAchievableIdx: bestAchievableIdx, hasUnreachable: hasUnreachable };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Fonction PURE — lit l'index du segment cliqué depuis son data-idx.
 //
 // Utilisée par le event delegation sur .dpe-track côté vue. Extraite ici
@@ -262,6 +329,7 @@ if (typeof module !== 'undefined' && module.exports) {
     deriveSelectionForTarget,
     deriveTargetFromSelection,
     computeDominatedClasses,
+    computeBestAchievable,
     targetIdxFromSegment
   };
 }

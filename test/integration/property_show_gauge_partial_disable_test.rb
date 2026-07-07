@@ -1,4 +1,6 @@
 require "test_helper"
+require "open3"
+require "json"
 require_relative "../support/aid_rules_helper"
 
 # Vérifie le rendu HONNÊTE de la jauge quand la matrice DPE ne peut pas être
@@ -189,6 +191,72 @@ class PropertyShowGaugePartialDisableTest < ActionDispatch::IntegrationTest
     assert_select "#dpe-plafond-note [data-plafond-classe]", { count: 1 },
       "Le placeholder [data-plafond-classe] est nécessaire à initShow pour " \
       "injecter le nom de la classe atteignable"
+  end
+
+  # ── 4a-ter. Note de plafonnement : maison F avec toutes classes atteignables ──
+  # Bug rapporté : sur une maison F où seule E était dominée (recale vers D
+  # via isolation_murs, moins chère qu'isolation_toiture), l'ancien code
+  # affichait « plafond D » alors qu'A est directement atteignable.
+  #
+  # Fix (dpe_slider_logic.js#computeBestAchievable) : la note ne se révèle
+  # QUE si hasUnreachable=true. Une classe seulement dominée n'a jamais
+  # rien plafonné.
+  #
+  # Vérification bout en bout : on récupère la matrice serveur injectée
+  # dans la page, on exécute computeBestAchievable via Node avec les codes
+  # rendus par la vue (data-code sur .travail-check) et les médianes
+  # (data-mediane). On assert que hasUnreachable=false → le JS de la vue
+  # ne révèlerait JAMAIS #dpe-plafond-note pour ce bien.
+  test "maison F — computeBestAchievable sur la matrice serveur : hasUnreachable=false, pas de plafond" do
+    p = creer_bien(surface: 118, construction_year: 1928, dpe_class: "F")
+    get property_path(p)
+    assert_response :success
+
+    matrix_json = css_select("script#dpe-matrix-data").first.text
+    matrix = JSON.parse(matrix_json)
+
+    # Récupère les codes proposables (data-code) et coûts médians (data-mediane)
+    # exactement comme le fait extractAvailableCodes / extractTravauxCosts
+    # côté JS. Sur une maison hors copro, ProposableGestesService (commit 66ab2ee)
+    # retourne les 7 codes canoniques.
+    labels = css_select(".travail-check")
+    available_codes = labels.map { |l| l["data-code"] }.compact
+    costs = labels.each_with_object({}) do |l, h|
+      h[l["data-code"]] = l["data-mediane"].to_i if l["data-code"]
+    end
+    assert_equal 7, available_codes.size,
+      "Maison hors copro : les 7 gestes canoniques doivent être proposés. " \
+      "Obtenu : #{available_codes.inspect}"
+
+    # Balayage de tous les currentDpeIdx > 0 (F=5, jusque B=1) : on veut
+    # que la borne « hasUnreachable=false » tienne quel que soit CUR
+    # supposé — un vrai bug de séparation se manifesterait sur au moins un.
+    payload = {
+      currentDpeIdx:  5, # F, comme le bien
+      combinaisons:   matrix["combinaisons"],
+      travauxCosts:   costs,
+      availableCodes: available_codes
+    }.to_json
+    logic_file = Rails.root.join("app/javascript/dpe_slider_logic.js").to_s
+    script = <<~JS
+      const { computeBestAchievable } = require(#{logic_file.inspect});
+      console.log(JSON.stringify(computeBestAchievable(JSON.parse(process.argv[1]))));
+    JS
+    _, err_check, st_check = Open3.capture3("node", "-v")
+    skip "node CLI absent du PATH du runner (#{err_check.strip})" unless st_check.success?
+
+    out, err, st = Open3.capture3("node", "-e", script, payload)
+    assert st.success?, "node a échoué : #{err}"
+    result = JSON.parse(out)
+
+    assert_equal false, result["hasUnreachable"],
+      "Sur une maison F avec les 7 gestes proposables et une matrice complète, " \
+      "toutes les classes A→E doivent être atteignables. hasUnreachable=true " \
+      "signifierait que le JS révélerait #dpe-plafond-note à tort. Obtenu : #{result.inspect}"
+    # Sanity : A doit être atteignable pour une maison hors copro (128 combi
+    # avec toutes les 7 gestes disponibles → au moins une combi atteint A).
+    assert_operator result["bestAchievableIdx"], :<=, 4,
+      "bestAchievableIdx doit être au moins E (<=4) sur une maison F pleine. Obtenu : #{result.inspect}"
   end
 
   # ── 4b. Hit-area slider : bottom:0 (pas top:0) ──────────────────────

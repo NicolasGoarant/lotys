@@ -1355,7 +1355,6 @@ function initShow(){
       availableCodes: availInit
     });
     var segs = document.querySelectorAll('.dpe-seg');
-    var bestAchievableIdx = CUR;   // meilleure classe atteignable
     dominated.forEach(function(i){
       var seg = segs[i];
       if(!seg) return;
@@ -1387,23 +1386,33 @@ function initShow(){
                     'pour ce bien. La meilleure classe atteignable est ' +
                     dpe_all[alt.derivedClasseIdx] + '.';
       }
-      // On mémorise la meilleure classe RÉELLEMENT atteignable en
-      // balayant les recalages (idx le plus bas rencontré).
-      if (alt.derivedClasseIdx < bestAchievableIdx) {
-        bestAchievableIdx = alt.derivedClasseIdx;
-      }
     });
 
-    // ── Message permanent sous la jauge quand la meilleure classe
-    //    atteignable est capée (au moins une classe meilleure est
-    //    inatteignable). Le user sait AVANT toute interaction que
-    //    D → D ne signale pas une panne mais un plafond honnête.
-    //    Rendu masqué par défaut (cf. #dpe-plafond-note) — on ne
-    //    l'affiche qu'ici, quand on connaît bestAchievableIdx.
+    // ── Message permanent sous la jauge : plafond HONNÊTE ─────────────
+    // Se déclenche UNIQUEMENT quand il existe au moins une classe
+    // INATTEIGNABLE (dominationKind === 'unreachable'). Une classe
+    // seulement DOMINÉE (E → D sur une maison F) ne plafonne rien : une
+    // meilleure classe (A, B, C, D) est atteignable en cliquant plus
+    // haut. Le prédicat pur computeBestAchievable renvoie hasUnreachable
+    // qui traduit exactement ce contrat — voir dpe_slider_logic.js.
+    //
+    // Bug historique corrigé ici : l'ancien code prenait le min sur les
+    // classes MARQUÉES par computeDominatedClasses (sémantique coalescée
+    // dominée+inatteignable), et affichait « plafond D » sur une maison F
+    // où seule E était dominée. Confusion des deux sémantiques.
+    var achievable = computeBestAchievable({
+      currentDpeIdx:  CUR,
+      combinaisons:   DPE_MATRIX.combinaisons,
+      travauxCosts:   costsInit,
+      availableCodes: availInit
+    });
     var plafondNote = document.getElementById('dpe-plafond-note');
-    if (plafondNote && bestAchievableIdx > 0 && bestAchievableIdx < CUR) {
+    if (plafondNote &&
+        achievable.hasUnreachable &&
+        achievable.bestAchievableIdx > 0 &&
+        achievable.bestAchievableIdx < CUR) {
       plafondNote.querySelector('[data-plafond-classe]').textContent =
-        dpe_all[bestAchievableIdx];
+        dpe_all[achievable.bestAchievableIdx];
       plafondNote.style.display = 'block';
     }
   }
