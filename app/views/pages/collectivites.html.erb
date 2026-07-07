@@ -23,9 +23,15 @@
                letter-spacing:-0.03em; max-width:20ch;">
       Pour que vos habitants voient un parcours, <span class="text-emerald-400">plutôt qu'une administration.</span>
     </h1>
-    <%= link_to "Échangeons 30 minutes", "mailto:contact@lauze.eu",
-        class: "inline-flex items-center gap-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold px-8 py-4 rounded-2xl transition-colors",
-        style: "font-size:1.15rem;" %>
+    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+      <%= link_to "Voir un portail en conditions réelles →",
+          collectivite_portail_path(slug: "grand-nancy"),
+          class: "inline-flex items-center justify-center gap-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold px-8 py-4 rounded-2xl transition-colors",
+          style: "font-size:1.15rem;" %>
+      <%= link_to "Discutons de votre territoire", "#prendre-contact",
+          class: "inline-flex items-center justify-center gap-3 border-2 border-white/40 hover:border-white/80 hover:bg-white/5 text-white font-bold px-8 py-4 rounded-2xl transition-colors",
+          style: "font-size:1.15rem;" %>
+    </div>
   </div>
 </div>
 
@@ -170,7 +176,7 @@
       photo_path: "NG.png" %>
 
 <%# ── CTA final ── %>
-<section class="px-6" style="padding-top:96px; padding-bottom:112px;">
+<section id="prendre-contact" class="px-6" style="padding-top:96px; padding-bottom:112px; scroll-margin-top:24px;">
   <div class="max-w-3xl mx-auto">
     <p style="font-size:.8125rem; font-weight:800; color:#059669;
               text-transform:uppercase; letter-spacing:.14em; margin:0 0 16px;">
