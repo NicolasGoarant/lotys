@@ -153,6 +153,18 @@ class DpeEngineService
     pac:         7,                # CET thermodynamique COP_ECS ≈ 2,5
   }.freeze
 
+  # Type de production ECS, indépendant de l'énergie de chauffage.
+  #   :standard — l'ECS suit l'énergie de chauffage (comportement historique) :
+  #               ballon perf. sur bâti gaz/fioul/bois, cumulus sur bâti élec,
+  #               ECS intégrée à la PAC quand le chauffage est une PAC.
+  #   :cet      — chauffe-eau thermodynamique (CET, COP_ECS ≈ 2,5). Toujours
+  #               électrique — bascule energie_ecs sur :pac, quelle que soit
+  #               l'énergie de chauffage. Anti-double-compte : quand le
+  #               chauffage est déjà :pac, :cet donne le même résultat que
+  #               :standard (la PAC couvre déjà l'ECS ; ECS_FORFAIT_EF[:pac]
+  #               s'applique dans les deux cas).
+  TYPES_ECS = %i[standard cet].freeze
+
   ORDRE_CLASSES = %w[A B C D E F G].freeze
 
   def self.call(**kw) = new(**kw).call
@@ -184,6 +196,10 @@ class DpeEngineService
     # Switches / overrides de calibrage — restent ouverts tant que le
     # §5ter du doc n'est pas figé.
     inclure_ecs: false,
+    # Type de production ECS (cf. TYPES_ECS). :standard = comportement
+    # historique (ECS suit l'énergie de chauffage), :cet = chauffe-eau
+    # thermodynamique électrique. Défaut :standard → non-régression.
+    type_ecs: :standard,
     coef_apports: COEF_APPORTS_DEFAUT,
     n_ventilation_override: nil,
     rerd: RERD_DEFAUT
@@ -205,6 +221,7 @@ class DpeEngineService
     @property_type = property_type&.to_sym
     @position_lot  = position_lot&.to_sym
     @inclure_ecs = inclure_ecs
+    @type_ecs    = type_ecs.to_sym
     @coef_apports = coef_apports
     @n_override = n_ventilation_override
     @rerd = rerd
@@ -222,11 +239,22 @@ class DpeEngineService
     gv_data = calcul_gv
     bch = @coef_apports * gv_data[:gv] * DH14.fetch(@zone) / 1000.0
     conso_ch  = bch / (RG.fetch(@energie) * @rerd)
-    conso_ecs = @inclure_ecs ? ECS_FORFAIT_EF.fetch(@energie) * @s_hab : 0.0
+    ecs_energie = energie_ecs
+    conso_ecs = @inclure_ecs ? ECS_FORFAIT_EF.fetch(ecs_energie) * @s_hab : 0.0
     conso_finale = conso_ch + conso_ecs
 
-    ep  = conso_finale * FACTEUR_EP.fetch(@energie)
-    co2 = conso_finale * FACTEUR_CO2.fetch(@energie)
+    # Cas standard (ECS suit l'énergie de chauffage) : chemin bit-exact
+    # historique — un unique facteur EP/CO2 sur la conso finale totale.
+    # Cas :cet (ECS électrique) : facteurs EP/CO2 différenciés par flux
+    # énergétique — le facteur électrique 1,9 EP et 0,079 CO2 s'applique
+    # à la conso ECS quand l'ECS bascule sur :pac.
+    if ecs_energie == @energie
+      ep  = conso_finale * FACTEUR_EP.fetch(@energie)
+      co2 = conso_finale * FACTEUR_CO2.fetch(@energie)
+    else
+      ep  = conso_ch  * FACTEUR_EP.fetch(@energie)  + conso_ecs * FACTEUR_EP.fetch(ecs_energie)
+      co2 = conso_ch  * FACTEUR_CO2.fetch(@energie) + conso_ecs * FACTEUR_CO2.fetch(ecs_energie)
+    end
     ep_m2  = ep / @s_hab
     co2_m2 = co2 / @s_hab
     cl_e = classe(ep_m2, SEUILS_EP)
@@ -255,6 +283,16 @@ class DpeEngineService
   end
 
   private
+
+  # Énergie effectivement consommée par l'ECS. Défaut :standard → l'ECS
+  # suit l'énergie de chauffage (rétro-compat). :cet → l'ECS est produite
+  # par un chauffe-eau thermodynamique électrique, indexé sur :pac
+  # (COP_ECS ≈ 2,5 → 7 kWhEF/m²) avec facteurs EP/CO2 de l'électricité.
+  # Cas particulier :pac + :cet → energie_ecs reste :pac (déjà couvert
+  # par la PAC) : anti-double-compte intrinsèque.
+  def energie_ecs
+    @type_ecs == :cet ? :pac : @energie
+  end
 
   # Coefficient b de la paroi haute (toiture). Zéro quand la paroi est
   # adjacente à un lot chauffé (appartement en RDC ou étage

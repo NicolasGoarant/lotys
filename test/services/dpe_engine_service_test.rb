@@ -415,4 +415,93 @@ class DpeEngineServiceTest < ActiveSupport::TestCase
       "Un appartement étage intermédiaire doit voir son GV initial réduit d'au moins 30 % " \
       "(mitoyenneté haut+bas). Obtenu #{reduction_pct.round(1)} %."
   end
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # type_ecs — chauffe-eau thermodynamique découplé de l'énergie de chauffage
+  # ═════════════════════════════════════════════════════════════════════════
+  # Défaut :standard → ECS suit l'énergie de chauffage (rétro-compat exacte,
+  # au kWh près, comme pour la mitoyenneté). :cet → l'ECS bascule sur :pac
+  # (7 kWhEF/m², facteurs EP/CO2 électriques). Anti-double-compte quand le
+  # chauffage est déjà :pac : les deux modes donnent le MÊME résultat.
+
+  test "type_ecs par défaut :standard — comportement STRICTEMENT identique à sans le param" do
+    r_sans   = DpeEngineService.call(**ORACLE_BASE.merge(ETAT_NON_ISOLE))
+    r_avec   = DpeEngineService.call(**ORACLE_BASE.merge(ETAT_NON_ISOLE), type_ecs: :standard)
+    assert_equal r_sans[:conso_ep_m2],      r_avec[:conso_ep_m2],       "EP inchangé"
+    assert_equal r_sans[:conso_carbone_m2], r_avec[:conso_carbone_m2],  "CO2 inchangé"
+    assert_equal r_sans[:_details][:conso_ecs_final_kwh],
+                 r_avec[:_details][:conso_ecs_final_kwh],               "ECS EF inchangée"
+  end
+
+  # Ancres §7 rejouées avec :standard explicite : rien ne bouge.
+  test "ANCRAGE oracle §7 avec type_ecs: :standard explicite — chiffres exacts inchangés" do
+    av = DpeEngineService.call(**ORACLE_BASE.merge(ETAT_NON_ISOLE),      type_ecs: :standard)
+    ap = DpeEngineService.call(**ORACLE_BASE.merge(ETAT_TRAVAUX_ORACLE), type_ecs: :standard)
+    assert_equal 302.8, av[:conso_ep_m2]
+    assert_equal 90.8,  av[:conso_carbone_m2]
+    assert_equal 107.0, ap[:conso_ep_m2]
+    assert_equal 32.1,  ap[:conso_carbone_m2]
+  end
+
+  test ":cet sur gaz — la conso ECS EF passe de 15 kWhEF/m² à 7 kWhEF/m² (delta 960 kWh sur 120 m²)" do
+    base = ORACLE_BASE.merge(ETAT_NON_ISOLE) # energie_chauffage: :fioul par défaut
+    # On force :gaz pour un cas net (ballon gaz classique).
+    std = DpeEngineService.call(**base, energie_chauffage: :gaz, type_ecs: :standard)
+    cet = DpeEngineService.call(**base, energie_chauffage: :gaz, type_ecs: :cet)
+    # ECS EF : (15 - 7) × 120 = 960 kWh
+    assert_equal 960, std[:_details][:conso_ecs_final_kwh] - cet[:_details][:conso_ecs_final_kwh],
+      "Delta ECS EF entre ballon gaz (15) et CET (:pac 7) doit valoir 8 × 120 = 960 kWh"
+  end
+
+  test ":cet sur gaz — delta EP modéré (~1,7 kWhEP/m², le facteur EP élec 1,9 mange le gain EF)" do
+    # ECS ballon gaz : 15 × 1.0 = 15,0 kWhEP/m²
+    # ECS CET (élec) :  7 × 1.9 = 13,3 kWhEP/m²
+    # Delta attendu : 1,7 kWhEP/m² — bien inférieur au « 5-8 » supposé dans
+    # le diagnostic. Le vrai levier du CET sur gaz est le CO2, pas l'EP.
+    base = ORACLE_BASE.merge(ETAT_NON_ISOLE)
+    std = DpeEngineService.call(**base, energie_chauffage: :gaz, type_ecs: :standard)
+    cet = DpeEngineService.call(**base, energie_chauffage: :gaz, type_ecs: :cet)
+    delta_ep = std[:conso_ep_m2] - cet[:conso_ep_m2]
+    assert_operator cet[:conso_ep_m2], :<, std[:conso_ep_m2],
+      "EP avec CET doit être strict inf à ballon gaz (std=#{std[:conso_ep_m2]} cet=#{cet[:conso_ep_m2]})"
+    assert_in_delta 1.7, delta_ep, 0.3,
+      "Delta EP CET sur gaz attendu ~1,7 kWhEP/m² (obtenu #{delta_ep})"
+  end
+
+  test ":cet sur gaz — CO2 chute nettement (élec décarbonée 0,079 vs gaz 0,234)" do
+    # ECS ballon gaz : 15 × 0,234 = 3,51 kgCO2/m²
+    # ECS CET (élec) :  7 × 0,079 = 0,55 kgCO2/m²
+    # Delta attendu   : ~2,96 kgCO2/m² — vrai levier du CET sur gaz.
+    base = ORACLE_BASE.merge(ETAT_NON_ISOLE)
+    std = DpeEngineService.call(**base, energie_chauffage: :gaz, type_ecs: :standard)
+    cet = DpeEngineService.call(**base, energie_chauffage: :gaz, type_ecs: :cet)
+    delta_co2 = std[:conso_carbone_m2] - cet[:conso_carbone_m2]
+    assert_in_delta 2.96, delta_co2, 0.3
+  end
+
+  test ":cet quand energie_chauffage=:pac — résultat IDENTIQUE à :standard (anti-double-compte)" do
+    # La PAC couvre déjà l'ECS (ECS_FORFAIT_EF[:pac] = 7 kWhEF/m²) en mode
+    # :standard. Rajouter :cet ne peut pas faire mieux — energie_ecs reste
+    # :pac dans les deux cas. C'est la sémantique explicitement demandée.
+    base = ORACLE_BASE.merge(ETAT_NON_ISOLE)
+    std = DpeEngineService.call(**base, energie_chauffage: :pac, type_ecs: :standard)
+    cet = DpeEngineService.call(**base, energie_chauffage: :pac, type_ecs: :cet)
+    assert_equal std[:conso_ep_m2],       cet[:conso_ep_m2]
+    assert_equal std[:conso_carbone_m2],  cet[:conso_carbone_m2]
+    assert_equal std[:_details][:conso_ecs_final_kwh],
+                 cet[:_details][:conso_ecs_final_kwh]
+  end
+
+  test ":cet sur électricité (Joule) — delta EP fort (~19 kWhEP/m², cumulus 17 → CET 7 × 1.9)" do
+    # Sur bâti chauffé à l'électricité, l'ECS standard est un cumulus
+    # (17 kWhEF/m² × 1,9 = 32,3 kWhEP/m²). Le CET (7 × 1,9 = 13,3 kWhEP/m²)
+    # divise l'EP ECS par ~2,4. Delta attendu ≈ 19 kWhEP/m² — ordre de
+    # grandeur cité dans le diagnostic ; le vrai levier du CET est bien là.
+    base = ORACLE_BASE.merge(ETAT_NON_ISOLE)
+    std = DpeEngineService.call(**base, energie_chauffage: :electricite, type_ecs: :standard)
+    cet = DpeEngineService.call(**base, energie_chauffage: :electricite, type_ecs: :cet)
+    delta_ep = std[:conso_ep_m2] - cet[:conso_ep_m2]
+    assert_in_delta 19.0, delta_ep, 1.0,
+      "Delta EP CET vs cumulus élec attendu ~19 kWhEP/m² (obtenu #{delta_ep})"
+  end
 end
