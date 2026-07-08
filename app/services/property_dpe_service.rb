@@ -139,11 +139,14 @@ class PropertyDpeService
     when "vmc"                    then etat.merge(ventilation: :vmc_double_flux)
     when "chauffage"              then etat.merge(energie_chauffage: @energie_cible)
     when "chauffe_eau"
-      # DpeEngineService n'a qu'UNE énergie pour chauffage ET ECS (cf.
-      # §5ter.d : ECS_FORFAIT_EF est indexé par energie_chauffage). Un geste
-      # « chauffe-eau » seul n'est donc pas modélisable au Temps 2 sans
-      # étendre DpeEngineService. Geste sans effet — limite documentée.
-      etat
+      # Installation d'un chauffe-eau thermodynamique (CET, COP_ECS ≈ 2,5).
+      # DpeEngineService reçoit type_ecs: :cet et bascule l'ECS sur :pac.
+      # Anti-double-compte : quand le geste chauffage est également coché
+      # ET l'énergie cible est déjà :pac, le moteur voit energie_ecs=:pac
+      # dans les deux modes (:standard et :cet) — le CET est neutre, la
+      # PAC couvre déjà l'ECS. La sémantique est portée par le moteur
+      # (cf. energie_ecs privé), pas par un test spécial ici.
+      etat.merge(type_ecs: :cet)
     else etat
     end
   end
@@ -160,6 +163,9 @@ class PropertyDpeService
       isolation_menuiseries:  etat[:isolation_menuiseries],
       ventilation:            etat[:ventilation],
       inclure_ecs:            true,
+      # :standard par défaut → chemin bit-exact historique du moteur ;
+      # posé à :cet par le geste chauffe_eau (cf. appliquer_geste).
+      type_ecs:               etat[:type_ecs] || :standard,
       **@opts_geom,
       **@opts_mitoyen
     )

@@ -263,4 +263,61 @@ class PropertyDpeMatrixServiceTest < ActiveSupport::TestCase
                  r.dig(:meta, :gestes_proposables).sort,
       "Une maison expose l'ensemble canonique dans meta[:gestes_proposables]."
   end
+
+  # ────────────────────────────────────────────────────────────────────────
+  # 9. Geste chauffe_eau câblé (bien 127 style : appartement copro E gaz)
+  # ────────────────────────────────────────────────────────────────────────
+  # Avant : chauffe_eau était un no-op ; chaque clé avec chauffe_eau
+  # rendait strictement le même ep_m2/co2_m2 que sa jumelle sans (symptôme
+  # observé sur le bien local 127 : combi vmc+murs+menuiseries et combi
+  # chauffe_eau+vmc+murs+menuiseries → 124,0 EP identique). Après :
+  # bascule ECS sur :pac dans le moteur, les clés avec chauffe_eau
+  # descendent strictement en dessous de leurs jumelles sans.
+
+  test "clés avec chauffe_eau descendent sous leurs jumelles sans (bien copro gaz — profil bien 127)" do
+    r = PropertyDpeMatrixService.call(appartement_copro_gaz_collectif)
+    combi = r[:combinaisons]
+    # Toutes les clés sans chauffe_eau qui ont une jumelle avec.
+    paires_verifiees = 0
+    combi.keys.reject { |k| k.split(",").include?("chauffe_eau") }.each do |cle_sans|
+      cle_avec = (cle_sans.split(",").reject(&:empty?) + ["chauffe_eau"]).sort.join(",")
+      next unless combi[cle_avec]
+
+      ep_sans, ep_avec   = combi[cle_sans][:ep_m2],  combi[cle_avec][:ep_m2]
+      co2_sans, co2_avec = combi[cle_sans][:co2_m2], combi[cle_avec][:co2_m2]
+      # Sur bien gaz : ep_avec < ep_sans (delta ~1,7) ET co2_avec < co2_sans (delta ~3).
+      assert_operator ep_avec, :<, ep_sans,
+        "chauffe_eau doit strict réduire ep_m2 " \
+        "(clé sans=#{cle_sans.inspect} avec=#{cle_avec.inspect} : #{ep_sans} → #{ep_avec})"
+      assert_operator co2_avec, :<, co2_sans,
+        "chauffe_eau doit strict réduire co2_m2 sur bien gaz " \
+        "(clé sans=#{cle_sans.inspect} : #{co2_sans} → #{co2_avec})"
+      paires_verifiees += 1
+    end
+    assert_operator paires_verifiees, :>, 0,
+      "Aucune paire jumelée trouvée — chauffe_eau n'est plus dans la matrice ?"
+  end
+
+  test "priorite_gestes : chauffe_eau a un gain EP > 0 sur bien gaz (n'est plus un no-op)" do
+    r = PropertyDpeMatrixService.call(appartement_copro_gaz_collectif)
+    ce = r[:priorite_gestes].find { |i| i[:code] == "chauffe_eau" }
+    assert ce, "chauffe_eau doit apparaître dans priorite_gestes"
+    # Sur gaz : gain EP modéré (~1,7 kWhEP/m²) mais strict > 0.
+    assert_operator ce[:gain_ep], :>, 0.0,
+      "chauffe_eau ne doit plus rendre 0 sur bien gaz — obtenu #{ce[:gain_ep]}"
+    assert_operator ce[:gain_co2], :>, 0.0,
+      "chauffe_eau doit aussi améliorer le CO2 sur gaz — obtenu #{ce[:gain_co2]}"
+  end
+
+  test "priorite_gestes : chauffe_eau reste neutre sur bien PAC (anti-double-compte)" do
+    # Le chauffage étant déjà :pac, energie_ecs = :pac dans les deux modes
+    # (:standard et :cet). Le CET est redondant → gain nul, comme pour le
+    # geste chauffage sur ce bien.
+    r = PropertyDpeMatrixService.call(maison_pac_non_isolee)
+    ce = r[:priorite_gestes].find { |i| i[:code] == "chauffe_eau" }
+    assert_in_delta 0.0, ce[:gain_ep], 0.5,
+      "chauffe_eau sur bien déjà PAC doit rester neutre — obtenu #{ce[:gain_ep]}"
+    assert_in_delta 0.0, ce[:gain_co2], 0.1,
+      "chauffe_eau sur bien déjà PAC — CO2 doit rester neutre"
+  end
 end
