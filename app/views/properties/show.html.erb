@@ -559,20 +559,29 @@
         <% end %>
       </div>
       <% if dpe_matrix %>
-        <p class="lbl" id="dpe-estim-lbl" style="text-align:center;margin-bottom:6px;color:#059669;font-size:.66rem;">
-          Objectif : <span id="dpe-estim-val"><%= dpe_all[tgt_idx] %></span> · estimation indicative · glissez la jauge : les travaux s'ajustent à la cible
+        <%# ── Ligne OBJECTIF : classe DPE (donnée dominante, réglementaire)
+             fusionnée avec l'EP de la sélection courante (bien 266).
+             Structure :
+               « Objectif : C · ≈ 114 kWh/m²/an (estimation indicative) »
+             Le « · », le « ≈ », l'unité et l'annotation « (estimation
+             indicative) » sont TOUS à l'intérieur de #dpe-ep-estim. Quand
+             la matrice n'a pas d'entrée pour la combinaison courante,
+             updateEpDisplay masque ce span et la ligne se réduit à
+             « Objectif : C » — pas de « · » ni de « ≈ » orphelin.
+             #dpe-ep-estim démarre masqué (display:none) et est révélé par
+             initShow → recalcTravaux → updateEpDisplay. Le JS a été
+             adapté pour poser display='' (span inline) au lieu de 'block'. -%>
+        <p id="dpe-estim-lbl"
+           style="text-align:center;margin:0 0 2px;font-size:.85rem;color:#059669;font-weight:700;">
+          <span style="text-transform:uppercase;letter-spacing:.06em;">Objectif :</span>
+          <span id="dpe-estim-val" style="font-weight:800;font-size:1.05rem;"><%= dpe_all[tgt_idx] %></span><span id="dpe-ep-estim" style="display:none;">
+            · ≈ <strong id="dpe-ep-val"></strong>&nbsp;kWh/m²/an
+            <span style="font-weight:500;font-size:.72rem;color:#78716c;">(estimation indicative)</span></span>
         </p>
-        <%# Consommation EP de la sélection courante — lue dans la matrice
-             serveur (ep_m2 par combinaison). Rendu MASQUÉ par défaut ;
-             initShow le révèle avec la valeur de la sélection initiale.
-             Utilité produit (bien 266) : deux jeux de travaux différents
-             peuvent tomber sur la même classe (A → A) mais avec des EP
-             très différents — la classe seule cache le delta de conso.
-             Donner l'EP à l'utilisateur lui permet de voir ce que les
-             gestes supplémentaires lui apportent réellement. -%>
-        <p id="dpe-ep-estim"
-           style="display:none;text-align:center;margin:-2px 0 6px;color:#065f46;font-size:.66rem;">
-          ≈ <span id="dpe-ep-val"></span> kWh/m²/an <span style="color:#78716c;">(estimation indicative)</span>
+        <%# Mode d'emploi du slider — secondaire, sur sa propre ligne,
+             discret pour ne pas concurrencer la ligne OBJECTIF. -%>
+        <p style="text-align:center;margin:0 0 10px;color:#9ca3af;font-size:.66rem;">
+          Glissez la jauge : les travaux s'ajustent à la cible.
         </p>
         <%# Microtexte de recalage — masqué par défaut, révélé par
              onSliderChange quand la sémantique "au moins X" a recalé
@@ -932,17 +941,21 @@ var TRAVAUX_DIRTY = false;
 var LAST_TGT_IDX = null;
 var LAST_EP_M2   = null;
 
-// Met à jour l'affichage EP (« ≈ NN kWh/m²/an ») sous la ligne Objectif.
-// Rendu MASQUÉ dans l'ERB par défaut — on le révèle dès qu'on a une
-// valeur typée à afficher. Si l'ep_m2 n'est pas dans la matrice (matrice
-// tronquée, cas dégradé), on masque le conteneur — pas de valeur inventée.
+// Met à jour l'affichage EP (« · ≈ NN kWh/m²/an ») fusionné dans la ligne
+// Objectif. Rendu MASQUÉ dans l'ERB par défaut — on le révèle dès qu'on a
+// une valeur typée. Si l'ep_m2 n'est pas dans la matrice (matrice tronquée,
+// cas dégradé), on masque le conteneur — pas de valeur inventée, et la
+// ligne Objectif reste seule sans « · » ni « ≈ » orphelin.
+// Le conteneur est un <span> inline dans la ligne Objectif ; on retire
+// simplement l'inline style display:none pour laisser le CSS reprendre
+// (span → inline). Poser 'block' casserait l'inline layout.
 function updateEpDisplay(epM2){
   var wrap = document.getElementById('dpe-ep-estim');
   var val  = document.getElementById('dpe-ep-val');
   if(!wrap || !val) return;
   if(typeof epM2 === 'number'){
     val.textContent = Math.round(epM2);
-    wrap.style.display = 'block';
+    wrap.style.display = '';
   } else {
     wrap.style.display = 'none';
   }
